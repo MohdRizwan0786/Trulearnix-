@@ -8,13 +8,13 @@ import User from '../models/User';
 import Transaction from '../models/Transaction';
 import { AuthRequest } from '../middleware/auth';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!
-});
+const razorpay = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_ID !== 'your_razorpay_key'
+  ? new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID!, key_secret: process.env.RAZORPAY_KEY_SECRET! })
+  : null;
 
 export const createOrder = async (req: AuthRequest, res: Response) => {
   try {
+    if (!razorpay) return res.status(503).json({ success: false, message: 'Payment gateway not configured yet' });
     const { courseId, affiliateCode } = req.body;
     const course = await Course.findById(courseId);
     if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
@@ -24,7 +24,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
 
     const amount = (course.discountPrice || course.price) * 100; // paise
 
-    const order = await razorpay.orders.create({
+    const order = await (razorpay as any).orders.create({
       amount,
       currency: 'INR',
       receipt: `order_${Date.now()}`,
