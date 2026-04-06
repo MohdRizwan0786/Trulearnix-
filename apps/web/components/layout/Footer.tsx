@@ -1,3 +1,4 @@
+'use client'
 import Link from 'next/link'
 import { BookOpen, Mail, Phone, MapPin, Youtube, Instagram, Twitter, Linkedin } from 'lucide-react'
 
@@ -44,16 +45,8 @@ export default function Footer() {
                 { Icon: Linkedin,  href: '#' },
               ].map(({ Icon, href }, i) => (
                 <a key={i} href={href}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:text-violet-400 transition-all"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:text-violet-400 hover:bg-violet-500/15 hover:border-violet-500/30 transition-all"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.06)' }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.15)'
-                    ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,58,237,0.3)'
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'
-                    ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'
-                  }}
                 >
                   <Icon className="w-4 h-4" />
                 </a>

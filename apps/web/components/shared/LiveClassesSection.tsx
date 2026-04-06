@@ -55,8 +55,6 @@ export default function LiveClassesSection() {
                 transition={{ delay: i * 0.09 }} viewport={{ once: true }}
                 className="flex items-center gap-4 rounded-2xl p-4 hover:scale-[1.01] transition-all duration-200 group cursor-pointer"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(124,58,237,0.3)')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
               >
                 <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${cls.color} flex items-center justify-center flex-shrink-0 shadow-lg`}>
                   <Video className="w-6 h-6 text-white" />

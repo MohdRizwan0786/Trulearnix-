@@ -20,8 +20,6 @@ function CourseCard({ course, i }: { course: any; i: number }) {
       <Link href={`/courses/${course.slug}`}
         className="flex flex-col h-full rounded-2xl overflow-hidden group transition-all duration-300 hover:-translate-y-1"
         style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-        onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)')}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
       >
         {/* Thumbnail */}
         <div className="relative aspect-video overflow-hidden">
