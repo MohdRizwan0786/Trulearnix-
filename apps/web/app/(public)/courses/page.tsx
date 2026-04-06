@@ -24,7 +24,7 @@ export default function CoursesPage() {
       level: level !== 'All' ? level : undefined,
       page, limit: 12
     }).then(r => r.data),
-    keepPreviousData: true
+    placeholderData: (prev: any) => prev
   })
 
   return (
