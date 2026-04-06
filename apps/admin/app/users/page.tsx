@@ -14,7 +14,7 @@ export default function UsersPage() {
   const { data, refetch } = useQuery({
     queryKey: ['admin-users', role, search, page],
     queryFn: () => adminAPI.users({ role: role || undefined, search: search || undefined, page, limit: 20 }).then(r => r.data),
-    keepPreviousData: true
+    placeholderData: (prev: any) => prev
   })
 
   const toggleUser = async (id: string, name: string, isActive: boolean) => {
