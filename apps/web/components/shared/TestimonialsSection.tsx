@@ -50,7 +50,7 @@ function TestCard({ t }: { t: typeof testimonials[0] }) {
 export default function TestimonialsSection() {
   const doubled = [...testimonials, ...testimonials]
   return (
-    <section className="py-14 md:py-24 overflow-hidden relative">
+    <section className="py-14 md:py-24 relative" style={{ overflow:'hidden', maxWidth:'100vw' }}>
       {/* Background glow */}
       <div className="absolute inset-x-0 top-1/2 h-px pointer-events-none"
         style={{ background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.2), transparent)' }} />

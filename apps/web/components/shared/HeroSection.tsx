@@ -23,7 +23,7 @@ export default function HeroSection() {
   const ticker = [...tickerItems, ...tickerItems]
 
   return (
-    <section className="hero-bg noise relative min-h-screen flex flex-col overflow-hidden" style={{ background: '#04050a' }}>
+    <section className="hero-bg noise relative min-h-screen flex flex-col" style={{ background: '#04050a', overflow:'hidden', maxWidth:'100vw' }}>
 
       {/* Moving animated orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -43,7 +43,7 @@ export default function HeroSection() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-16 w-full">
 
           {/* ── Announcement ticker — inside content, below navbar ── */}
-          <div className="overflow-hidden rounded-2xl mb-8 border border-violet-500/20"
+          <div className="rounded-2xl mb-8 border border-violet-500/20" style={{ overflow:'hidden', width:'100%' }}
             style={{ background: 'linear-gradient(90deg, rgba(124,58,237,0.12), rgba(217,70,239,0.08), rgba(6,182,212,0.06))' }}>
             <div className="ticker-track py-2.5">
               {ticker.map((item, i) => (
