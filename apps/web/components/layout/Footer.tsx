@@ -98,7 +98,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600"
           style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <p>© 2024 TruLearnix. All rights reserved. Made with ❤️ in India</p>
+          <p>© {new Date().getFullYear()} TruLearnix. All rights reserved. Made with ❤️ in India</p>
           <div className="flex gap-5">
             <Link href="#" className="hover:text-gray-400 transition-colors">Privacy</Link>
             <Link href="#" className="hover:text-gray-400 transition-colors">Terms</Link>
