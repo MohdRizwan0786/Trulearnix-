@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import { BookOpen, LayoutDashboard, Video, FileQuestion, Users, Wallet, User, LogOut, BarChart2 } from 'lucide-react'
+import Logo from '@/components/ui/Logo'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { authAPI } from '@/lib/api'
@@ -44,7 +45,7 @@ export default function MentorLayout({ children }: { children: React.ReactNode }
       <aside className="fixed left-0 top-0 h-full w-64 bg-dark-800 border-r border-white/5 flex flex-col z-40">
         <div className="p-6 border-b border-white/5">
           <Link href="/" className="flex items-center">
-            <img src="/logo.png" alt="TruLearnix" className="h-8 w-auto" />
+            <Logo size="sm" href="/" />
           </Link>
         </div>
         <div className="p-4 border-b border-white/5">

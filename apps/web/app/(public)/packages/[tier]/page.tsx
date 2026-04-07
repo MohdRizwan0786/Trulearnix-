@@ -67,8 +67,8 @@ const TIER_CONFIG: Record<string, {
 /* ── Feature icons ───────────────────────────────────────── */
 const FEATURE_ICONS: Record<string, any> = {
   'All course': BookOpen, 'Live class': Video, 'AI Coach': Bot,
-  'Job Engine': Briefcase, 'Community': Users, 'Affiliate': TrendingUp,
-  'Commission': TrendingUp, 'Mentor': Star, 'Personal brand': Globe,
+  'Job Engine': Briefcase, 'Community': Users, 'Earn': TrendingUp,
+  'Income': TrendingUp, 'Mentor': Star, 'Personal brand': Globe,
   'Certificate': Award, 'WhatsApp': Gift, 'Analytics': Zap,
   'Dedicated': Crown, 'Mastermind': Sparkles, 'Lifetime': Clock,
   'Priority': Shield, 'Done-For-You': BadgeCheck, 'Early access': Zap,
@@ -99,7 +99,7 @@ function EarningsCalc({ rate, accentColor }: { rate: number; accentColor: string
       <div className="space-y-5">
         <div>
           <div className="flex justify-between text-xs mb-2">
-            <span className="text-gray-400">Referrals per month</span>
+            <span className="text-gray-400">People you help join per month</span>
             <span className="font-black text-white">{referrals}</span>
           </div>
           <input type="range" min={1} max={100} value={referrals} onChange={e => setReferrals(+e.target.value)}
@@ -133,7 +133,7 @@ function EarningsCalc({ rate, accentColor }: { rate: number; accentColor: string
           <p className="font-black leading-none" style={{ fontSize: '2.5rem', color: accentColor }}>
             ₹{monthly.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
-          <p className="text-gray-500 text-xs mt-1">{rate}% commission × {referrals} referrals</p>
+          <p className="text-gray-500 text-xs mt-1">{rate}% income rate × {referrals} people helped</p>
         </div>
       </div>
     </div>
@@ -144,7 +144,7 @@ function EarningsCalc({ rate, accentColor }: { rate: number; accentColor: string
 const FAQS = [
   { q: 'Can I upgrade my plan later?', a: 'Yes! You can upgrade anytime and only pay the difference.' },
   { q: 'Is there a money-back guarantee?', a: '30-day full refund, no questions asked.' },
-  { q: 'How does the affiliate commission work?', a: 'Share your referral link. Every purchase made through it earns you a commission instantly.' },
+  { q: 'How does the Earn Program work?', a: 'Share your personal invite link. Every time someone joins through it, you earn income instantly — no selling required, just help others learn.' },
   { q: 'Can I pay in EMI?', a: 'Yes, EMI options are available via Razorpay (3–12 months, 0% interest on select plans).' },
   { q: 'Do I get lifetime access?', a: 'Yes, all courses and materials are accessible for lifetime once enrolled.' },
 ]
@@ -356,7 +356,7 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
         {/* Stats row */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { val: `${pkg?.commissionRate || 0}%`, label: 'Affiliate Commission', icon: TrendingUp },
+            { val: `${pkg?.commissionRate || 0}%`, label: 'Income Rate', icon: TrendingUp },
             { val: '500+', label: 'Courses Access', icon: BookOpen },
             { val: pkg?.liveClassAccess ? 'Daily' : 'Limited', label: 'Live Classes', icon: Video },
             { val: '30 Days', label: 'Money-Back', icon: Shield },
@@ -439,7 +439,7 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { name: 'Rahul M.', role: 'Pro Member', text: 'The AI coach alone is worth the price. My skills improved 10x in 2 months!', rating: 5 },
-              { name: 'Priya S.', role: 'Elite Member', text: 'Earning ₹45K/month through affiliate commissions. Best investment ever!', rating: 5 },
+              { name: 'Priya S.', role: 'Elite Member', text: 'Earning ₹45K/month through the Earn Program — just helping friends learn. Best investment ever!', rating: 5 },
               { name: 'Amit K.', role: 'Supreme Member', text: 'The dedicated success manager helped me build a 6-figure business online.', rating: 5 },
             ].map((t, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}

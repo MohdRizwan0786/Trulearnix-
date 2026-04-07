@@ -12,10 +12,10 @@ const TIERS = [
 ]
 
 const FEATURES: Record<string, string[]> = {
-  starter: ['All course access', 'Live classes (basic)', 'Community access', 'Certificate generation', 'Affiliate panel (10% commission)', 'Email support'],
-  pro: ['Everything in Starter', 'AI Coach access', 'Job Engine', '15% affiliate commission', 'Priority support', 'Personal brand builder'],
-  elite: ['Everything in Pro', '22% affiliate commission', 'Mentor 1:1 sessions', 'Advanced analytics', 'Early access to new courses', 'WhatsApp support'],
-  supreme: ['Everything in Elite', '30% Max commission', 'Done-For-You earning system', 'Dedicated success manager', 'Exclusive mastermind group', 'Lifetime updates'],
+  starter: ['All course access', 'Live classes (basic)', 'Community access', 'Certificate generation', 'Earn Panel (10% income share)', 'Email support'],
+  pro: ['Everything in Starter', 'AI Coach access', 'Job Engine', '15% income share', 'Priority support', 'Personal brand builder'],
+  elite: ['Everything in Pro', '22% income share', 'Mentor 1:1 sessions', 'Advanced analytics', 'Early access to new courses', 'WhatsApp support'],
+  supreme: ['Everything in Elite', '30% Max income share', 'Done-For-You earning system', 'Dedicated success manager', 'Exclusive mastermind group', 'Lifetime updates'],
 }
 
 const SALE_TIERS = ['starter', 'pro', 'elite', 'supreme']
@@ -32,7 +32,7 @@ export default function PackagesPage() {
         <div className="text-center mb-12">
           <span className="text-xs font-bold text-primary-400 tracking-widest uppercase bg-primary-500/10 px-4 py-1.5 rounded-full border border-primary-500/20">Pricing Plans</span>
           <h1 className="text-4xl md:text-5xl font-black text-white mt-4 mb-3">Choose Your Plan</h1>
-          <p className="text-gray-400 max-w-xl mx-auto">Your package tier determines your affiliate commission rate. Higher tier = more earnings per sale.</p>
+          <p className="text-gray-400 max-w-xl mx-auto">Your package tier determines your income share rate. Higher tier = more earnings when you help others learn.</p>
         </div>
 
         {/* Package Cards */}
@@ -47,7 +47,7 @@ export default function PackagesPage() {
                   <span className="text-xs text-gray-400 mb-1">one-time</span>
                 </div>
                 <div className={`inline-flex items-center gap-1 text-sm font-bold ${t.accent} mt-1`}>
-                  <Zap className="w-3.5 h-3.5" />{t.rate}% Commission Rate
+                  <Zap className="w-3.5 h-3.5" />{t.rate}% Income Rate
                 </div>
               </div>
               <ul className="space-y-2 flex-1 mb-6">
@@ -68,8 +68,8 @@ export default function PackagesPage() {
 
         {/* Commission Matrix */}
         <div className="card mb-16">
-          <h2 className="text-2xl font-bold text-white mb-2 text-center">Commission Matrix</h2>
-          <p className="text-gray-400 text-center text-sm mb-6">Your tier % × sale price = your earnings (Level 1)</p>
+          <h2 className="text-2xl font-bold text-white mb-2 text-center">Income Matrix</h2>
+          <p className="text-gray-400 text-center text-sm mb-6">Your tier % × price = your income (Level 1)</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -112,10 +112,10 @@ export default function PackagesPage() {
           <h2 className="text-2xl font-bold text-white text-center mb-6">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {[
-              { q: 'How is commission calculated?', a: 'Your commission rate is determined by YOUR OWN package tier — not the package you sell. If you hold Supreme (30%) and sell a Starter (₹4,999), you earn ₹1,500.' },
-              { q: 'When do I get affiliate access?', a: 'Immediately after payment is confirmed. Razorpay webhook automatically unlocks your affiliate panel, assigns a referral code, and sends a welcome message. No manual step required.' },
-              { q: 'What are MLM levels?', a: 'Level 1 = direct referrals (your tier %). Level 2 = referral\'s referrals (5% fixed). Level 3 = level 2\'s referrals (2% fixed). All 3 levels credit to your wallet automatically.' },
-              { q: 'When is commission paid out?', a: 'Commissions are credited to your wallet in real-time on every sale. You can withdraw anytime (minimum ₹500) via UPI or bank transfer — processed within 24-48 hours.' },
+              { q: 'How is income calculated?', a: 'Your income rate is determined by YOUR OWN package tier — not the package you help sell. If you hold Supreme (30%) and someone buys a Starter (₹4,999) through your link, you earn ₹1,500.' },
+              { q: 'When do I get Earn access?', a: 'Immediately after payment is confirmed. Your Earn Panel is auto-unlocked, a personal invite link is assigned, and a welcome message is sent. No manual step required.' },
+              { q: 'What are the earn levels?', a: 'Level 1 = people you invite directly (your tier %). Level 2 = their invites (5% fixed). Level 3 = L2 invites (2% fixed). All 3 levels are credited to your wallet automatically.' },
+              { q: 'When is income paid out?', a: 'Income is credited to your wallet in real-time on every sale. You can withdraw anytime (minimum ₹500) via UPI or bank transfer — processed within 24-48 hours.' },
               { q: 'Is GST applicable?', a: 'Yes, 18% GST is applicable on all package purchases as per Indian tax law. A GST invoice will be emailed to you after payment.' },
             ].map(faq => (
               <div key={faq.q} className="card">

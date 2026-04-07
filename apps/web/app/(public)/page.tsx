@@ -3,6 +3,8 @@ import HeroSection from '@/components/shared/HeroSection'
 import StatsSection from '@/components/shared/StatsSection'
 import LiveClassesSection from '@/components/shared/LiveClassesSection'
 import FeaturedCourses from '@/components/shared/FeaturedCourses'
+import WhyLiveSection from '@/components/shared/WhyLiveSection'
+import EarningsProofSection from '@/components/shared/EarningsProofSection'
 import HowItWorks from '@/components/shared/HowItWorks'
 import TestimonialsSection from '@/components/shared/TestimonialsSection'
 import PricingSection from '@/components/shared/PricingSection'
@@ -17,6 +19,8 @@ export default function HomePage() {
       <StatsSection />
       <LiveClassesSection />
       <FeaturedCourses />
+      <WhyLiveSection />
+      <EarningsProofSection />
       <HowItWorks />
       <TestimonialsSection />
       <PricingSection />

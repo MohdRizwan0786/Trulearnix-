@@ -5,6 +5,7 @@ import { LayoutDashboard, BookOpen, Video, Award, Wallet, TrendingUp, Bot, Users
 import { useAuthStore } from '@/lib/store'
 import { authAPI } from '@/lib/api'
 import { useRouter } from 'next/navigation'
+import Logo from '@/components/ui/Logo'
 
 export default function StudentSidebar() {
   const pathname = usePathname()
@@ -38,9 +39,7 @@ export default function StudentSidebar() {
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-dark-800 border-r border-white/5 flex flex-col z-40">
       <div className="p-6 border-b border-white/5">
-        <Link href="/" className="flex items-center">
-          <img src="/logo.png" alt="TruLearnix" className="h-8 w-auto" />
-        </Link>
+        <Logo size="sm" href="/" />
       </div>
       <div className="p-4 border-b border-white/5">
         <div className="flex items-center gap-3">
@@ -71,7 +70,7 @@ export default function StudentSidebar() {
             pathname === '/student/affiliate' ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30' :
             'text-gray-400 hover:text-white hover:bg-white/5'}`}>
           <TrendingUp className="w-4 h-4 flex-shrink-0" />
-          <span className="flex-1">Affiliate</span>
+          <span className="flex-1">Earn & Grow</span>
           {!isAffiliate && <Lock className="w-3 h-3 text-yellow-500" />}
         </Link>
       </nav>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { BookOpen, Video, Clock, Users, Zap, Gift, Calendar, ChevronRight, Play } from 'lucide-react'
+import Logo from '@/components/ui/Logo'
 import { motion } from 'framer-motion'
 import { classAPI } from '@/lib/api'
 
@@ -165,7 +166,7 @@ export default function LiveClassesPage() {
       {/* Navbar */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <Link href="/" className="flex items-center">
-          <img src="/logo.png" alt="TruLearnix" className="h-9 w-auto" />
+          <Logo size="md" href="/" />
         </Link>
         <div className="flex items-center gap-3">
           <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">Login</Link>

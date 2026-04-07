@@ -6,6 +6,7 @@ import { z } from 'zod'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BookOpen, Eye, EyeOff, Loader2 } from 'lucide-react'
+import Logo from '@/components/ui/Logo'
 import { authAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
@@ -47,7 +48,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center justify-center">
-            <img src="/logo.png" alt="TruLearnix" className="h-12 w-auto" />
+            <Logo size="lg" href="/" />
           </Link>
           <h1 className="text-2xl font-bold text-white mt-4">Welcome back</h1>
           <p className="text-gray-400 mt-1">Sign in to continue learning</p>

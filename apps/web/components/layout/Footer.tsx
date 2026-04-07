@@ -1,8 +1,9 @@
 'use client'
 import Link from 'next/link'
 import { BookOpen, Mail, Phone, MapPin, Youtube, Instagram, Twitter, Linkedin } from 'lucide-react'
+import Logo from '@/components/ui/Logo'
 
-const platformLinks = ['Courses', 'Live Classes', 'Certifications', 'Affiliate Program', 'Become Mentor', 'Pricing']
+const platformLinks = ['Courses', 'Live Classes', 'Certifications', 'Earn Program', 'Become Mentor', 'Pricing']
 const companyLinks  = ['About Us', 'Careers', 'Blog', 'Press Kit', 'Privacy Policy', 'Terms of Service']
 
 export default function Footer() {
@@ -14,7 +15,7 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h3 className="text-white font-black text-xl mb-1">Free learning resources weekly</h3>
-            <p className="text-gray-500 text-sm">Courses, tips & affiliate opportunities delivered to your inbox</p>
+            <p className="text-gray-500 text-sm">Courses, tips & skill-building resources delivered to your inbox</p>
           </div>
           <div className="flex gap-2 w-full md:w-auto">
             <input type="email" placeholder="Enter your email" className="input flex-1 md:max-w-xs" />
@@ -28,11 +29,11 @@ export default function Footer() {
 
           {/* Brand */}
           <div className="col-span-2 sm:col-span-4 md:col-span-2">
-            <Link href="/" className="inline-flex items-center mb-5">
-              <img src="/logo.png" alt="TruLearnix" className="h-9 w-auto" />
-            </Link>
+            <div className="mb-5">
+              <Logo size="lg" href="/" />
+            </div>
             <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-xs">
-              India's premium EdTech platform for live learning, career growth, and income generation through affiliate partnerships.
+              India's premium EdTech platform for live learning, career growth, and income generation through our Earn Program.
             </p>
             <div className="flex gap-2.5">
               {[

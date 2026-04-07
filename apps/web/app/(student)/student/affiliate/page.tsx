@@ -40,23 +40,23 @@ export default function AffiliatePage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Affiliate Program</h1>
-          <p className="text-gray-400 mt-1">Earn commissions by referring others</p>
+          <h1 className="text-3xl font-bold text-white">Earn Program</h1>
+          <p className="text-gray-400 mt-1">Help others learn skills — earn income every month</p>
         </div>
         <div className="card text-center py-16 border border-yellow-500/20">
           <Lock className="w-16 h-16 text-yellow-500/50 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Affiliate Panel Locked</h2>
-          <p className="text-gray-400 mb-6 max-w-md mx-auto">Purchase any package to unlock the affiliate program and start earning commission on every referral.</p>
+          <h2 className="text-2xl font-bold text-white mb-2">Earn Panel Locked</h2>
+          <p className="text-gray-400 mb-6 max-w-md mx-auto">Purchase any package to unlock the Earn Program and start earning income every time someone joins through your link.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
             {[{tier:'Starter',price:'₹4,999',rate:'10%'},{tier:'Pro',price:'₹9,999',rate:'15%'},{tier:'Elite',price:'₹19,999',rate:'22%'},{tier:'Supreme',price:'₹29,999',rate:'30%'}].map(p => (
               <div key={p.tier} className="bg-dark-700 rounded-xl p-4 border border-white/10">
                 <p className="font-bold text-white text-sm">{p.tier}</p>
                 <p className="text-primary-400 font-black text-lg">{p.price}</p>
-                <p className="text-xs text-green-400">{p.rate} commission</p>
+                <p className="text-xs text-green-400">{p.rate} income share</p>
               </div>
             ))}
           </div>
-          <Link href="/packages" className="btn-primary">Unlock Affiliate Access →</Link>
+          <Link href="/packages" className="btn-primary">Unlock Earn Access →</Link>
         </div>
       </div>
     )
@@ -69,11 +69,11 @@ export default function AffiliatePage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Affiliate Dashboard</h1>
+          <h1 className="text-3xl font-bold text-white">Earn Dashboard</h1>
           <p className="text-gray-400 mt-1">Your earning hub</p>
         </div>
         <div className={`px-4 py-2 rounded-xl bg-gradient-to-r ${TIER_COLORS[tier]} text-white text-sm font-bold flex items-center gap-2`}>
-          <Award className="w-4 h-4" /> {tier.charAt(0).toUpperCase() + tier.slice(1)} — {stats?.commissionRate || (user as any)?.commissionRate}% Commission
+          <Award className="w-4 h-4" /> {tier.charAt(0).toUpperCase() + tier.slice(1)} — {stats?.commissionRate || (user as any)?.commissionRate}% Income Rate
         </div>
       </div>
 
@@ -82,7 +82,7 @@ export default function AffiliatePage() {
         {[
           { icon: Wallet, label: 'Wallet Balance', value: `₹${(stats?.wallet || 0).toLocaleString()}`, color: 'text-green-400', bg: 'bg-green-500/20' },
           { icon: DollarSign, label: 'Total Earned', value: `₹${(stats?.totalEarnings || 0).toLocaleString()}`, color: 'text-yellow-400', bg: 'bg-yellow-500/20' },
-          { icon: Users, label: 'Total Referrals', value: stats?.referrals?.total || 0, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+          { icon: Users, label: 'Total Invites', value: stats?.referrals?.total || 0, color: 'text-blue-400', bg: 'bg-blue-500/20' },
           { icon: TrendingUp, label: 'This Month', value: `₹${(stats?.monthlyEarnings || 0).toLocaleString()}`, color: 'text-purple-400', bg: 'bg-purple-500/20' },
         ].map(s => (
           <div key={s.label} className="card flex items-center gap-3">
@@ -99,9 +99,9 @@ export default function AffiliatePage() {
 
       {/* Commission Levels */}
       <div className="grid grid-cols-3 gap-4">
-        {[{level: 'Level 1', rate: `${stats?.commissionRate || (user as any)?.commissionRate}%`, desc: 'Direct referrals', color: 'text-green-400', earned: stats?.commissions?.find((c:any)=>c._id===1)?.total || 0},
-          {level: 'Level 2', rate: '5%', desc: 'Referral\'s referrals', color: 'text-blue-400', earned: stats?.commissions?.find((c:any)=>c._id===2)?.total || 0},
-          {level: 'Level 3', rate: '2%', desc: 'L2\'s referrals', color: 'text-purple-400', earned: stats?.commissions?.find((c:any)=>c._id===3)?.total || 0}].map(l => (
+        {[{level: 'Level 1', rate: `${stats?.commissionRate || (user as any)?.commissionRate}%`, desc: 'Direct invites', color: 'text-green-400', earned: stats?.commissions?.find((c:any)=>c._id===1)?.total || 0},
+          {level: 'Level 2', rate: '5%', desc: "Invite's invites", color: 'text-blue-400', earned: stats?.commissions?.find((c:any)=>c._id===2)?.total || 0},
+          {level: 'Level 3', rate: '2%', desc: "L2's invites", color: 'text-purple-400', earned: stats?.commissions?.find((c:any)=>c._id===3)?.total || 0}].map(l => (
           <div key={l.level} className="card text-center">
             <p className={`text-lg font-black ${l.color}`}>{l.rate}</p>
             <p className="text-white text-sm font-semibold">{l.level}</p>
@@ -114,7 +114,7 @@ export default function AffiliatePage() {
 
       {/* Referral link */}
       <div className="card">
-        <h2 className="font-bold text-white mb-3">Your Referral Link</h2>
+        <h2 className="font-bold text-white mb-3">Your Invite Link</h2>
         <div className="flex gap-3">
           <div className="flex-1 flex items-center gap-2 bg-dark-700 border border-white/10 rounded-xl px-4 py-3">
             <TrendingUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -137,7 +137,7 @@ export default function AffiliatePage() {
             ))}
           </div>
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {(refs?.[tab] || []).length === 0 ? <p className="text-gray-500 text-sm text-center py-4">No {tab.toUpperCase()} referrals yet</p> :
+            {(refs?.[tab] || []).length === 0 ? <p className="text-gray-500 text-sm text-center py-4">No {tab.toUpperCase()} invites yet</p> :
               (refs?.[tab] || []).map((r: any) => (
                 <div key={r._id} className="flex items-center gap-3 p-2.5 bg-dark-700 rounded-xl">
                   <div className="w-8 h-8 bg-primary-500/20 rounded-full flex items-center justify-center text-primary-400 font-bold text-xs">{r.name[0]}</div>
@@ -153,13 +153,13 @@ export default function AffiliatePage() {
 
         {/* Recent Commissions */}
         <div className="card">
-          <h3 className="font-semibold text-white mb-4">Recent Commissions</h3>
+          <h3 className="font-semibold text-white mb-4">Recent Income</h3>
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {(commissions?.commissions || []).length === 0 ? <p className="text-gray-500 text-sm text-center py-4">No commissions yet</p> :
+            {(commissions?.commissions || []).length === 0 ? <p className="text-gray-500 text-sm text-center py-4">No income yet</p> :
               (commissions?.commissions || []).slice(0, 8).map((c: any) => (
                 <div key={c._id} className="flex items-center justify-between p-2.5 bg-dark-700 rounded-xl">
                   <div>
-                    <p className="text-sm text-white">L{c.level} Commission</p>
+                    <p className="text-sm text-white">L{c.level} Income</p>
                     <p className="text-xs text-gray-400">{c.levelRate}% • {c.buyer?.name}</p>
                   </div>
                   <span className="text-green-400 font-bold text-sm">+₹{c.commissionAmount}</span>

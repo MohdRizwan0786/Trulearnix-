@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BookOpen, Mail, ArrowLeft, Loader2, CheckCircle2, KeyRound, Eye, EyeOff } from 'lucide-react'
+import Logo from '@/components/ui/Logo'
 import { authAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 
@@ -63,7 +64,7 @@ export default function ForgotPasswordPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center justify-center mb-6">
-            <img src="/logo.png" alt="TruLearnix" className="h-12 w-auto" />
+            <Logo size="lg" href="/" />
           </Link>
 
           {/* Step indicator */}

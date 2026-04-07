@@ -163,7 +163,7 @@ export default function ProfilePage() {
       {/* Affiliate Code */}
       {user?.isAffiliate && user?.affiliateCode && (
         <div className="card border border-primary-500/30 bg-primary-500/5">
-          <p className="text-xs text-gray-400 mb-1">Your Affiliate Code</p>
+          <p className="text-xs text-gray-400 mb-1">Your Invite Code</p>
           <div className="flex items-center gap-3">
             <code className="text-primary-400 font-bold text-lg">{user.affiliateCode}</code>
             <button onClick={copyAffiliateCode} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-white/5 px-3 py-1.5 rounded-lg">

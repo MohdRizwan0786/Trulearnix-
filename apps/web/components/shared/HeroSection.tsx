@@ -6,7 +6,7 @@ import { Play, Star, Users, Award, BookOpen, Video, Zap, TrendingUp, CheckCircle
 const features = [
   'Live Interactive Classes Daily',
   'AI-Generated Certificates',
-  'Earn via Affiliate Program',
+  'Earn While You Learn & Grow',
   '500+ Expert-Led Courses',
 ]
 
@@ -14,7 +14,7 @@ const tickerItems = [
   '🔥 New Batch Starting Monday',
   '⚡ 247 Students Joined Today',
   '🏆 50,000+ Learners Trust Us',
-  '💰 ₹2Cr+ Affiliate Earnings Paid',
+  '💰 ₹2Cr+ Income Paid to Students',
   '🎓 20,000+ Certificates Issued',
   '🌟 4.9/5 Platform Rating',
 ]
@@ -82,7 +82,7 @@ export default function HeroSection() {
               <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                 className="text-lg text-gray-400 mb-8 leading-relaxed max-w-xl">
                 Interactive live classes, AI certificates &amp; a{' '}
-                <span className="text-fuchsia-400 font-bold">built-in affiliate system</span> — learn skills,
+                <span className="text-fuchsia-400 font-bold">built-in earn program</span> — learn skills,
                 earn money &amp; transform your career.
               </motion.p>
 
@@ -296,7 +296,7 @@ export default function HeroSection() {
                   </div>
                   <div>
                     <p className="text-white font-black text-sm">₹15,000</p>
-                    <p className="text-gray-500 text-xs">Affiliate Earned</p>
+                    <p className="text-gray-500 text-xs">Income Earned</p>
                   </div>
                 </div>
               </div>
@@ -324,7 +324,7 @@ export default function HeroSection() {
               { icon:Users,    val:'50K+',  label:'Active Learners',    glowColor:'rgba(124,58,237,0.2)',  iconColor:'text-violet-400'  },
               { icon:BookOpen, val:'500+',  label:'Expert Courses',     glowColor:'rgba(99,102,241,0.2)',  iconColor:'text-indigo-400'  },
               { icon:Award,    val:'20K+',  label:'Certificates Issued',glowColor:'rgba(245,158,11,0.2)', iconColor:'text-amber-400'   },
-              { icon:Zap,      val:'₹2Cr+', label:'Affiliate Earnings', glowColor:'rgba(16,185,129,0.2)', iconColor:'text-green-400'   },
+              { icon:Zap,      val:'₹2Cr+', label:'Partner Earnings',   glowColor:'rgba(16,185,129,0.2)', iconColor:'text-green-400'   },
             ].map((s,i) => (
               <div key={i}
                 className="flex items-center gap-3 rounded-2xl p-3 sm:p-4 transition-all duration-300 hover:-translate-y-1 cursor-default group"

@@ -7,7 +7,7 @@ const steps = [
   { icon: Search,      step: '02', title: 'Choose Course',   desc: 'Browse 500+ expert-curated courses across tech, design & business.',                             color: 'from-indigo-500 to-blue-500',    glow: 'rgba(99,102,241,0.3)'  },
   { icon: Video,       step: '03', title: 'Join Live Class', desc: 'Attend live interactive sessions with real mentors. Ask questions, get instant answers.',        color: 'from-blue-500 to-cyan-500',      glow: 'rgba(59,130,246,0.3)'  },
   { icon: Award,       step: '04', title: 'Get Certified',   desc: 'Complete quizzes & assignments. Download your AI-generated certificate instantly.',             color: 'from-amber-500 to-orange-500',   glow: 'rgba(245,158,11,0.3)'  },
-  { icon: DollarSign,  step: '05', title: 'Earn Money',      desc: 'Refer friends via your affiliate link. Earn commissions on every successful enrollment.',       color: 'from-green-500 to-emerald-500',  glow: 'rgba(34,197,94,0.3)'   },
+  { icon: DollarSign,  step: '05', title: 'Earn Money',      desc: 'Invite friends to join. Help them learn skills — and earn income on every successful enrollment.',  color: 'from-green-500 to-emerald-500',  glow: 'rgba(34,197,94,0.3)'   },
 ]
 
 export default function HowItWorks() {

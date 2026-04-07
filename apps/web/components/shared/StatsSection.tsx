@@ -7,7 +7,7 @@ const stats = [
   { icon: Video,     value: '1,200+',  label: 'Live Sessions Done', color: 'text-red-400',    glow: 'rgba(239,68,68,0.15)'  },
   { icon: BookOpen,  value: '500+',    label: 'Expert Courses',     color: 'text-blue-400',   glow: 'rgba(59,130,246,0.15)' },
   { icon: Award,     value: '20,000+', label: 'Certificates Issued',color: 'text-amber-400',  glow: 'rgba(245,158,11,0.15)' },
-  { icon: TrendingUp,value: '₹2Cr+',   label: 'Affiliate Earnings', color: 'text-green-400',  glow: 'rgba(34,197,94,0.15)'  },
+  { icon: TrendingUp,value: '₹2Cr+',   label: 'Partner Earnings',   color: 'text-green-400',  glow: 'rgba(34,197,94,0.15)'  },
   { icon: Star,      value: '4.9/5',   label: 'Platform Rating',    color: 'text-orange-400', glow: 'rgba(249,115,22,0.15)' },
   { icon: Globe,     value: '50+',     label: 'Cities Covered',     color: 'text-cyan-400',   glow: 'rgba(6,182,212,0.15)'  },
   { icon: Zap,       value: '98%',     label: 'Completion Rate',    color: 'text-fuchsia-400',glow: 'rgba(217,70,239,0.15)' },

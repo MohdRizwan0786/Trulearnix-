@@ -92,7 +92,7 @@ const FALLBACK_PACKAGES = [
     _id: '2', tier: 'pro', name: 'Pro',
     price: 999,
     description: 'Everything to accelerate your career',
-    features: ['All 500+ courses unlimited', 'Live class access — daily', 'Premium AI certificates', 'Unlimited quizzes & tests', 'Download all recordings', 'Priority support 24/7', 'Affiliate program (10%)', 'Mock interviews & mentoring'],
+    features: ['All 500+ courses unlimited', 'Live class access — daily', 'Premium AI certificates', 'Unlimited quizzes & tests', 'Download all recordings', 'Priority support 24/7', 'Earn Program (10% income share)', 'Mock interviews & mentoring'],
     href: '/register?plan=pro',
     commissionRate: 10,
   },
@@ -198,7 +198,7 @@ function PackageCard({ pkg, i }: { pkg: any; i: number }) {
           <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl"
             style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
             <TrendingUp className="w-4 h-4 text-green-400 flex-shrink-0" />
-            <span className="text-green-400 text-xs font-bold">Earn {pkg.commissionRate}% affiliate commission</span>
+            <span className="text-green-400 text-xs font-bold">Earn {pkg.commissionRate}% income share — help others learn</span>
           </div>
         )}
 

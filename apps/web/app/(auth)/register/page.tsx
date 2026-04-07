@@ -6,6 +6,7 @@ import { z } from 'zod'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { BookOpen, Eye, EyeOff, Loader2, Gift, Zap } from 'lucide-react'
+import Logo from '@/components/ui/Logo'
 import { authAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 
@@ -101,7 +102,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center justify-center">
-            <img src="/logo.png" alt="TruLearnix" className="h-12 w-auto" />
+            <Logo size="lg" href="/" />
           </Link>
           <h1 className="text-2xl font-bold text-white mt-4">Create your account</h1>
           <p className="text-gray-400 mt-1">Start your learning journey today</p>
@@ -114,7 +115,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <p className="text-white font-semibold text-sm">You're signing up for <span className="text-primary-400">{PACKAGE_INFO[packageParam].name} Package</span></p>
-              <p className="text-gray-400 text-xs">{PACKAGE_INFO[packageParam].price} • Earn {PACKAGE_INFO[packageParam].commission} L1 commission • Unlock affiliate panel</p>
+              <p className="text-gray-400 text-xs">{PACKAGE_INFO[packageParam].price} • Earn {PACKAGE_INFO[packageParam].commission} L1 income share • Unlock Earn Panel</p>
             </div>
           </div>
         )}
@@ -122,7 +123,7 @@ export default function RegisterPage() {
         {ref && !packageParam && (
           <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 mb-4 flex items-center gap-3">
             <Gift className="w-5 h-5 text-green-400 flex-shrink-0" />
-            <p className="text-green-400 text-sm font-medium">Referral code <span className="font-bold">{ref}</span> applied — your sponsor earns commission when you upgrade!</p>
+            <p className="text-green-400 text-sm font-medium">Invite code <span className="font-bold">{ref}</span> applied — your sponsor earns when you upgrade!</p>
           </div>
         )}
 

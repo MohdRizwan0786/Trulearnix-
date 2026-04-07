@@ -35,7 +35,7 @@ export default function CTASection() {
                 {[
                   { icon: Video, label: 'Live Classes' },
                   { icon: Award, label: 'AI Certificate' },
-                  { icon: Zap, label: 'Earn Affiliate' },
+                  { icon: Zap, label: 'Earn & Grow' },
                 ].map((f, i) => (
                   <div key={i}
                     className="flex items-center gap-2 text-sm text-gray-300 px-4 py-2 rounded-full"

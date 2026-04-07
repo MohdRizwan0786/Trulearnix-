@@ -8,7 +8,7 @@ const suggestions = [
   'What course should I take next?',
   'Generate my weekly study plan',
   'Help me with digital marketing basics',
-  'How can I earn more from the affiliate program?',
+  'How can I earn more from the Earn Program?',
   'Review my progress and suggest improvements',
 ]
 
