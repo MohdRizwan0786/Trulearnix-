@@ -14,7 +14,7 @@
 html{scroll-behavior:smooth;}
 
 body{
-  background:var(--bg);
+  background:#04050a;
   color:#f9fafb;
   font-family:'Plus Jakarta Sans','Inter',sans-serif;
   -webkit-font-smoothing:antialiased;
