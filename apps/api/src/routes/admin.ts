@@ -7,6 +7,10 @@ import PackagePurchase from '../models/PackagePurchase';
 import Commission from '../models/Commission';
 import Withdrawal from '../models/Withdrawal';
 import LiveClass from '../models/LiveClass';
+import Batch from '../models/Batch';
+import Enrollment from '../models/Enrollment';
+import PlatformSettings from '../models/PlatformSettings';
+import { getOrCreateActiveBatch, createPendingBatch } from '../services/batchService';
 import { protect, authorize } from '../middleware/auth';
 
 const router = Router();
@@ -61,6 +65,212 @@ router.get('/courses/pending', getPendingCourses);
 router.patch('/courses/:id/approve', approveCourse);
 router.patch('/courses/:id/reject', rejectCourse);
 
+// Admin: get single course
+router.get('/courses/:id', async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id).populate('mentor', 'name email avatar');
+    if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
+    res.json({ success: true, course });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: create course directly (auto-published)
+router.post('/courses/create', async (req: any, res) => {
+  try {
+    const { title, description, shortDescription, thumbnail, previewVideo, mentor,
+      category, tags, price, discountPrice, level, language, duration,
+      requirements, outcomes, highlights, faqs, modules, certificate, passingScore,
+      status, batchSettings } = req.body;
+
+    if (!title || !description || !shortDescription || !thumbnail || !mentor || !category || price === undefined) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+
+    const course = await Course.create({
+      title, slug, description, shortDescription, thumbnail, previewVideo,
+      mentor, category, tags: tags || [], price, discountPrice,
+      level: level || 'beginner', language: language || 'Hindi', duration,
+      requirements: requirements || [], outcomes: outcomes || [],
+      highlights: highlights || [], faqs: faqs || [],
+      modules: modules || [], certificate: certificate !== false,
+      passingScore: passingScore || 70,
+      status: status || 'published',
+      batchSettings: batchSettings || { enabled: false, minStrength: 5, maxStrength: 50, closingDays: 30 },
+    });
+
+    // Auto-create first batch if batches are enabled
+    if (batchSettings?.enabled) {
+      await getOrCreateActiveBatch(course._id.toString());
+    }
+
+    res.status(201).json({ success: true, course });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: update course
+router.put('/courses/:id', async (req: any, res) => {
+  try {
+    const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: false });
+    if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
+
+    // If batch settings just got enabled, create first batch
+    if (req.body.batchSettings?.enabled) {
+      const existingBatch = await Batch.findOne({ course: course._id, status: 'active' });
+      if (!existingBatch) await getOrCreateActiveBatch(course._id.toString());
+    }
+
+    res.json({ success: true, course });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ─── Batch Management ──────────────────────────────────────────────────────────
+
+// List all batches for a course
+router.get('/batches', async (req, res) => {
+  try {
+    const { courseId } = req.query;
+    if (!courseId) return res.status(400).json({ success: false, message: 'courseId required' });
+    const batches = await Batch.find({ course: courseId }).sort('-batchNumber');
+    res.json({ success: true, batches });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Get students in a batch
+router.get('/batches/:id/students', async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.id);
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    const enrollments = await Enrollment.find({ batch: batch._id })
+      .populate('student', 'name email avatar phone createdAt')
+      .sort('-createdAt');
+    res.json({ success: true, enrollments, batch });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Create a batch manually (starts as pending)
+router.post('/batches', async (req, res) => {
+  try {
+    const { courseId, minStrength, maxStrength, closingDays, totalDays, label } = req.body;
+    if (!courseId) return res.status(400).json({ success: false, message: 'courseId required' });
+
+    const lastBatch = await Batch.findOne({ course: courseId }).sort('-batchNumber');
+    const batchNumber = (lastBatch?.batchNumber || 0) + 1;
+
+    const batch = await Batch.create({
+      course: courseId, batchNumber,
+      label: label || `Batch ${batchNumber}`,
+      minStrength: minStrength || 5, maxStrength: maxStrength || 50,
+      closingDays: closingDays || 30,
+      totalDays: totalDays || 0,
+      status: 'pending',
+      enrolledCount: 0,
+      daysCompleted: 0,
+    });
+
+    res.status(201).json({ success: true, batch });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Start a pending batch manually
+router.patch('/batches/:id/start', async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.id);
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    if (batch.status !== 'pending') return res.status(400).json({ success: false, message: 'Only pending batches can be started' });
+
+    const startDate = new Date();
+    const closingDate = new Date(startDate.getTime() + batch.closingDays * 24 * 60 * 60 * 1000);
+    batch.status = 'active';
+    batch.startDate = startDate;
+    batch.closingDate = closingDate;
+    await batch.save();
+
+    res.json({ success: true, batch });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Mark a day complete in the batch
+router.patch('/batches/:id/mark-day', async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.id);
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    if (batch.status !== 'active') return res.status(400).json({ success: false, message: 'Batch is not active' });
+
+    batch.daysCompleted = (batch.daysCompleted || 0) + 1;
+
+    // Auto-close when all days are done
+    if (batch.totalDays > 0 && batch.daysCompleted >= batch.totalDays) {
+      batch.status = 'closed';
+      await batch.save();
+
+      // Auto-create next pending batch
+      const newBatch = await createPendingBatch(batch.course.toString());
+      return res.json({ success: true, batch, autoCreated: newBatch, message: `Batch completed! Batch ${newBatch.batchNumber} created (pending).` });
+    }
+
+    await batch.save();
+    res.json({ success: true, batch });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Close a batch manually
+router.patch('/batches/:id/close', async (req, res) => {
+  try {
+    const batch = await Batch.findByIdAndUpdate(req.params.id, { status: 'closed' }, { new: true });
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    res.json({ success: true, batch });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Reopen a batch (set back to active)
+router.patch('/batches/:id/reopen', async (req, res) => {
+  try {
+    const batch = await Batch.findByIdAndUpdate(req.params.id,
+      { status: 'active', closingDate: new Date(Date.now() + batch_days(req)) },
+      { new: true }
+    );
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    res.json({ success: true, batch });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+function batch_days(req: any) { return (req.body.closingDays || 30) * 24 * 60 * 60 * 1000; }
+
+// Transfer student to another batch
+router.post('/batches/transfer', async (req, res) => {
+  try {
+    const { studentId, fromBatchId, toBatchId, courseId } = req.body;
+    if (!studentId || !toBatchId || !courseId) {
+      return res.status(400).json({ success: false, message: 'studentId, toBatchId, courseId required' });
+    }
+
+    const toBatch = await Batch.findById(toBatchId);
+    if (!toBatch) return res.status(404).json({ success: false, message: 'Target batch not found' });
+    if (toBatch.status === 'closed') return res.status(400).json({ success: false, message: 'Cannot transfer to a closed batch' });
+    if (toBatch.enrolledCount >= toBatch.maxStrength) return res.status(400).json({ success: false, message: 'Target batch is full' });
+
+    const enrollment = await Enrollment.findOne({ student: studentId, course: courseId });
+    if (!enrollment) return res.status(404).json({ success: false, message: 'Enrollment not found' });
+
+    // Decrement old batch count
+    if (fromBatchId) {
+      await Batch.findByIdAndUpdate(fromBatchId, { $inc: { enrolledCount: -1 } });
+      // Re-activate if it was marked full
+      await Batch.updateOne({ _id: fromBatchId, status: 'full' }, { status: 'active' });
+    }
+
+    // Assign new batch
+    enrollment.batch = toBatch._id as any;
+    await enrollment.save();
+    toBatch.enrolledCount += 1;
+    if (toBatch.enrolledCount >= toBatch.maxStrength) toBatch.status = 'full';
+    await toBatch.save();
+
+    res.json({ success: true, message: 'Student transferred successfully' });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // Packages management
 router.get('/packages', async (_req, res) => {
   try { res.json({ success: true, packages: await Package.find().sort('displayOrder') }); } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
@@ -70,6 +280,30 @@ router.post('/packages', async (req, res) => {
 });
 router.put('/packages/:id', async (req, res) => {
   try { res.json({ success: true, package: await Package.findByIdAndUpdate(req.params.id, req.body, { new: true }) }); } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Platform Settings
+router.get('/platform-settings', async (_req, res) => {
+  try {
+    let settings = await PlatformSettings.findOne();
+    if (!settings) settings = await PlatformSettings.create({});
+    res.json({ success: true, settings });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+router.put('/platform-settings', async (req, res) => {
+  try {
+    const { tdsRate, gstRate, minWithdrawalAmount } = req.body;
+    let settings = await PlatformSettings.findOne();
+    if (!settings) {
+      settings = await PlatformSettings.create({ tdsRate, gstRate, minWithdrawalAmount });
+    } else {
+      if (tdsRate !== undefined) settings.tdsRate = tdsRate;
+      if (gstRate !== undefined) settings.gstRate = gstRate;
+      if (minWithdrawalAmount !== undefined) settings.minWithdrawalAmount = minWithdrawalAmount;
+      await settings.save();
+    }
+    res.json({ success: true, settings });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
 // Package purchases

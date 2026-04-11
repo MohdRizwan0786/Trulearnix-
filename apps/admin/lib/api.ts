@@ -48,13 +48,27 @@ export const adminAPI = {
   updateUserPackage: (id: string, packageTier: string) => api.patch(`/admin/users/${id}/package`, { packageTier }),
   // Courses — admin sees all statuses
   allCourses: (params?: any) => api.get('/admin/courses/all', { params }),
+  getCourse: (id: string) => api.get(`/admin/courses/${id}`),
+  createCourse: (data: any) => api.post('/admin/courses/create', data),
+  updateCourse: (id: string, data: any) => api.put(`/admin/courses/${id}`, data),
   pendingCourses: () => api.get('/admin/courses/pending'),
   approveCourse: (id: string) => api.patch(`/admin/courses/${id}/approve`),
   rejectCourse: (id: string, reason: string) => api.patch(`/admin/courses/${id}/reject`, { reason }),
+  // Batches
+  batches: (courseId: string) => api.get('/admin/batches', { params: { courseId } }),
+  batchStudents: (batchId: string) => api.get(`/admin/batches/${batchId}/students`),
+  createBatch: (data: any) => api.post('/admin/batches', data),
+  closeBatch: (id: string) => api.patch(`/admin/batches/${id}/close`),
+  reopenBatch: (id: string, data?: any) => api.patch(`/admin/batches/${id}/reopen`, data),
+  startBatch: (id: string) => api.patch(`/admin/batches/${id}/start`),
+  markBatchDay: (id: string) => api.patch(`/admin/batches/${id}/mark-day`),
+  transferStudent: (data: any) => api.post('/admin/batches/transfer', data),
   // Packages
   packages: () => api.get('/admin/packages'),
   createPackage: (data: any) => api.post('/admin/packages', data),
   updatePackage: (id: string, data: any) => api.put(`/admin/packages/${id}`, data),
+  platformSettings: () => api.get('/admin/platform-settings'),
+  updatePlatformSettings: (data: any) => api.put('/admin/platform-settings', data),
   // Purchases
   purchases: (params?: any) => api.get('/admin/purchases', { params }),
   // Commissions

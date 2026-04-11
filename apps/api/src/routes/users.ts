@@ -3,6 +3,7 @@ import User from '../models/User';
 import Enrollment from '../models/Enrollment';
 import { protect } from '../middleware/auth';
 import { uploadToS3 } from '../services/s3Service';
+import { getOrCreateActiveBatch, onStudentEnrolled } from '../services/batchService';
 
 const router = Router();
 
@@ -129,7 +130,13 @@ router.post('/enroll-free/:courseId', protect, async (req: any, res) => {
     if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
     const existing = await Enrollment.findOne({ student: req.user._id, course: req.params.courseId });
     if (existing) return res.status(400).json({ success: false, message: 'Already enrolled' });
-    await Enrollment.create({ student: req.user._id, course: req.params.courseId, amount: 0, paymentId: `pkg_${user.packageTier}` });
+    const activeBatch = await getOrCreateActiveBatch(req.params.courseId);
+    await Enrollment.create({
+      student: req.user._id, course: req.params.courseId, amount: 0,
+      paymentId: `pkg_${user.packageTier}`,
+      ...(activeBatch ? { batch: activeBatch._id } : {}),
+    });
+    if (activeBatch) await onStudentEnrolled(activeBatch._id.toString());
     await Course.findByIdAndUpdate(req.params.courseId, { $inc: { enrolledCount: 1 } });
     res.json({ success: true, message: 'Enrolled successfully!' });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }

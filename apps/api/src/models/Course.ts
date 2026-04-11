@@ -21,6 +21,14 @@ export interface IModule {
   lessons: ILesson[];
 }
 
+export interface IBatchSettings {
+  enabled: boolean;
+  minStrength: number;
+  maxStrength: number;
+  closingDays: number;
+  durationDays: number; // total course duration in days (0 = no limit)
+}
+
 export interface ICourse extends Document {
   title: string;
   slug: string;
@@ -36,8 +44,11 @@ export interface ICourse extends Document {
   modules: IModule[];
   level: 'beginner' | 'intermediate' | 'advanced';
   language: string;
+  duration?: string;
   requirements: string[];
   outcomes: string[];
+  highlights: string[];
+  faqs: { question: string; answer: string }[];
   status: 'draft' | 'pending' | 'published' | 'rejected';
   rejectionReason?: string;
   enrolledCount: number;
@@ -46,6 +57,7 @@ export interface ICourse extends Document {
   reviews: { user: mongoose.Types.ObjectId; rating: number; comment: string; createdAt: Date }[];
   certificate: boolean;
   passingScore: number;
+  batchSettings: IBatchSettings;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -83,9 +95,15 @@ const CourseSchema = new Schema<ICourse>({
   discountPrice: Number,
   modules: [ModuleSchema],
   level: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'beginner' },
-  language: { type: String, default: 'English' },
+  language: { type: String, default: 'Hindi' },
+  duration: String,
   requirements: [String],
   outcomes: [String],
+  highlights: [String],
+  faqs: [{
+    question: { type: String, required: true },
+    answer: { type: String, required: true },
+  }],
   status: { type: String, enum: ['draft', 'pending', 'published', 'rejected'], default: 'draft' },
   rejectionReason: String,
   enrolledCount: { type: Number, default: 0 },
@@ -98,7 +116,14 @@ const CourseSchema = new Schema<ICourse>({
     createdAt: { type: Date, default: Date.now }
   }],
   certificate: { type: Boolean, default: true },
-  passingScore: { type: Number, default: 70 }
+  passingScore: { type: Number, default: 70 },
+  batchSettings: {
+    enabled: { type: Boolean, default: false },
+    minStrength: { type: Number, default: 5 },
+    maxStrength: { type: Number, default: 50 },
+    closingDays: { type: Number, default: 30 },
+    durationDays: { type: Number, default: 0 },
+  },
 }, { timestamps: true });
 
 CourseSchema.pre('save', function (next) {

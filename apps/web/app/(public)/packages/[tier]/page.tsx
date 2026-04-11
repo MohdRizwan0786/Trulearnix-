@@ -1,67 +1,72 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { packageAPI, paymentAPI } from '@/lib/api'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
+import { packageAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import {
   Check, Zap, Shield, Award, Users, TrendingUp, Star,
-  ArrowLeft, ArrowRight, Loader2, Crown, Sparkles, BadgeCheck,
-  BookOpen, Video, Bot, Briefcase, Globe, Clock, Gift, ChevronRight, Lock
+  ArrowLeft, Loader2, Crown, Sparkles, BadgeCheck,
+  BookOpen, Video, Bot, Briefcase, Globe, Clock, Gift, ChevronRight,
+  ChevronDown, Play, Flame, Target, Trophy, Lock, Rocket, Heart,
+  CheckCircle2, ArrowRight, Infinity as InfinityIcon, DollarSign, GraduationCap, PhoneCall
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
 declare global { interface Window { Razorpay: any } }
 
-/* ── Tier config ─────────────────────────────────────────── */
-const TIER_CONFIG: Record<string, {
-  emoji: string
-  name: string
-  tagline: string
-  headerGrad: string
-  accentColor: string
-  glowColor: string
-  borderColor: string
-  btnGrad: string
-  btnGlow: string
-  badgeText: string
-  highlight: boolean
-  comparedTo?: string
-}> = {
-  starter: {
-    emoji: '🚀', name: 'Starter', tagline: 'Launch your learning journey',
-    headerGrad: 'linear-gradient(135deg,#0f2044 0%,#1d4ed8 60%,#2563eb 100%)',
-    accentColor: '#60a5fa', glowColor: 'rgba(59,130,246,0.35)',
-    borderColor: 'rgba(59,130,246,0.45)', btnGrad: 'linear-gradient(135deg,#1d4ed8,#0284c7)',
-    btnGlow: '0 8px 32px rgba(59,130,246,0.45)', badgeText: 'Great Start', highlight: false,
+/* ── Dynamic palette by index ─────────────────────────────── */
+const PALETTE_DETAIL = [
+  {
+    emoji: '🚀', headerGrad: 'linear-gradient(135deg,#020818 0%,#0f2044 40%,#1d4ed8 80%,#2563eb 100%)',
+    accentColor: '#60a5fa', accentColor2: '#93c5fd',
+    glowColor: 'rgba(59,130,246,0.4)', borderColor: 'rgba(59,130,246,0.45)',
+    btnGrad: 'linear-gradient(135deg,#1d4ed8,#0284c7)', btnGlow: '0 8px 40px rgba(59,130,246,0.55)',
+    particleColor: '#3b82f6', bgPattern: 'radial-gradient(ellipse at 20% 80%,rgba(59,130,246,0.15) 0%,transparent 60%)',
   },
-  pro: {
-    emoji: '⚡', name: 'Pro', tagline: 'Everything you need to grow fast',
-    headerGrad: 'linear-gradient(135deg,#2d0f44 0%,#7c3aed 60%,#6366f1 100%)',
-    accentColor: '#c4b5fd', glowColor: 'rgba(124,58,237,0.4)',
-    borderColor: 'rgba(124,58,237,0.65)', btnGrad: 'linear-gradient(135deg,#7c3aed,#d946ef,#6366f1)',
-    btnGlow: '0 8px 32px rgba(124,58,237,0.55)', badgeText: '⚡ Most Popular', highlight: true,
-    comparedTo: 'starter',
+  {
+    emoji: '⚡', headerGrad: 'linear-gradient(135deg,#0d0020 0%,#2d0f44 40%,#7c3aed 80%,#6366f1 100%)',
+    accentColor: '#c4b5fd', accentColor2: '#e879f9',
+    glowColor: 'rgba(124,58,237,0.45)', borderColor: 'rgba(124,58,237,0.65)',
+    btnGrad: 'linear-gradient(135deg,#7c3aed,#d946ef,#6366f1)', btnGlow: '0 8px 40px rgba(124,58,237,0.65)',
+    particleColor: '#8b5cf6', bgPattern: 'radial-gradient(ellipse at 20% 80%,rgba(124,58,237,0.2) 0%,transparent 60%)',
   },
-  elite: {
-    emoji: '👑', name: 'Elite', tagline: 'Teach, earn and build your brand',
-    headerGrad: 'linear-gradient(135deg,#3a0d00 0%,#d97706 60%,#b45309 100%)',
-    accentColor: '#fcd34d', glowColor: 'rgba(245,158,11,0.35)',
-    borderColor: 'rgba(245,158,11,0.5)', btnGrad: 'linear-gradient(135deg,#d97706,#ea580c)',
-    btnGlow: '0 8px 32px rgba(245,158,11,0.45)', badgeText: '👑 For Educators', highlight: false,
-    comparedTo: 'pro',
+  {
+    emoji: '👑', headerGrad: 'linear-gradient(135deg,#1a0800 0%,#3a0d00 40%,#d97706 80%,#b45309 100%)',
+    accentColor: '#fcd34d', accentColor2: '#fb923c',
+    glowColor: 'rgba(245,158,11,0.4)', borderColor: 'rgba(245,158,11,0.5)',
+    btnGrad: 'linear-gradient(135deg,#d97706,#ea580c)', btnGlow: '0 8px 40px rgba(245,158,11,0.55)',
+    particleColor: '#f59e0b', bgPattern: 'radial-gradient(ellipse at 20% 80%,rgba(245,158,11,0.15) 0%,transparent 60%)',
   },
-  supreme: {
-    emoji: '💎', name: 'Supreme', tagline: 'Maximum power, maximum earnings',
-    headerGrad: 'linear-gradient(135deg,#022020 0%,#0d9488 60%,#0891b2 100%)',
-    accentColor: '#34d399', glowColor: 'rgba(6,182,212,0.35)',
-    borderColor: 'rgba(6,182,212,0.5)', btnGrad: 'linear-gradient(135deg,#0d9488,#0891b2)',
-    btnGlow: '0 8px 32px rgba(6,182,212,0.45)', badgeText: '💎 Enterprise', highlight: false,
-    comparedTo: 'elite',
+  {
+    emoji: '💎', headerGrad: 'linear-gradient(135deg,#001a1a 0%,#022020 40%,#0d9488 80%,#0891b2 100%)',
+    accentColor: '#34d399', accentColor2: '#22d3ee',
+    glowColor: 'rgba(6,182,212,0.4)', borderColor: 'rgba(6,182,212,0.5)',
+    btnGrad: 'linear-gradient(135deg,#0d9488,#0891b2)', btnGlow: '0 8px 40px rgba(6,182,212,0.55)',
+    particleColor: '#06b6d4', bgPattern: 'radial-gradient(ellipse at 20% 80%,rgba(6,182,212,0.15) 0%,transparent 60%)',
   },
+  {
+    emoji: '🌟', headerGrad: 'linear-gradient(135deg,#1a0020 0%,#3b0764 40%,#e11d48 80%,#db2777 100%)',
+    accentColor: '#fb7185', accentColor2: '#f472b6',
+    glowColor: 'rgba(225,29,72,0.4)', borderColor: 'rgba(225,29,72,0.5)',
+    btnGrad: 'linear-gradient(135deg,#e11d48,#db2777)', btnGlow: '0 8px 40px rgba(225,29,72,0.55)',
+    particleColor: '#f43f5e', bgPattern: 'radial-gradient(ellipse at 20% 80%,rgba(225,29,72,0.15) 0%,transparent 60%)',
+  },
+]
+
+function makeCfg(pkg: any, index: number) {
+  const p = PALETTE_DETAIL[index % PALETTE_DETAIL.length]
+  return {
+    ...p,
+    name: pkg?.name || 'Plan',
+    tagline: pkg?.description || 'Accelerate your learning journey',
+    subTagline: pkg?.description || 'Everything you need to succeed',
+    badgeText: pkg?.badge ? `✨ ${pkg.badge}` : '',
+    highlight: false,
+  }
 }
 
 /* ── Feature icons ───────────────────────────────────────── */
@@ -70,70 +75,139 @@ const FEATURE_ICONS: Record<string, any> = {
   'Job Engine': Briefcase, 'Community': Users, 'Earn': TrendingUp,
   'Income': TrendingUp, 'Mentor': Star, 'Personal brand': Globe,
   'Certificate': Award, 'WhatsApp': Gift, 'Analytics': Zap,
-  'Dedicated': Crown, 'Mastermind': Sparkles, 'Lifetime': Clock,
-  'Priority': Shield, 'Done-For-You': BadgeCheck, 'Early access': Zap,
-  'default': Check,
+  'Dedicated': Crown, 'Mastermind': Sparkles, 'Lifetime': InfinityIcon,
+  'Priority': Shield, 'Done-For-You': BadgeCheck, 'Early access': Rocket,
+  'Quiz': Trophy, 'Assignment': Target, 'default': CheckCircle2,
 }
 
 function getIcon(feature: string) {
   for (const [key, Icon] of Object.entries(FEATURE_ICONS)) {
     if (feature.toLowerCase().includes(key.toLowerCase())) return Icon
   }
-  return Check
+  return CheckCircle2
 }
 
-/* ── Commission calculator ───────────────────────────────── */
-function EarningsCalc({ rate, accentColor }: { rate: number; accentColor: string }) {
+/* ── Floating particles ──────────────────────────────────── */
+function Particles({ color }: { color: string }) {
+  const particles = Array.from({ length: 18 }, (_, i) => ({
+    id: i,
+    size: Math.random() * 4 + 2,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    duration: Math.random() * 8 + 6,
+    delay: Math.random() * 4,
+  }))
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map(p => (
+        <motion.div key={p.id}
+          className="absolute rounded-full"
+          style={{ width: p.size, height: p.size, left: `${p.x}%`, top: `${p.y}%`, background: color, opacity: 0.25 }}
+          animate={{ y: [-20, 20, -20], opacity: [0.1, 0.35, 0.1], scale: [0.8, 1.2, 0.8] }}
+          transition={{ duration: p.duration, delay: p.delay, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/* ── Animated number ─────────────────────────────────────── */
+function AnimatedNumber({ value, prefix = '', suffix = '' }: { value: number; prefix?: string; suffix?: string }) {
+  const [display, setDisplay] = useState(0)
+  const [started, setStarted] = useState(false)
+  const ref = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting && !started) setStarted(true) }, { threshold: 0.5 })
+    if (ref.current) obs.observe(ref.current)
+    return () => obs.disconnect()
+  }, [started])
+
+  useEffect(() => {
+    if (!started) return
+    let start = 0
+    const step = value / 40
+    const t = setInterval(() => {
+      start += step
+      if (start >= value) { setDisplay(value); clearInterval(t) }
+      else setDisplay(Math.floor(start))
+    }, 35)
+    return () => clearInterval(t)
+  }, [started, value])
+
+  return <span ref={ref}>{prefix}{display.toLocaleString()}{suffix}</span>
+}
+
+/* ── Earnings Calculator ─────────────────────────────────── */
+function EarningsCalc({ rate, accentColor, accentColor2 }: { rate: number; accentColor: string; accentColor2: string }) {
   const [referrals, setReferrals] = useState(10)
   const [tier, setTier] = useState(9999)
   const monthly = referrals * tier * (rate / 100)
+  const yearly = monthly * 12
 
   return (
-    <div className="rounded-3xl p-6 sm:p-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <h3 className="text-lg font-black text-white mb-1 flex items-center gap-2">
-        <TrendingUp className="w-5 h-5" style={{ color: accentColor }} />
-        Earnings Calculator
-      </h3>
-      <p className="text-gray-500 text-xs mb-6">See how much you can earn per month</p>
-
-      <div className="space-y-5">
-        <div>
-          <div className="flex justify-between text-xs mb-2">
-            <span className="text-gray-400">People you help join per month</span>
-            <span className="font-black text-white">{referrals}</span>
+    <div className="rounded-3xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
+      <div className="px-6 py-5 sm:px-8 sm:py-6" style={{ background: `linear-gradient(135deg,${accentColor}12,${accentColor2}08)`, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: accentColor + '20' }}>
+            <TrendingUp className="w-5 h-5" style={{ color: accentColor }} />
           </div>
-          <input type="range" min={1} max={100} value={referrals} onChange={e => setReferrals(+e.target.value)}
-            className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-            style={{ background: `linear-gradient(to right,${accentColor} ${referrals}%,rgba(255,255,255,0.1) ${referrals}%)` }} />
-          <div className="flex justify-between text-[10px] text-gray-600 mt-1"><span>1</span><span>100</span></div>
+          <div>
+            <h3 className="text-white font-black text-base">Income Calculator</h3>
+            <p className="text-gray-500 text-xs">Estimate your monthly earnings</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 sm:p-8 space-y-6">
+        <div>
+          <div className="flex justify-between text-xs mb-3">
+            <span className="text-gray-400 font-medium">People you help join per month</span>
+            <span className="font-black text-white text-sm">{referrals} people</span>
+          </div>
+          <div className="relative">
+            <input type="range" min={1} max={100} value={referrals} onChange={e => setReferrals(+e.target.value)}
+              className="w-full h-2 rounded-full appearance-none cursor-pointer"
+              style={{ background: `linear-gradient(to right,${accentColor} ${referrals}%,rgba(255,255,255,0.1) ${referrals}%)` }} />
+          </div>
+          <div className="flex justify-between text-[10px] text-gray-600 mt-1.5"><span>1</span><span>100</span></div>
         </div>
 
         <div>
-          <div className="flex justify-between text-xs mb-2">
-            <span className="text-gray-400">Avg. package value</span>
-            <span className="font-black text-white">₹{tier.toLocaleString()}</span>
-          </div>
-          <div className="flex gap-2">
+          <p className="text-gray-400 text-xs font-medium mb-3">Avg. package value they buy</p>
+          <div className="grid grid-cols-4 gap-2">
             {[4999, 9999, 19999, 29999].map(v => (
               <button key={v} onClick={() => setTier(v)}
-                className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                className="py-2.5 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95"
                 style={{
-                  background: tier === v ? accentColor + '25' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${tier === v ? accentColor : 'rgba(255,255,255,0.08)'}`,
+                  background: tier === v ? `linear-gradient(135deg,${accentColor}25,${accentColor2}15)` : 'rgba(255,255,255,0.04)',
+                  border: `1.5px solid ${tier === v ? accentColor : 'rgba(255,255,255,0.06)'}`,
                   color: tier === v ? accentColor : '#6b7280',
+                  boxShadow: tier === v ? `0 4px 16px ${accentColor}30` : 'none',
                 }}>
-                ₹{(v/1000).toFixed(0)}K
+                ₹{(v / 1000).toFixed(0)}K
               </button>
             ))}
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 text-center" style={{ background: accentColor + '12', border: `1px solid ${accentColor}30` }}>
-          <p className="text-gray-400 text-xs mb-1">Your estimated monthly earnings</p>
-          <p className="font-black leading-none" style={{ fontSize: '2.5rem', color: accentColor }}>
-            ₹{monthly.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-          </p>
-          <p className="text-gray-500 text-xs mt-1">{rate}% income rate × {referrals} people helped</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl p-4 text-center" style={{ background: accentColor + '10', border: `1px solid ${accentColor}25` }}>
+            <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Monthly</p>
+            <p className="font-black text-lg leading-none" style={{ color: accentColor }}>
+              ₹{monthly.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </p>
+          </div>
+          <div className="rounded-2xl p-4 text-center" style={{ background: accentColor2 + '10', border: `1px solid ${accentColor2}25` }}>
+            <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Yearly</p>
+            <p className="font-black text-lg leading-none" style={{ color: accentColor2 }}>
+              ₹{yearly.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </p>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <p className="text-gray-600 text-xs">{rate}% commission rate × {referrals} people × ₹{tier.toLocaleString()}</p>
         </div>
       </div>
     </div>
@@ -142,23 +216,58 @@ function EarningsCalc({ rate, accentColor }: { rate: number; accentColor: string
 
 /* ── FAQ ─────────────────────────────────────────────────── */
 const FAQS = [
-  { q: 'Can I upgrade my plan later?', a: 'Yes! You can upgrade anytime and only pay the difference.' },
-  { q: 'Is there a money-back guarantee?', a: '30-day full refund, no questions asked.' },
-  { q: 'How does the Partner Program work?', a: 'Share your personal partner link. Every time someone joins through it, you earn income instantly — no selling required, just help others learn skills.' },
-  { q: 'Can I pay in EMI?', a: 'Yes, EMI options are available via Razorpay (3–12 months, 0% interest on select plans).' },
-  { q: 'Do I get lifetime access?', a: 'Yes, all courses and materials are accessible for lifetime once enrolled.' },
+  { q: 'Can I upgrade my plan later?', a: 'Yes! You can upgrade anytime and only pay the difference. Your learning progress is always saved.' },
+  { q: 'Is there a money-back guarantee?', a: '100% yes! 30-day full refund, no questions asked. We want you to feel confident.' },
+  { q: 'How does the Partner Program work?', a: 'Share your personal partner link. Every time someone joins through it, you earn income instantly — no selling skills required, just help others learn.' },
+  { q: 'Can I pay in EMI?', a: 'Yes, EMI options are available via Razorpay (3–12 months, 0% interest on select plans). Choose at checkout.' },
+  { q: 'Do I get lifetime access?', a: 'Yes! All courses, content, and updates are accessible for lifetime once enrolled. No expiry.' },
+  { q: 'Is there a mobile app?', a: 'The platform is fully mobile responsive. A dedicated app is coming soon for an even better experience.' },
 ]
 
-function FAQItem({ q, a }: { q: string; a: string }) {
+function FAQItem({ q, a, accentColor }: { q: string; a: string; accentColor: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
-        <span className="text-white font-bold text-sm pr-4">{q}</span>
-        <ChevronRight className={`w-4 h-4 text-gray-500 flex-shrink-0 transition-transform ${open ? 'rotate-90' : ''}`} />
+    <div className="rounded-2xl overflow-hidden transition-all" style={{ border: `1px solid ${open ? accentColor + '30' : 'rgba(255,255,255,0.07)'}`, background: open ? accentColor + '05' : 'rgba(255,255,255,0.02)' }}>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-4 sm:py-5 text-left gap-4 transition-colors hover:bg-white/5">
+        <span className="text-white font-bold text-sm sm:text-base">{q}</span>
+        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
+          style={{ background: open ? accentColor + '25' : 'rgba(255,255,255,0.06)', color: open ? accentColor : '#6b7280' }}>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+        </div>
       </button>
-      {open && <div className="px-5 pb-4 text-gray-400 text-sm leading-relaxed">{a}</div>}
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
+            <div className="px-5 pb-5 text-gray-400 text-sm leading-relaxed">{a}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  )
+}
+
+/* ── What happens next steps ─────────────────────────────── */
+function JourneyStep({ step, title, desc, icon: Icon, accentColor, delay }: any) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.5 }} viewport={{ once: true }}
+      className="flex gap-4 items-start">
+      <div className="flex flex-col items-center">
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 font-black text-sm"
+          style={{ background: accentColor + '20', color: accentColor, border: `1.5px solid ${accentColor}35` }}>
+          {step}
+        </div>
+        {step < 4 && <div className="w-0.5 h-8 mt-2" style={{ background: `linear-gradient(to bottom,${accentColor}40,transparent)` }} />}
+      </div>
+      <div className="pb-8">
+        <div className="flex items-center gap-2 mb-1">
+          <Icon className="w-4 h-4" style={{ color: accentColor }} />
+          <p className="text-white font-black text-sm">{title}</p>
+        </div>
+        <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
+      </div>
+    </motion.div>
   )
 }
 
@@ -166,24 +275,40 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 export default function PackageDetailPage({ params }: { params: { tier: string } }) {
   const [pkg, setPkg] = useState<any>(null)
   const [allPkgs, setAllPkgs] = useState<any[]>([])
+  const [pkgIndex, setPkgIndex] = useState(0)
   const [buying, setBuying] = useState(false)
+  const [showStickyBuy, setShowStickyBuy] = useState(false)
+  const heroRef = useRef<HTMLDivElement>(null)
   const { user, isAuthenticated, _hasHydrated } = useAuthStore()
   const router = useRouter()
-  const cfg = TIER_CONFIG[params.tier] || TIER_CONFIG.pro
+  const cfg = makeCfg(pkg, pkgIndex)
 
   useEffect(() => {
+    // params.tier is the package _id
     packageAPI.getAll().then(res => {
-      const pkgs = res.data?.packages || []
+      const pkgs = (res.data?.packages || []).filter((p: any) => p.isActive)
       setAllPkgs(pkgs)
-      const found = pkgs.find((p: any) => p.tier === params.tier)
-      if (found) setPkg(found)
-    }).catch(() => {})
+      const idx = pkgs.findIndex((p: any) => p._id === params.tier)
+      if (idx >= 0) { setPkg(pkgs[idx]); setPkgIndex(idx) }
+    }).catch(() => { })
   }, [params.tier])
+
+  // Sticky buy button on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (heroRef.current) {
+        const bottom = heroRef.current.getBoundingClientRect().bottom
+        setShowStickyBuy(bottom < 0)
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const handleBuy = () => {
     if (!_hasHydrated) return
-    if (!isAuthenticated()) return router.push(`/login?redirect=/checkout?type=package%26tier=${params.tier}`)
-    router.push(`/checkout?type=package&tier=${params.tier}`)
+    if (!isAuthenticated()) return router.push(`/login?redirect=/checkout?type=package%26packageId=${params.tier}`)
+    router.push(`/checkout?type=package&packageId=${params.tier}`)
   }
 
   const price = pkg?.price || 0
@@ -191,12 +316,14 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
   const discount = originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : 0
   const features: string[] = pkg?.features || []
 
-  const BuyBtn = ({ full = true, size = 'lg' }: { full?: boolean; size?: 'lg' | 'sm' }) => (
+  const BuyBtn = ({ full = true, size = 'lg', label }: { full?: boolean; size?: 'lg' | 'sm'; label?: string }) => (
     <button onClick={handleBuy} disabled={buying}
-      className={`flex items-center justify-center gap-2 rounded-2xl font-black text-white transition-all hover:scale-[1.02] active:scale-[0.97] disabled:opacity-70 ${full ? 'w-full' : ''} ${size === 'lg' ? 'py-4 text-base' : 'py-3 px-6 text-sm'}`}
+      className={`group relative flex items-center justify-center gap-2 rounded-2xl font-black text-white transition-all hover:scale-[1.02] active:scale-[0.97] disabled:opacity-70 overflow-hidden ${full ? 'w-full' : ''} ${size === 'lg' ? 'py-4 px-6 text-base' : 'py-3 px-5 text-sm'}`}
       style={{ background: cfg.btnGrad, boxShadow: cfg.btnGlow }}>
-      {buying ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
-        : <><Zap className="w-4 h-4" /> Get {cfg.name} — ₹{price.toLocaleString()}</>}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(255,255,255,0.1)' }} />
+      {buying
+        ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+        : <><Zap className="w-4 h-4" /> {label || `Get ${cfg.name} — ₹${price.toLocaleString()}`}</>}
     </button>
   )
 
@@ -205,201 +332,296 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
       <Navbar />
 
       {/* ── HERO ── */}
-      <div className="relative overflow-hidden pt-16">
-        <div className="absolute inset-0" style={{ background: cfg.headerGrad, opacity: 0.85 }} />
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 60% 50%,transparent 30%,rgba(0,0,0,0.65) 100%)' }} />
-        {/* Animated circles */}
-        <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.04)' }} />
-        <div className="absolute bottom-0 -left-16 w-72 h-72 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.03)' }} />
+      <div ref={heroRef} className="relative overflow-hidden pt-16">
+        {/* Background layers */}
+        <div className="absolute inset-0" style={{ background: cfg.headerGrad }} />
+        <div className="absolute inset-0" style={{ background: cfg.bgPattern }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 100%,rgba(0,0,0,0.7) 0%,transparent 70%)' }} />
+        <Particles color={cfg.particleColor} />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 md:py-20">
-          {/* Back */}
-          <Link href="/pricing" className="inline-flex items-center gap-1.5 text-white/60 hover:text-white text-sm mb-8 transition-colors">
-            <ArrowLeft className="w-4 h-4" /> All Plans
+        {/* Decorative blobs */}
+        <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: cfg.accentColor + '08', filter: 'blur(80px)' }} />
+        <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full pointer-events-none" style={{ background: cfg.accentColor2 + '08', filter: 'blur(60px)' }} />
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-14 md:pb-20">
+          {/* Back link */}
+          <Link href="/pricing" className="inline-flex items-center gap-1.5 text-white/50 hover:text-white text-sm mb-8 transition-colors group">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to all plans
           </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             {/* Left */}
             <div>
-              <div className="flex items-center gap-3 mb-5 flex-wrap">
+              {/* Badges row */}
+              <div className="flex flex-wrap items-center gap-2 mb-6">
                 {cfg.badgeText && (
-                  <span className="text-xs font-black px-3 py-1.5 rounded-full text-white"
-                    style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}>
+                  <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                    className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', color: 'white', border: '1px solid rgba(255,255,255,0.25)' }}>
                     {cfg.badgeText}
-                  </span>
+                  </motion.span>
                 )}
                 {discount > 0 && (
-                  <span className="text-xs font-black px-3 py-1.5 rounded-full"
-                    style={{ background: 'rgba(74,222,128,0.2)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}>
-                    {discount}% OFF
-                  </span>
+                  <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
+                    className="inline-flex items-center gap-1 text-xs font-black px-3 py-1.5 rounded-full"
+                    style={{ background: 'rgba(74,222,128,0.18)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.35)' }}>
+                    <Flame className="w-3 h-3" /> {discount}% OFF
+                  </motion.span>
                 )}
               </div>
 
-              <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                className="text-7xl mb-6 inline-block" style={{ filter: 'drop-shadow(0 12px 32px rgba(0,0,0,0.4))' }}>
+              {/* Emoji */}
+              <motion.div initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
+                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                className="text-7xl sm:text-8xl mb-5 inline-block select-none"
+                style={{ filter: `drop-shadow(0 16px 40px ${cfg.glowColor})` }}>
                 {cfg.emoji}
               </motion.div>
 
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white leading-tight mb-4">
-                {cfg.name} <span className="block text-2xl sm:text-3xl font-bold mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>Plan</span>
-              </h1>
-              <p className="text-white/70 text-lg mb-8 max-w-md">{cfg.tagline}</p>
+              {/* Title */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <h1 className="font-black text-white leading-none mb-2">
+                  <span className="block text-5xl sm:text-6xl md:text-7xl">{cfg.name}</span>
+                  <span className="block text-2xl sm:text-3xl font-bold mt-1.5" style={{ color: cfg.accentColor }}>Plan</span>
+                </h1>
+                <p className="text-white/60 text-base sm:text-lg mt-3 mb-8 max-w-sm leading-relaxed">{cfg.subTagline}</p>
+              </motion.div>
 
               {/* Price */}
-              <div className="flex items-baseline gap-4 mb-8">
-                <span className="font-black text-white" style={{ fontSize: '3.5rem', lineHeight: 1 }}>
+              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className="flex items-baseline gap-3 mb-2">
+                <span className="font-black text-white" style={{ fontSize: '3.8rem', lineHeight: 1 }}>
                   ₹{price.toLocaleString()}
                 </span>
                 {originalPrice > price && (
-                  <span className="text-white/40 text-xl line-through">₹{originalPrice.toLocaleString()}</span>
+                  <div className="flex flex-col">
+                    <span className="text-white/35 text-lg line-through">₹{originalPrice.toLocaleString()}</span>
+                    <span className="text-xs font-bold" style={{ color: '#4ade80' }}>You save ₹{(originalPrice - price).toLocaleString()}</span>
+                  </div>
                 )}
-              </div>
+              </motion.div>
+              <p className="text-gray-500 text-xs mb-8">One-time payment • Lifetime access</p>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              {/* CTA Buttons */}
+              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="flex flex-col sm:flex-row gap-3 mb-5">
                 <BuyBtn />
-                {cfg.comparedTo && (
-                  <Link href={`/packages/${cfg.comparedTo}`}
-                    className="flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-bold text-sm text-gray-300 hover:text-white transition-all"
-                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
-                    Compare with {TIER_CONFIG[cfg.comparedTo]?.name}
+                {pkgIndex > 0 && allPkgs[pkgIndex - 1] && (
+                  <Link href={`/packages/${allPkgs[pkgIndex - 1]._id}`}
+                    className="flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-bold text-sm text-gray-300 hover:text-white transition-all hover:bg-white/10"
+                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                    <ArrowLeft className="w-4 h-4" /> See {allPkgs[pkgIndex - 1].name} Plan
                   </Link>
                 )}
-              </div>
+              </motion.div>
 
-              <p className="flex items-center gap-1.5 text-white/50 text-xs mt-4">
-                <Shield className="w-3.5 h-3.5" /> 30-day money-back guarantee
-              </p>
+              {/* Trust badges */}
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+                className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-green-500" /> 30-day money-back</span>
+                <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-blue-400" /> Secure checkout</span>
+                <span className="flex items-center gap-1.5"><InfinityIcon className="w-3.5 h-3.5 text-purple-400" /> Lifetime access</span>
+              </motion.div>
             </div>
 
-            {/* Right — feature highlights */}
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
-              className="rounded-3xl p-6 sm:p-8"
-              style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <p className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: cfg.accentColor }}>What's included</p>
-              <ul className="space-y-3">
-                {features.slice(0, 8).map((f, i) => {
-                  const Icon = getIcon(f)
-                  return (
-                    <li key={i} className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: cfg.accentColor + '20' }}>
-                        <Icon className="w-3.5 h-3.5" style={{ color: cfg.accentColor }} />
-                      </div>
-                      <span className="text-gray-200 text-sm">{f}</span>
-                    </li>
-                  )
-                })}
-                {features.length > 8 && (
-                  <li className="text-xs pl-10" style={{ color: cfg.accentColor }}>+{features.length - 8} more features below ↓</li>
-                )}
-              </ul>
+            {/* Right — feature highlights card */}
+            <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, duration: 0.6 }}>
+              <div className="rounded-3xl overflow-hidden"
+                style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(24px)', border: `1px solid ${cfg.borderColor}` }}>
+                <div className="px-6 py-5 sm:px-7" style={{ background: `linear-gradient(135deg,${cfg.accentColor}15,transparent)`, borderBottom: `1px solid ${cfg.borderColor}40` }}>
+                  <p className="text-xs font-black uppercase tracking-widest" style={{ color: cfg.accentColor }}>What&apos;s included</p>
+                </div>
+                <div className="p-6 sm:p-7">
+                  <ul className="space-y-3.5">
+                    {features.slice(0, 9).map((f, i) => {
+                      const Icon = getIcon(f)
+                      return (
+                        <motion.li key={i} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 + i * 0.05 }}
+                          className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ background: cfg.accentColor + '18', border: `1px solid ${cfg.accentColor}25` }}>
+                            <Icon className="w-4 h-4" style={{ color: cfg.accentColor }} />
+                          </div>
+                          <span className="text-gray-200 text-sm font-medium">{f}</span>
+                        </motion.li>
+                      )
+                    })}
+                    {features.length > 9 && (
+                      <li className="flex items-center gap-2 pl-11">
+                        <span className="text-xs font-black" style={{ color: cfg.accentColor }}>+{features.length - 9} more features ↓</span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
             </motion.div>
           </div>
+        </div>
+
+        {/* Wave divider */}
+        <div className="relative h-12 -mb-1">
+          <svg viewBox="0 0 1440 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute bottom-0 w-full" preserveAspectRatio="none">
+            <path d="M0 48L60 42.7C120 37.3 240 26.7 360 21.3C480 16 600 16 720 21.3C840 26.7 960 37.3 1080 40C1200 42.7 1320 37.3 1380 34.7L1440 32V48H1380C1320 48 1200 48 1080 48C960 48 840 48 720 48C600 48 480 48 360 48C240 48 120 48 60 48H0Z" fill="#04050a" />
+          </svg>
         </div>
       </div>
 
       {/* ── BODY ── */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 space-y-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 space-y-16 sm:space-y-20">
 
-        {/* All features full */}
+        {/* Stats row */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 -mt-2">
+          {[
+            { val: pkg?.commissionRate || 0, suffix: '%', label: 'Income Rate', icon: TrendingUp, prefix: '' },
+            { val: 500, suffix: '+', label: 'Courses Access', icon: BookOpen, prefix: '' },
+            { val: 10000, suffix: '+', label: 'Active Members', icon: Users, prefix: '' },
+            { val: 30, suffix: ' Days', label: 'Money-Back', icon: Shield, prefix: '' },
+          ].map((s, i) => (
+            <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }} viewport={{ once: true }}
+              className="rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-center group hover:scale-[1.03] transition-transform cursor-default"
+              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${cfg.borderColor}`, boxShadow: `0 0 0 0 ${cfg.glowColor}` }}
+              whileHover={{ boxShadow: `0 0 30px ${cfg.glowColor}` }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ background: cfg.accentColor + '15' }}>
+                <s.icon className="w-4 h-4" style={{ color: cfg.accentColor }} />
+              </div>
+              <p className="font-black text-white text-xl sm:text-2xl leading-none">
+                <AnimatedNumber value={s.val} prefix={s.prefix} suffix={s.suffix} />
+              </p>
+              <p className="text-gray-500 text-xs mt-1.5 font-medium">{s.label}</p>
+            </motion.div>
+          ))}
+        </section>
+
+        {/* All features grid */}
         <section>
-          <h2 className="text-2xl font-black text-white mb-2">Everything in {cfg.name}</h2>
-          <p className="text-gray-500 text-sm mb-7">All features included in your plan</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
+            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: cfg.accentColor }}>Full Feature List</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">Everything in {cfg.name}</h2>
+            <p className="text-gray-500 text-sm mt-2">All features included in your plan from day one</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {features.map((f, i) => {
               const Icon = getIcon(f)
               return (
                 <motion.div key={i}
                   initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }} viewport={{ once: true }}
-                  className="flex items-center gap-3 p-4 rounded-2xl"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: cfg.accentColor + '15' }}>
-                    <Icon className="w-4 h-4" style={{ color: cfg.accentColor }} />
+                  transition={{ delay: Math.min(i * 0.04, 0.5) }} viewport={{ once: true }}
+                  className="group flex items-center gap-3.5 p-4 rounded-2xl transition-all hover:scale-[1.02]"
+                  style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}
+                  whileHover={{ background: cfg.accentColor + '08', borderColor: cfg.accentColor + '30' }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+                    style={{ background: cfg.accentColor + '15' }}
+                  >
+                    <Icon className="w-4.5 h-4.5" style={{ color: cfg.accentColor, width: 18, height: 18 }} />
                   </div>
-                  <span className="text-gray-300 text-sm font-medium">{f}</span>
+                  <span className="text-gray-300 text-sm font-semibold group-hover:text-white transition-colors">{f}</span>
+                  <CheckCircle2 className="w-4 h-4 ml-auto flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: cfg.accentColor }} />
                 </motion.div>
               )
             })}
           </div>
         </section>
 
-        {/* Stats row */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { val: `${pkg?.commissionRate || 0}%`, label: 'Income Rate', icon: TrendingUp },
-            { val: '500+', label: 'Courses Access', icon: BookOpen },
-            { val: pkg?.liveClassAccess ? 'Daily' : 'Limited', label: 'Live Classes', icon: Video },
-            { val: '30 Days', label: 'Money-Back', icon: Shield },
-          ].map((s, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }} viewport={{ once: true }}
-              className="rounded-2xl p-5 text-center"
-              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${cfg.borderColor}` }}>
-              <s.icon className="w-5 h-5 mx-auto mb-2" style={{ color: cfg.accentColor }} />
-              <p className="font-black text-white text-xl leading-none">{s.val}</p>
-              <p className="text-gray-500 text-xs mt-1">{s.label}</p>
-            </motion.div>
-          ))}
+        {/* What happens after purchase */}
+        <section>
+          <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
+            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: cfg.accentColor }}>Your Journey</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">What happens after you join?</h2>
+            <p className="text-gray-500 text-sm mt-2">Simple 4-step process to start your transformation</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
+            <JourneyStep step={1} icon={CheckCircle2} accentColor={cfg.accentColor} delay={0.1}
+              title="Secure checkout in 60 seconds"
+              desc="Pay safely with Razorpay. Cards, UPI, EMI — all options available." />
+            <JourneyStep step={2} icon={Zap} accentColor={cfg.accentColor} delay={0.2}
+              title="Instant plan activation"
+              desc="Your account is upgraded immediately. No wait time." />
+            <JourneyStep step={3} icon={BookOpen} accentColor={cfg.accentColor} delay={0.3}
+              title="Enroll in 500+ courses free"
+              desc="Browse the full catalog and self-enroll in anything you want." />
+            <JourneyStep step={4} icon={TrendingUp} accentColor={cfg.accentColor} delay={0.4}
+              title="Start earning as a partner"
+              desc="Get your unique link and start earning income by helping others join." />
+          </div>
         </section>
 
         {/* Earnings calculator */}
         {pkg?.commissionRate > 0 && (
           <section>
-            <EarningsCalc rate={pkg.commissionRate} accentColor={cfg.accentColor} />
+            <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
+              <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: cfg.accentColor }}>Partner Income</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">Calculate your earnings</h2>
+              <p className="text-gray-500 text-sm mt-2">With {pkg.commissionRate}% income rate, see your potential</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+              <EarningsCalc rate={pkg.commissionRate} accentColor={cfg.accentColor} accentColor2={cfg.accentColor2} />
+            </motion.div>
           </section>
         )}
 
-        {/* EMI section */}
+        {/* EMI */}
         {pkg?.emiAvailable && (
-          <section className="rounded-3xl p-6 sm:p-8"
-            style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${cfg.borderColor}` }}>
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{ background: cfg.accentColor + '15' }}>
-                <Clock className="w-6 h-6" style={{ color: cfg.accentColor }} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-black text-white mb-1">Easy EMI Available</h3>
-                <p className="text-gray-500 text-sm mb-4">Pay in easy monthly installments, no interest</p>
-                <div className="flex flex-wrap gap-3">
-                  {[pkg.emiMonths || 3].map((m: number) => (
-                    <div key={m} className="rounded-2xl px-5 py-3 text-center"
-                      style={{ background: cfg.accentColor + '15', border: `1px solid ${cfg.accentColor}30` }}>
-                      <p className="font-black text-white text-xl">₹{(pkg.emiMonthlyAmount || Math.round(price / m)).toLocaleString()}</p>
-                      <p className="text-xs mt-0.5" style={{ color: cfg.accentColor }}>× {m} months</p>
-                    </div>
-                  ))}
-                </div>
+          <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row gap-6 items-start sm:items-center"
+            style={{ background: `linear-gradient(135deg,${cfg.accentColor}08,${cfg.accentColor2}05)`, border: `1px solid ${cfg.borderColor}` }}>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: cfg.accentColor + '20', border: `1px solid ${cfg.accentColor}30` }}>
+              <Clock className="w-7 h-7" style={{ color: cfg.accentColor }} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg sm:text-xl font-black text-white mb-1">Flexible EMI — Start at ₹{Math.round(price / 12).toLocaleString()}/mo</h3>
+              <p className="text-gray-500 text-sm mb-4">Pay in easy monthly installments. No extra interest charged.</p>
+              <div className="flex flex-wrap gap-2">
+                {[3, 6, 9, 12].map((m: number) => (
+                  <div key={m} className="rounded-xl px-4 py-2.5 text-center"
+                    style={{ background: cfg.accentColor + '12', border: `1px solid ${cfg.accentColor}25` }}>
+                    <p className="font-black text-white text-base">₹{Math.round(price / m).toLocaleString()}</p>
+                    <p className="text-[10px] mt-0.5 font-bold" style={{ color: cfg.accentColor }}>× {m} months</p>
+                  </div>
+                ))}
               </div>
             </div>
-          </section>
+          </motion.section>
         )}
 
         {/* Compare plans */}
         {allPkgs.length > 0 && (
           <section>
-            <h2 className="text-2xl font-black text-white mb-2">Compare Plans</h2>
-            <p className="text-gray-500 text-sm mb-7">Find the right plan for your goals</p>
+            <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
+              <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: cfg.accentColor }}>All Plans</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">Compare & choose</h2>
+              <p className="text-gray-500 text-sm mt-2">Find the perfect plan for your goals</p>
+            </motion.div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {allPkgs.map((p: any) => {
-                const c = TIER_CONFIG[p.tier] || TIER_CONFIG.pro
-                const isActive = p.tier === params.tier
+              {allPkgs.map((p: any, i: number) => {
+                const c = makeCfg(p, i)
+                const isActive = p._id === params.tier
                 return (
-                  <Link key={p._id} href={`/packages/${p.tier}`}
-                    className="rounded-2xl p-4 text-center transition-all hover:scale-[1.03]"
-                    style={{
-                      background: isActive ? c.accentColor + '15' : 'rgba(255,255,255,0.03)',
-                      border: `1.5px solid ${isActive ? c.borderColor : 'rgba(255,255,255,0.07)'}`,
-                      boxShadow: isActive ? `0 0 32px ${c.glowColor}` : 'none',
-                    }}>
-                    <div className="text-3xl mb-2">{c.emoji}</div>
-                    <p className="font-black text-white text-sm">{p.name}</p>
-                    <p className="font-bold text-xs mt-1" style={{ color: c.accentColor }}>₹{p.price.toLocaleString()}</p>
-                    {isActive && <p className="text-[10px] mt-1.5 font-black" style={{ color: c.accentColor }}>Current</p>}
-                  </Link>
+                  <motion.div key={p._id} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.08 }} viewport={{ once: true }}>
+                    <Link href={`/packages/${p._id}`}
+                      className="block rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-center transition-all hover:scale-[1.04]"
+                      style={{
+                        background: isActive ? `linear-gradient(135deg,${c.accentColor}15,${c.accentColor2}08)` : 'rgba(255,255,255,0.03)',
+                        border: `1.5px solid ${isActive ? c.borderColor : 'rgba(255,255,255,0.07)'}`,
+                        boxShadow: isActive ? `0 8px 32px ${c.glowColor}` : 'none',
+                      }}>
+                      <div className="text-3xl sm:text-4xl mb-2.5">{c.emoji}</div>
+                      <p className="font-black text-white text-sm">{p.name}</p>
+                      <p className="font-bold text-sm mt-1" style={{ color: c.accentColor }}>₹{p.price.toLocaleString()}</p>
+                      {isActive && (
+                        <span className="inline-block text-[10px] mt-2 px-2.5 py-1 rounded-full font-black"
+                          style={{ background: c.accentColor + '20', color: c.accentColor }}>
+                          Current Plan
+                        </span>
+                      )}
+                    </Link>
+                  </motion.div>
                 )
               })}
             </div>
@@ -408,29 +630,37 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
 
         {/* Testimonials */}
         <section>
-          <h2 className="text-2xl font-black text-white mb-7">What our members say</h2>
+          <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
+            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: cfg.accentColor }}>Success Stories</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">What our members say</h2>
+          </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { name: 'Rahul M.', role: 'Pro Member', text: 'The AI coach alone is worth the price. My skills improved 10x in 2 months!', rating: 5 },
-              { name: 'Priya S.', role: 'Elite Member', text: 'Earning ₹45K/month through the Earn Program — just helping friends learn. Best investment ever!', rating: 5 },
-              { name: 'Amit K.', role: 'Supreme Member', text: 'The dedicated success manager helped me build a 6-figure business online.', rating: 5 },
+              { name: 'Rahul M.', role: 'Pro Member', avatar: 'R', text: 'The AI coach alone is worth the price. My skills improved 10x in just 2 months. Best investment I ever made!', rating: 5, earning: '₹18K/mo' },
+              { name: 'Priya S.', role: 'Elite Member', avatar: 'P', text: 'Earning ₹45K/month through the Partner Program — just helping friends learn. Never thought it was possible!', rating: 5, earning: '₹45K/mo' },
+              { name: 'Amit K.', role: 'Supreme Member', avatar: 'A', text: 'The dedicated success manager helped me build a 6-figure business online. Absolutely life-changing.', rating: 5, earning: '₹1.2L/mo' },
             ].map((t, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }} viewport={{ once: true }}
-                className="rounded-2xl p-5"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div className="flex items-center gap-1 mb-3">
+                className="rounded-3xl p-5 sm:p-6 flex flex-col"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="flex items-center gap-1 mb-4">
                   {[...Array(t.rating)].map((_, j) => <Star key={j} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />)}
+                  <BadgeCheck className="w-4 h-4 ml-auto text-blue-400" />
                 </div>
-                <p className="text-gray-300 text-sm leading-relaxed mb-4">"{t.text}"</p>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black"
-                    style={{ background: cfg.btnGrad }}>
-                    {t.name[0]}
+                <p className="text-gray-300 text-sm leading-relaxed flex-1 mb-5">&ldquo;{t.text}&rdquo;</p>
+                <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                    style={{ background: cfg.btnGrad || '#7c3aed' }}>
+                    {t.avatar}
                   </div>
-                  <div>
-                    <p className="text-white text-xs font-bold">{t.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-xs font-black">{t.name}</p>
                     <p className="text-gray-600 text-[10px]">{t.role}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-black text-sm" style={{ color: cfg.accentColor }}>{t.earning}</p>
+                    <p className="text-gray-600 text-[10px]">earning</p>
                   </div>
                 </div>
               </motion.div>
@@ -440,41 +670,80 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
 
         {/* FAQ */}
         <section>
-          <h2 className="text-2xl font-black text-white mb-7">Frequently Asked Questions</h2>
-          <div className="space-y-3">
-            {FAQS.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} />)}
+          <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
+            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: cfg.accentColor }}>FAQ</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">Got questions?</h2>
+            <p className="text-gray-500 text-sm mt-2">Everything you need to know before joining</p>
+          </motion.div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {FAQS.map((f, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.07 }} viewport={{ once: true }}>
+                <FAQItem q={f.q} a={f.a} accentColor={cfg.accentColor} />
+              </motion.div>
+            ))}
           </div>
         </section>
 
         {/* Final CTA */}
-        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="rounded-3xl p-8 sm:p-12 text-center"
-          style={{ background: cfg.headerGrad, position: 'relative', overflow: 'hidden' }}>
-          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.3)' }} />
-          <div className="relative">
-            <div className="text-6xl mb-4">{cfg.emoji}</div>
-            <h2 className="text-3xl font-black text-white mb-3">Ready to go {cfg.name}?</h2>
-            <p className="text-white/70 mb-8 max-w-md mx-auto">Join thousands of learners growing their skills and income with TruLearnix.</p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
-              <BuyBtn />
+        <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="rounded-3xl sm:rounded-[2rem] overflow-hidden relative"
+          style={{ background: cfg.headerGrad }}>
+          <Particles color={cfg.particleColor} />
+          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.35)' }} />
+          <div className="relative px-6 py-12 sm:px-12 sm:py-16 text-center">
+            <motion.div initial={{ scale: 0.8 }} whileInView={{ scale: 1 }} viewport={{ once: true }}
+              className="text-6xl sm:text-7xl mb-5 inline-block"
+              style={{ filter: `drop-shadow(0 12px 32px ${cfg.glowColor})` }}>
+              {cfg.emoji}
+            </motion.div>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Ready to go {cfg.name}?</h2>
+            <p className="text-white/60 text-base mb-3 max-w-md mx-auto leading-relaxed">
+              Join thousands of learners growing their skills and income with TruLearnix.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-white/50 mb-8">
+              <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-green-400" /> 30-day money-back</span>
+              <span className="flex items-center gap-1.5"><InfinityIcon className="w-3.5 h-3.5 text-blue-400" /> Lifetime access</span>
+              <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-yellow-400" /> Instant activation</span>
             </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-xs mx-auto">
+              <BuyBtn label={`Get ${cfg.name} Now`} />
+            </div>
+            <p className="text-white/35 text-xs mt-5">One-time payment of ₹{price.toLocaleString()} • No hidden charges</p>
           </div>
         </motion.section>
 
       </div>
 
-      {/* Mobile sticky CTA */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 p-4"
-        style={{ background: 'rgba(4,5,10,0.96)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center gap-3">
-          <div>
-            <p className="text-white font-black text-lg leading-none">₹{price.toLocaleString()}</p>
-            {originalPrice > price && <p className="text-gray-600 text-xs line-through">₹{originalPrice.toLocaleString()}</p>}
-          </div>
-          <BuyBtn full={false} size="sm" />
-        </div>
-      </div>
-      <div className="lg:hidden h-24" />
+      {/* ── Mobile sticky CTA bar ── */}
+      <AnimatePresence>
+        {(
+          <motion.div
+            initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
+            style={{ background: 'rgba(4,5,10,0.97)', backdropFilter: 'blur(24px)', borderTop: `1px solid ${cfg.borderColor}` }}>
+            <div className="px-4 py-3 flex items-center gap-3">
+              <div className="text-2xl flex-shrink-0">{cfg.emoji}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-black text-base leading-none">₹{price.toLocaleString()}</p>
+                {originalPrice > price && (
+                  <p className="text-gray-600 text-xs mt-0.5">
+                    <span className="line-through">₹{originalPrice.toLocaleString()}</span>
+                    <span className="text-green-500 ml-1.5 font-bold">{discount}% off</span>
+                  </p>
+                )}
+              </div>
+              <button onClick={handleBuy} disabled={buying}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl font-black text-white text-sm transition-all active:scale-95 flex-shrink-0"
+                style={{ background: cfg.btnGrad, boxShadow: cfg.btnGlow }}>
+                {buying ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Zap className="w-4 h-4" /> Get Now</>}
+              </button>
+            </div>
+            <div className="h-safe-area-inset-bottom" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="lg:hidden h-20" />
 
       <Footer />
     </div>

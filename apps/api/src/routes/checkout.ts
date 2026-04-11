@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import { protect } from '../middleware/auth';
@@ -11,6 +12,20 @@ import Coupon from '../models/Coupon';
 import Transaction from '../models/Transaction';
 import Commission from '../models/Commission';
 import EmiInstallment from '../models/EmiInstallment';
+import PlatformSettings from '../models/PlatformSettings';
+import { getOrCreateActiveBatch, onStudentEnrolled } from '../services/batchService';
+
+// Cache GST rate to avoid DB hit on every request
+let _cachedGstRate: number | null = null;
+let _gstCacheTime = 0;
+async function getGstRate(): Promise<number> {
+  const now = Date.now();
+  if (_cachedGstRate !== null && now - _gstCacheTime < 5 * 60 * 1000) return _cachedGstRate;
+  const settings = await PlatformSettings.findOne().select('gstRate').lean();
+  _cachedGstRate = settings?.gstRate ?? 18;
+  _gstCacheTime = now;
+  return _cachedGstRate;
+}
 
 const router = Router();
 
@@ -26,11 +41,14 @@ function verifySignature(orderId: string, paymentId: string, signature: string) 
   return expected === signature;
 }
 
-async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId: string, tier: string) {
+function calcComm(saleAmount: number, type: string, value: number): number {
+  if (!value) return 0;
+  return type === 'flat' ? value : Math.round(saleAmount * value / 100);
+}
+
+async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId: string, tier: string, soldPkg?: any) {
   const buyer = await User.findById(purchasedUserId).populate('referredBy');
   if (!buyer) return;
-
-  const uplines = [buyer.upline1, buyer.upline2, buyer.upline3].filter(Boolean);
 
   // Resolve uplines from referral chain if not set
   const level1Id = buyer.upline1 || (buyer.referredBy as any)?._id || buyer.referredBy;
@@ -39,45 +57,68 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
   const level1 = await User.findById(level1Id);
   if (!level1 || !level1.isAffiliate) return;
 
-  const levels = [
-    { user: level1, rate: level1.commissionRate || 10, level: 1 },
-  ];
-
+  const uplineUsers: { user: any; mlmLevel: number }[] = [{ user: level1, mlmLevel: 1 }];
   if (level1.upline1) {
     const level2 = await User.findById(level1.upline1);
-    if (level2?.isAffiliate) levels.push({ user: level2, rate: 5, level: 2 });
-
-    if (level2?.upline1) {
-      const level3 = await User.findById(level2.upline1);
-      if (level3?.isAffiliate) levels.push({ user: level3, rate: 2, level: 3 });
+    if (level2?.isAffiliate) {
+      uplineUsers.push({ user: level2, mlmLevel: 2 });
+      if (level2.upline1) {
+        const level3 = await User.findById(level2.upline1);
+        if (level3?.isAffiliate) uplineUsers.push({ user: level3, mlmLevel: 3 });
+      }
     }
   }
 
-  for (const { user: earner, rate, level } of levels) {
-    const commAmt = Math.round(saleAmount * rate / 100);
+  for (const { user: earner, mlmLevel } of uplineUsers) {
+    // Look up this earner's tier in the sold package's partnerEarnings matrix
+    const earnerTier = (earner.packageTier || 'free').toLowerCase();
+    const matrixRow = soldPkg?.partnerEarnings?.find((r: any) => r.earnerTier === earnerTier);
+
+    let commAmt = 0;
+    let rateUsed = 0;
+
+    if (matrixRow) {
+      // Use matrix config
+      if (mlmLevel === 1) {
+        commAmt = calcComm(saleAmount, matrixRow.type, matrixRow.value);
+        rateUsed = matrixRow.value;
+      } else if (mlmLevel === 2) {
+        commAmt = calcComm(saleAmount, matrixRow.l2Type, matrixRow.l2Value);
+        rateUsed = matrixRow.l2Value;
+      } else {
+        commAmt = calcComm(saleAmount, matrixRow.l3Type, matrixRow.l3Value);
+        rateUsed = matrixRow.l3Value;
+      }
+    } else {
+      // Fallback to legacy flat % from user's commissionRate
+      const fallbackRate = mlmLevel === 1 ? (earner.commissionRate || 0) : mlmLevel === 2 ? 5 : 2;
+      commAmt = Math.round(saleAmount * fallbackRate / 100);
+      rateUsed = fallbackRate;
+    }
+
+    if (commAmt <= 0) continue;
+
     await Commission.create({
-      earner: earner._id, earnerTier: earner.packageTier,
-      earnerCommissionRate: earner.commissionRate, buyer: purchasedUserId,
-      buyerPackageTier: tier, level, levelRate: rate,
+      earner: earner._id, earnerTier, earnerCommissionRate: rateUsed,
+      buyer: purchasedUserId, buyerPackageTier: tier,
+      level: mlmLevel, levelRate: rateUsed,
       saleAmount, commissionAmount: commAmt, packagePurchaseId: purchaseId, status: 'approved',
     });
-    await User.findByIdAndUpdate(earner._id, {
-      $inc: { wallet: commAmt, totalEarnings: commAmt },
-    });
+    await User.findByIdAndUpdate(earner._id, { $inc: { wallet: commAmt, totalEarnings: commAmt } });
     await Transaction.create({
       user: earner._id, type: 'credit', category: 'affiliate_commission',
-      amount: commAmt, description: `L${level} commission — ${tier} package purchased`,
+      amount: commAmt, description: `L${mlmLevel} commission — ${tier} package sold`,
       referenceId: purchaseId, status: 'completed',
     });
-    earner.notifications.push({ type: 'commission', message: `🎉 ₹${commAmt} earned! L${level} commission from a ${tier} purchase.`, read: false, createdAt: new Date() });
+    earner.notifications.push({ type: 'commission', message: `🎉 ₹${commAmt} earned! L${mlmLevel} commission from ${tier} package sale.`, read: false, createdAt: new Date() });
     await earner.save();
   }
 
   // Set upline chain for future
   if (!buyer.upline1) {
     buyer.upline1 = level1Id;
-    if (levels[1]) buyer.upline2 = levels[1].user._id;
-    if (levels[2]) buyer.upline3 = levels[2].user._id;
+    if (uplineUsers[1]) buyer.upline2 = uplineUsers[1].user._id;
+    if (uplineUsers[2]) buyer.upline3 = uplineUsers[2].user._id;
     await buyer.save();
   }
 }
@@ -85,12 +126,15 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
 // ── GET /api/checkout/item ─────────────────────────────────────────────────
 router.get('/item', protect, async (req: any, res) => {
   try {
-    const { type, tier, courseId } = req.query;
+    const { type, tier, packageId, courseId } = req.query;
 
     if (type === 'package') {
-      const pkg = await Package.findOne({ tier, isActive: true });
+      const pkg = packageId
+        ? await Package.findById(packageId)
+        : await Package.findOne({ tier, isActive: true });
       if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
-      const gst = Math.round(pkg.price * 0.18);
+      const gstRate = await getGstRate();
+      const gst = Math.round(pkg.price * gstRate / 100);
       return res.json({
         success: true, item: {
           type: 'package', id: pkg._id, tier: pkg.tier, name: pkg.name,
@@ -183,17 +227,16 @@ router.post('/validate-code', protect, async (req: any, res) => {
 router.post('/create-order', protect, async (req: any, res) => {
   try {
     const { type, tier, courseId, promoCode, couponCode, isEmi, name, email } = req.body;
+    // tier field now accepts either tier slug or package _id
+    const pkgIdentifier = tier;
 
     let basePrice = 0, gst = 0, discount = 0, itemName = '', packageId: any = null;
 
     if (type === 'package') {
-      const pkg = await Package.findOne({ tier, isActive: true });
+      const pkg = mongoose.Types.ObjectId.isValid(pkgIdentifier)
+        ? await Package.findById(pkgIdentifier)
+        : await Package.findOne({ tier: pkgIdentifier, isActive: true });
       if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
-
-      const TIER_ORDER: Record<string, number> = { free: 0, starter: 1, pro: 2, elite: 3, supreme: 4 };
-      if (TIER_ORDER[req.user.packageTier] >= TIER_ORDER[tier]) {
-        return res.status(400).json({ success: false, message: 'You already have this tier or higher' });
-      }
 
       basePrice = pkg.price;
       packageId = pkg._id;
@@ -223,7 +266,8 @@ router.post('/create-order', protect, async (req: any, res) => {
     }
 
     const afterDiscount = basePrice - discount;
-    gst = type === 'package' ? Math.round(afterDiscount * 0.18) : 0;
+    const gstRateForOrder = type === 'package' ? await getGstRate() : 0;
+    gst = type === 'package' ? Math.round(afterDiscount * gstRateForOrder / 100) : 0;
     let totalAmount = afterDiscount + gst;
 
     // EMI: first installment only
@@ -339,7 +383,7 @@ router.post('/verify', protect, async (req: any, res) => {
       if (couponCode) await Coupon.findOneAndUpdate({ code: couponCode.toUpperCase().trim() }, { $inc: { usedCount: 1 } });
 
       // Credit MLM commissions
-      await creditMLM(req.user._id.toString(), purchase.amount, purchase._id.toString(), tier);
+      await creditMLM(req.user._id.toString(), purchase.amount, purchase._id.toString(), tier, pkg);
 
       // Notification
       const user = await User.findById(req.user._id);
@@ -360,11 +404,17 @@ router.post('/verify', protect, async (req: any, res) => {
       payment.status = 'paid';
       await payment.save();
 
+      // Assign to active batch (if course has batch system enabled)
+      const activeBatch = await getOrCreateActiveBatch(payment.course.toString());
+
       // Enroll
       await Enrollment.create({
         student: req.user._id, course: payment.course,
         paymentId: razorpayPaymentId, orderId: razorpayOrderId, amount: payment.amount,
+        ...(activeBatch ? { batch: activeBatch._id } : {}),
       });
+
+      if (activeBatch) await onStudentEnrolled(activeBatch._id.toString());
 
       const Course = (await import('../models/Course')).default;
       await Course.findByIdAndUpdate(payment.course, { $inc: { enrolledCount: 1 } });

@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IEnrollment extends Document {
   student: mongoose.Types.ObjectId;
   course: mongoose.Types.ObjectId;
+  batch?: mongoose.Types.ObjectId;
   paymentId?: string;
   orderId?: string;
   amount: number;
@@ -26,6 +27,7 @@ export interface IEnrollment extends Document {
 const EnrollmentSchema = new Schema<IEnrollment>({
   student: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   course: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+  batch: { type: Schema.Types.ObjectId, ref: 'Batch' },
   paymentId: String,
   orderId: String,
   amount: { type: Number, required: true },

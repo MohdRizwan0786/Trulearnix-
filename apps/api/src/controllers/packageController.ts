@@ -23,20 +23,32 @@ export const getPackages = async (req: any, res: Response) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };
 
+// GET /api/packages/:id — public, single package
+export const getPackageById = async (req: any, res: Response) => {
+  try {
+    const pkg = await Package.findById(req.params.id);
+    if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
+    res.json({ success: true, package: pkg });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
 // POST /api/packages/order — create Razorpay order for package purchase
 export const createPackageOrder = async (req: AuthRequest, res: Response) => {
   try {
-    const { tier, affiliateCode } = req.body;
+    const { tier, packageId, affiliateCode } = req.body;
 
-    const pkg = await Package.findOne({ tier, isActive: true });
+    // Support both _id (new) and tier slug (legacy)
+    const pkg = packageId
+      ? await Package.findById(packageId)
+      : await Package.findOne({ tier, isActive: true });
     if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
 
-    // Check if already on same or higher tier
-    const tierOrder = ['free', 'starter', 'pro', 'elite', 'supreme'];
-    const userTierIdx = tierOrder.indexOf(req.user.packageTier);
-    const newTierIdx = tierOrder.indexOf(tier);
-    if (userTierIdx >= newTierIdx) {
-      return res.status(400).json({ success: false, message: 'You already have this or a higher package' });
+    // Prevent re-purchasing same package
+    const existing = await (await import('../models/PackagePurchase')).default.findOne({
+      user: req.user._id, package: pkg._id, status: 'completed'
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'You already have this package' });
     }
 
     // Resolve referrer
@@ -59,13 +71,13 @@ export const createPackageOrder = async (req: AuthRequest, res: Response) => {
       amount: totalAmount * 100,
       currency: 'INR',
       receipt: `pkg_${req.user._id}_${Date.now()}`,
-      notes: { userId: req.user._id.toString(), tier, packageId: pkg._id.toString() }
+      notes: { userId: req.user._id.toString(), tier: pkg.tier || pkg._id.toString(), packageId: pkg._id.toString() }
     });
 
     const purchase = await PackagePurchase.create({
       user: req.user._id,
       package: pkg._id,
-      packageTier: tier,
+      packageTier: pkg.tier || pkg._id.toString(),
       amount: pkg.price,
       gstAmount,
       totalAmount,

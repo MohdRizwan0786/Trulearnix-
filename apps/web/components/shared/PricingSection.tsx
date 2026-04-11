@@ -80,26 +80,7 @@ const TIER_META: Record<string, {
   },
 }
 
-const FALLBACK_PACKAGES = [
-  {
-    _id: '1', tier: 'starter', name: 'Starter',
-    price: 4999, commissionRate: 10,
-    description: 'Perfect to start your partner journey',
-    features: ['5 Courses Access', 'Community Access', '10% L1 Commission', 'Basic Support', 'Partner Dashboard'],
-  },
-  {
-    _id: '2', tier: 'pro', name: 'Pro',
-    price: 9999, commissionRate: 15,
-    description: 'Everything to accelerate your career',
-    features: ['All Courses Access', 'Live Classes', 'AI Coach', '15% L1 Commission', 'Community Access', 'Job Engine', 'Priority Email Support'],
-  },
-  {
-    _id: '3', tier: 'elite', name: 'Elite',
-    price: 19999, commissionRate: 22,
-    description: 'Teach, earn, and build your brand',
-    features: ['All Courses Access', 'Live Classes', 'AI Coach', '22% L1 Commission', 'Personal Brand Builder', 'Mentor Support', 'Priority Support'],
-  },
-]
+const FALLBACK_PACKAGES: any[] = []
 
 /* ── Single package card ────────────────────────────────── */
 function PackageCard({ pkg, i }: { pkg: any; i: number }) {
@@ -212,7 +193,7 @@ function PackageCard({ pkg, i }: { pkg: any; i: number }) {
 
         {/* CTA — always at bottom */}
         <Link
-          href={price === 0 ? '/register' : `/packages/${pkg.tier}`}
+          href={price === 0 ? '/register' : `/packages/${pkg._id}`}
           className="block text-center py-3.5 rounded-2xl font-black text-sm text-white transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
           style={{
             background: meta.btnGrad,

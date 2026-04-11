@@ -13,6 +13,9 @@ export interface IWithdrawal extends Document {
   rejectionReason?: string;
   processedBy?: mongoose.Types.ObjectId;
   processedAt?: Date;
+  tdsRate: number;
+  tdsAmount: number;
+  netAmount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +33,9 @@ const WithdrawalSchema = new Schema<IWithdrawal>({
   rejectionReason: String,
   processedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   processedAt: Date,
+  tdsRate: { type: Number, default: 0 },
+  tdsAmount: { type: Number, default: 0 },
+  netAmount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 WithdrawalSchema.index({ user: 1, status: 1 });

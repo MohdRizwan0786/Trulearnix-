@@ -141,6 +141,7 @@ export const adminAPI = {
 // Packages
 export const packageAPI = {
   getAll: () => api.get('/packages'),
+  getById: (id: string) => api.get(`/packages/${id}`),
   getMatrix: () => api.get('/packages/commission-matrix'),
   getCommissionMatrix: () => api.get('/packages/commission-matrix'),
   getMy: () => api.get('/packages/my'),
@@ -271,5 +272,15 @@ export const checkoutAPI = {
   payEmi: (data: { installmentId: string }) => api.post('/checkout/emi/pay', data),
   verifyEmi: (data: { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string; installmentId: string }) =>
     api.post('/checkout/emi/verify', data),
+};
+
+export const phonepeAPI = {
+  createOrder: (data: { type: 'package' | 'course'; tier?: string; courseId?: string; promoCode?: string; couponCode?: string; isEmi?: boolean }) =>
+    api.post('/phonepe/create-order', data),
+  getStatus: (merchantOrderId: string, params: { type: string; tier?: string; courseId?: string; couponCode?: string; promoCode?: string; isEmi?: string }) =>
+    api.get(`/phonepe/status/${merchantOrderId}`, { params }),
+  getEmiStatus: () => api.get('/phonepe/emi'),
+  payEmi: (data: { installmentId: string }) => api.post('/phonepe/emi/pay', data),
+  verifyEmiStatus: (params: { installmentId: string; orderId: string }) => api.get('/phonepe/emi/status', { params }),
 };
 

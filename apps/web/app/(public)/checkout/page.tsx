@@ -2,20 +2,16 @@
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { checkoutAPI } from '@/lib/api'
+import { checkoutAPI, phonepeAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import {
-  ShieldCheck, Tag, Ticket, CreditCard, Zap, Crown, Sparkles,
-  BadgeCheck, ChevronRight, Loader2, CheckCircle2, AlertCircle,
-  ArrowLeft, Lock, Star, Gift, Clock, Users, TrendingUp, Award,
-  BookOpen, Video, Bot, Briefcase, Globe, Check, Wallet, RefreshCw
+  ShieldCheck, Tag, Ticket, Loader2, CheckCircle2, AlertCircle,
+  ArrowLeft, Lock, Clock, Users, Award, Check, RefreshCw, CreditCard
 } from 'lucide-react'
 
-declare global { interface Window { Razorpay: any } }
-
-/* ─── Tier config (matches packages page) ────────────────── */
+/* ─── Tier config ────────────────────────────────────────── */
 const TIER_CONFIG: Record<string, {
   emoji: string; name: string; tagline: string
   headerGrad: string; accentColor: string; glowColor: string
@@ -59,22 +55,17 @@ const DEFAULT_TIER = {
   btnGlow: '0 8px 32px rgba(99,102,241,0.5)',
 }
 
-/* ─── EMI months ─────────────────────────────────────────── */
 const EMI_MONTHS = 3
 
 function fmt(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n / 100)
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
 }
 
-/* ─── Sub-component: Code input ──────────────────────────── */
-function CodeField({
-  label, icon: Icon, placeholder, value, onChange, onValidate,
-  status, discount, accentColor, loading
-}: {
+/* ─── Code input ─────────────────────────────────────────── */
+function CodeField({ label, icon: Icon, placeholder, value, onChange, onValidate, status, discount, accentColor, loading }: {
   label: string; icon: any; placeholder: string; value: string
   onChange: (v: string) => void; onValidate: () => void
-  status: 'idle' | 'valid' | 'invalid'; discount?: number
-  accentColor: string; loading?: boolean
+  status: 'idle' | 'valid' | 'invalid'; discount?: number; accentColor: string; loading?: boolean
 }) {
   return (
     <div>
@@ -91,12 +82,9 @@ function CodeField({
               placeholder:text-white/25 focus:outline-none focus:border-white/30 transition-all tracking-widest font-mono"
           />
         </div>
-        <button
-          onClick={onValidate}
-          disabled={!value || loading}
+        <button onClick={onValidate} disabled={!value || loading}
           className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40"
-          style={{ background: accentColor + '33', border: `1px solid ${accentColor}55` }}
-        >
+          style={{ background: accentColor + '33', border: `1px solid ${accentColor}55` }}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
         </button>
       </div>
@@ -105,7 +93,7 @@ function CodeField({
           <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="mt-1.5 text-xs flex items-center gap-1.5 text-emerald-400">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            {discount ? `${discount}% discount applied — you save ${fmt(discount)}` : 'Applied successfully!'}
+            {discount ? `₹${discount} discount applied!` : 'Applied successfully!'}
           </motion.p>
         )}
         {status === 'invalid' && (
@@ -119,7 +107,7 @@ function CodeField({
   )
 }
 
-/* ─── Main checkout inner (uses useSearchParams) ─────────── */
+/* ─── Main checkout ──────────────────────────────────────── */
 function CheckoutInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -127,11 +115,10 @@ function CheckoutInner() {
 
   const itemType = (searchParams.get('type') || 'package') as 'package' | 'course'
   const tier = searchParams.get('tier') || ''
+  const packageId = searchParams.get('packageId') || ''  // new: _id based routing
   const courseId = searchParams.get('id') || ''
-
   const tc = (tier && TIER_CONFIG[tier]) ? TIER_CONFIG[tier] : DEFAULT_TIER
 
-  /* state */
   const [item, setItem] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [payMode, setPayMode] = useState<'full' | 'emi'>('full')
@@ -147,9 +134,7 @@ function CheckoutInner() {
   const [couponLoading, setCouponLoading] = useState(false)
 
   const [paying, setPaying] = useState(false)
-  const [success, setSuccess] = useState(false)
 
-  /* redirect if not logged in — wait for Zustand hydration first */
   useEffect(() => {
     if (!_hasHydrated) return
     if (!user) {
@@ -158,175 +143,80 @@ function CheckoutInner() {
     }
   }, [_hasHydrated, user, router])
 
-  /* fetch item */
   useEffect(() => {
     if (!user) return
     const params: any = { type: itemType }
-    if (itemType === 'package') params.tier = tier
+    if (itemType === 'package') { if (packageId) params.packageId = packageId; else params.tier = tier }
     else params.courseId = courseId
     checkoutAPI.getItem(params)
       .then(r => setItem(r.data.item))
       .catch(() => toast.error('Failed to load item details'))
       .finally(() => setLoading(false))
-  }, [user, itemType, tier, courseId])
+  }, [user, itemType, tier, packageId, courseId])
 
-  /* price calculations */
   const basePrice = item?.price || 0
-  const promoSaving = promoDiscount  // server returns calculated amount
-  const couponSaving = couponDiscount  // server returns calculated amount
-  const finalPrice = Math.max(0, basePrice - promoSaving - couponSaving)
+  const couponSaving = couponDiscount
+  const finalPrice = Math.max(0, basePrice - couponSaving)
   const emiAmount = Math.ceil(finalPrice / EMI_MONTHS)
   const payNow = payMode === 'emi' ? emiAmount : finalPrice
   const showEmi = itemType === 'package' && basePrice > 0
 
-  /* validate promo */
   const handlePromo = useCallback(async () => {
     if (!promoCode) return
     setPromoLoading(true)
     try {
-      const { data } = await checkoutAPI.validateCode({
-        code: promoCode, codeType: 'promo', type: itemType,
-        tier, courseId, amount: basePrice
-      })
+      const { data } = await checkoutAPI.validateCode({ code: promoCode, codeType: 'promo', type: itemType, tier: packageId || tier, courseId, amount: basePrice })
       setPromoStatus('valid')
       setPromoDiscount(data?.discount || 0)
       toast.success(data?.message || 'Partner code applied!')
     } catch {
-      setPromoStatus('invalid')
-      setPromoDiscount(0)
+      setPromoStatus('invalid'); setPromoDiscount(0)
     } finally { setPromoLoading(false) }
   }, [promoCode, itemType, tier, courseId, basePrice])
 
-  /* validate coupon */
   const handleCoupon = useCallback(async () => {
     if (!couponCode) return
     setCouponLoading(true)
     try {
-      const { data } = await checkoutAPI.validateCode({
-        code: couponCode, codeType: 'coupon', type: itemType,
-        tier, courseId, amount: basePrice
-      })
+      const { data } = await checkoutAPI.validateCode({ code: couponCode, codeType: 'coupon', type: itemType, tier: packageId || tier, courseId, amount: basePrice })
       setCouponStatus('valid')
       setCouponDiscount(data?.discount || 0)
       toast.success(data?.message || 'Coupon applied!')
     } catch {
-      setCouponStatus('invalid')
-      setCouponDiscount(0)
+      setCouponStatus('invalid'); setCouponDiscount(0)
     } finally { setCouponLoading(false) }
   }, [couponCode, itemType, tier, courseId, basePrice])
 
-  /* load Razorpay script */
-  const loadRazorpay = () => new Promise<boolean>(resolve => {
-    if (window.Razorpay) return resolve(true)
-    const s = document.createElement('script')
-    s.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    s.onload = () => resolve(true)
-    s.onerror = () => resolve(false)
-    document.body.appendChild(s)
-  })
-
-  /* pay */
   const handlePay = async () => {
     if (!user) return
     setPaying(true)
     try {
-      const loaded = await loadRazorpay()
-      if (!loaded) { toast.error('Payment gateway failed to load'); return }
-
-      const { data } = await checkoutAPI.createOrder({
-        type: itemType, tier, courseId, paymentMode: payMode,
+      const { data } = await phonepeAPI.createOrder({
+        type: itemType, tier: packageId || tier, courseId,
         promoCode: promoStatus === 'valid' ? promoCode : undefined,
         couponCode: couponStatus === 'valid' ? couponCode : undefined,
+        isEmi: payMode === 'emi',
       })
-
-      const order = data
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
-        amount: order.amount,
-        currency: order.currency || 'INR',
-        name: 'Peptly',
-        description: item?.name || `${tier ? tier.charAt(0).toUpperCase() + tier.slice(1) + ' Package' : 'Course Purchase'}`,
-        order_id: order.orderId,
-        prefill: { name: user.name, email: user.email },
-        theme: { color: tc.accentColor },
-        handler: async (response: any) => {
-          try {
-            await checkoutAPI.verify({
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-              type: itemType, tier, courseId, paymentMode: payMode,
-              promoCode: promoStatus === 'valid' ? promoCode : undefined,
-              couponCode: couponStatus === 'valid' ? couponCode : undefined,
-            })
-            setSuccess(true)
-          } catch {
-            toast.error('Payment verification failed. Contact support.')
-          }
-        },
-        modal: { ondismiss: () => setPaying(false) }
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl
+      } else {
+        toast.error('Could not get payment URL')
+        setPaying(false)
       }
-
-      const rzp = new window.Razorpay(options)
-      rzp.open()
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Could not initiate payment')
       setPaying(false)
     }
   }
 
-  /* ── Success screen ──────────────────────────────────────── */
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4"
-        style={{ background: 'radial-gradient(ellipse at center, #0d0d1a 0%, #050508 100%)' }}>
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          className="text-center max-w-md mx-auto"
-        >
-          <motion.div
-            initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ background: 'linear-gradient(135deg,#059669,#10b981)', boxShadow: '0 0 60px rgba(16,185,129,0.5)' }}
-          >
-            <CheckCircle2 className="w-12 h-12 text-white" />
-          </motion.div>
-          <h2 className="text-3xl font-bold text-white mb-2">Payment Successful!</h2>
-          <p className="text-white/60 mb-8">
-            {payMode === 'emi'
-              ? `First installment paid. 2 more installments of ${fmt(emiAmount)} each.`
-              : 'Your access has been activated. Welcome aboard!'}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/dashboard"
-              className="px-6 py-3 rounded-xl font-semibold text-white text-sm"
-              style={{ background: tc.btnGrad, boxShadow: tc.btnGlow }}>
-              Go to Dashboard
-            </Link>
-            {itemType === 'course' && (
-              <Link href={`/courses/${courseId}`}
-                className="px-6 py-3 rounded-xl font-semibold text-white/80 text-sm bg-white/5 border border-white/10">
-                Start Learning
-              </Link>
-            )}
-          </div>
-        </motion.div>
-      </div>
-    )
-  }
-
-  /* ── Loading ─────────────────────────────────────────────── */
   if (!_hasHydrated || loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center"
-        style={{ background: 'radial-gradient(ellipse at center, #0d0d1a 0%, #050508 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'radial-gradient(ellipse at center, #0d0d1a 0%, #050508 100%)' }}>
         <Loader2 className="w-10 h-10 animate-spin text-white/40" />
       </div>
     )
   }
 
-  /* ── Main layout ─────────────────────────────────────────── */
   return (
     <div className="min-h-screen" style={{ background: 'radial-gradient(ellipse at 50% 0%, #0d1035 0%, #05050f 60%)' }}>
       {/* Ambient glow */}
@@ -336,9 +226,8 @@ function CheckoutInner() {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 sm:py-12">
-        {/* Back link */}
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
-          <Link href={itemType === 'package' ? `/packages/${tier}` : `/courses/${courseId}`}
+          <Link href={itemType === 'package' ? `/packages/${packageId || tier}` : `/courses/${courseId}`}
             className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 text-sm transition-colors mb-8">
             <ArrowLeft className="w-4 h-4" /> Back
           </Link>
@@ -346,36 +235,33 @@ function CheckoutInner() {
 
         <div className="grid lg:grid-cols-[1fr_420px] gap-6 lg:gap-8 items-start">
 
-          {/* ── Left: Form panel ─────────────────────────────── */}
+          {/* ── Left: Form ───────────────────────────────────── */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            {/* Header */}
             <div className="mb-6">
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Complete Your Order</h1>
-              <p className="text-white/40 text-sm">Secure checkout powered by Razorpay</p>
+              <p className="text-white/40 text-sm flex items-center gap-1.5">
+                <span className="text-base">🔒</span> Secure checkout powered by PhonePe
+              </p>
             </div>
 
-            {/* Card */}
-            <div className="rounded-2xl overflow-hidden border"
-              style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}>
+            <div className="rounded-2xl overflow-hidden border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}>
 
-              {/* ── Account info ─────────────────────────────── */}
+              {/* Account info */}
               <div className="p-5 sm:p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                 <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4">Account Info</h3>
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-white/60 mb-1.5">Full Name</label>
-                    <input value={user.name} readOnly
-                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm cursor-not-allowed opacity-70" />
+                    <input value={user.name} readOnly className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm cursor-not-allowed opacity-70" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-white/60 mb-1.5">Email</label>
-                    <input value={user.email} readOnly
-                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm cursor-not-allowed opacity-70" />
+                    <input value={user.email} readOnly className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm cursor-not-allowed opacity-70" />
                   </div>
                 </div>
               </div>
 
-              {/* ── Payment mode (EMI toggle) ─────────────────── */}
+              {/* EMI toggle */}
               {showEmi && (
                 <div className="p-5 sm:p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                   <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4">Payment Mode</h3>
@@ -397,13 +283,12 @@ function CheckoutInner() {
                         ) : (
                           <>
                             <RefreshCw className="w-5 h-5 mb-2" style={{ color: tc.accentColor }} />
-                            <p className="text-sm font-semibold text-white">EMI — 3 months</p>
+                            <p className="text-sm font-semibold text-white">3 Installments</p>
                             <p className="text-xs text-white/40 mt-0.5">{fmt(emiAmount)}/month</p>
                           </>
                         )}
                         {payMode === mode && (
-                          <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
-                            style={{ background: tc.accentColor }}>
+                          <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: tc.accentColor }}>
                             <Check className="w-3 h-3 text-white" strokeWidth={3} />
                           </div>
                         )}
@@ -414,108 +299,70 @@ function CheckoutInner() {
                     <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
                       className="mt-3 px-4 py-3 rounded-xl text-xs text-white/60 border"
                       style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                      <span className="text-amber-400 font-semibold">Note:</span> Pay {fmt(emiAmount)} now, then {fmt(emiAmount)} every 30 days.
-                      Missed EMI may suspend your access.
+                      <span className="text-amber-400 font-semibold">Note:</span> Pay {fmt(emiAmount)} now via PhonePe, then {fmt(emiAmount)} every 30 days. Missed EMI may suspend your access.
                     </motion.div>
                   )}
                 </div>
               )}
 
-              {/* ── Promo & Coupon codes ──────────────────────── */}
+              {/* Codes */}
               <div className="p-5 sm:p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                 <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4">Discount Codes</h3>
                 <div className="space-y-4">
-                  <CodeField
-                    label="Partner / Promo Code"
-                    icon={Tag}
-                    placeholder="E.g. TLABCD12"
-                    value={promoCode}
-                    onChange={v => { setPromoCode(v); setPromoStatus('idle') }}
-                    onValidate={handlePromo}
-                    status={promoStatus}
-                    discount={promoDiscount}
-                    accentColor={tc.accentColor}
-                    loading={promoLoading}
-                  />
-                  <CodeField
-                    label="Coupon Code (Optional)"
-                    icon={Ticket}
-                    placeholder="E.g. SAVE20"
-                    value={couponCode}
-                    onChange={v => { setCouponCode(v); setCouponStatus('idle') }}
-                    onValidate={handleCoupon}
-                    status={couponStatus}
-                    discount={couponDiscount}
-                    accentColor={tc.accentColor}
-                    loading={couponLoading}
-                  />
+                  <CodeField label="Partner / Promo Code" icon={Tag} placeholder="E.g. TLABCD12"
+                    value={promoCode} onChange={v => { setPromoCode(v); setPromoStatus('idle') }}
+                    onValidate={handlePromo} status={promoStatus} discount={promoDiscount}
+                    accentColor={tc.accentColor} loading={promoLoading} />
+                  <CodeField label="Coupon Code (Optional)" icon={Ticket} placeholder="E.g. SAVE20"
+                    value={couponCode} onChange={v => { setCouponCode(v); setCouponStatus('idle') }}
+                    onValidate={handleCoupon} status={couponStatus} discount={couponDiscount}
+                    accentColor={tc.accentColor} loading={couponLoading} />
                 </div>
               </div>
 
-              {/* ── Price breakdown ───────────────────────────── */}
+              {/* Price breakdown + Pay button */}
               <div className="p-5 sm:p-6">
                 <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4">Price Breakdown</h3>
                 <div className="space-y-2 text-sm mb-4">
                   <div className="flex justify-between text-white/70">
-                    <span>Original Price</span>
-                    <span>{fmt(basePrice)}</span>
+                    <span>Original Price</span><span>{fmt(basePrice)}</span>
                   </div>
-                  {promoSaving > 0 && (
-                    <div className="flex justify-between text-emerald-400">
-                      <span>Partner Discount ({promoDiscount}%)</span>
-                      <span>−{fmt(promoSaving)}</span>
-                    </div>
-                  )}
                   {couponSaving > 0 && (
                     <div className="flex justify-between text-emerald-400">
-                      <span>Coupon Discount</span>
-                      <span>−{fmt(couponSaving)}</span>
+                      <span>Coupon Discount</span><span>−{fmt(couponSaving)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between font-bold text-white text-base pt-2 border-t"
-                    style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+                  <div className="flex justify-between font-bold text-white text-base pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
                     <span>{payMode === 'emi' ? `Due Now (1 of ${EMI_MONTHS})` : 'Total'}</span>
                     <span style={{ color: tc.accentColor }}>{fmt(payNow)}</span>
                   </div>
                   {payMode === 'emi' && (
-                    <p className="text-xs text-white/40 text-right">
-                      Then {fmt(emiAmount)} × 2 more installments
-                    </p>
+                    <p className="text-xs text-white/40 text-right">Then {fmt(emiAmount)} × 2 more installments</p>
                   )}
                 </div>
 
-                {/* Pay button */}
-                <motion.button
-                  onClick={handlePay}
-                  disabled={paying || basePrice === 0}
-                  whileTap={{ scale: 0.97 }}
-                  className="w-full py-4 rounded-2xl font-bold text-white text-base relative overflow-hidden transition-all
-                    disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: tc.btnGrad, boxShadow: tc.btnGlow }}
-                >
+                <motion.button onClick={handlePay} disabled={paying || basePrice === 0} whileTap={{ scale: 0.97 }}
+                  className="w-full py-4 rounded-2xl font-bold text-white text-base relative overflow-hidden transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: tc.btnGrad, boxShadow: tc.btnGlow }}>
                   <span className="relative z-10 flex items-center justify-center gap-2">
                     {paying ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> Processing…</>
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Redirecting to PhonePe…</>
                     ) : (
                       <><Lock className="w-4 h-4" />
-                        {basePrice === 0 ? 'Enroll Free' : `Pay ${fmt(payNow)} Securely`}
+                        {basePrice === 0 ? 'Enroll Free' : `Pay ${fmt(payNow)} via PhonePe`}
                       </>
                     )}
                   </span>
-                  {/* Shimmer */}
-                  <motion.div
-                    className="absolute inset-0 opacity-20"
+                  <motion.div className="absolute inset-0 opacity-20"
                     style={{ background: 'linear-gradient(105deg,transparent 30%,rgba(255,255,255,0.4) 50%,transparent 70%)' }}
                     animate={{ x: ['-100%', '200%'] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
-                  />
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
                 </motion.button>
 
-                {/* Trust row */}
                 <div className="flex items-center justify-center gap-5 mt-4 text-xs text-white/30">
                   <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> 256-bit SSL</span>
-                  <span className="flex items-center gap-1"><Lock className="w-3.5 h-3.5" /> Razorpay Secured</span>
-                  <span className="flex items-center gap-1"><BadgeCheck className="w-3.5 h-3.5" /> Instant Access</span>
+                  <span className="flex items-center gap-1"><Lock className="w-3.5 h-3.5" /> PhonePe Secured</span>
+                  <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Instant Access</span>
                 </div>
               </div>
             </div>
@@ -525,29 +372,19 @@ function CheckoutInner() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="lg:sticky lg:top-6">
 
-            {/* Summary card */}
-            <div className="rounded-2xl overflow-hidden border"
-              style={{ borderColor: tc.borderColor, boxShadow: `0 0 40px ${tc.glowColor}` }}>
-
-              {/* Card header */}
+            <div className="rounded-2xl overflow-hidden border" style={{ borderColor: tc.borderColor, boxShadow: `0 0 40px ${tc.glowColor}` }}>
+              {/* Header */}
               <div className="p-6 relative overflow-hidden" style={{ background: tc.headerGrad }}>
-                <div className="absolute inset-0 opacity-20"
-                  style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, rgba(255,255,255,0.15) 0%, transparent 60%)' }} />
+                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, rgba(255,255,255,0.15) 0%, transparent 60%)' }} />
                 <div className="relative z-10">
                   <div className="text-4xl mb-3">{tc.emoji}</div>
-                  <h2 className="text-xl font-bold text-white">
-                    {item?.name || (tier ? `${tc.name} Package` : 'Course Enrollment')}
-                  </h2>
+                  <h2 className="text-xl font-bold text-white">{item?.name || (tier ? `${tc.name} Package` : 'Course Enrollment')}</h2>
                   <p className="text-white/60 text-sm mt-1">{tc.tagline}</p>
                   <div className="mt-4 flex items-end gap-2">
                     <span className="text-3xl font-black text-white">{fmt(finalPrice)}</span>
-                    {finalPrice < basePrice && (
-                      <span className="text-white/40 line-through text-sm mb-1">{fmt(basePrice)}</span>
-                    )}
+                    {finalPrice < basePrice && <span className="text-white/40 line-through text-sm mb-1">{fmt(basePrice)}</span>}
                   </div>
-                  {payMode === 'emi' && (
-                    <p className="text-white/60 text-xs mt-1">or {fmt(emiAmount)}/month × {EMI_MONTHS}</p>
-                  )}
+                  {payMode === 'emi' && <p className="text-white/60 text-xs mt-1">or {fmt(emiAmount)}/month × {EMI_MONTHS}</p>}
                 </div>
               </div>
 
@@ -572,12 +409,11 @@ function CheckoutInner() {
               <div className="px-5 pb-5 grid grid-cols-2 gap-2">
                 {[
                   { icon: ShieldCheck, text: 'Secure Payment' },
-                  { icon: Zap, text: 'Instant Activation' },
+                  { icon: CheckCircle2, text: 'Instant Activation' },
                   { icon: Users, text: '10,000+ Students' },
                   { icon: Award, text: 'Certified Courses' },
                 ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-2 text-xs text-white/40 px-3 py-2 rounded-lg"
-                    style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <div key={text} className="flex items-center gap-2 text-xs text-white/40 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)' }}>
                     <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: tc.accentColor }} />
                     {text}
                   </div>
@@ -586,9 +422,8 @@ function CheckoutInner() {
 
               {/* EMI schedule preview */}
               {payMode === 'emi' && showEmi && (
-                <div className="mx-5 mb-5 rounded-xl p-4 border text-xs space-y-2"
-                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <p className="text-white/40 font-semibold uppercase tracking-wider mb-3">EMI Schedule</p>
+                <div className="mx-5 mb-5 rounded-xl p-4 border text-xs space-y-2" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
+                  <p className="text-white/40 font-semibold uppercase tracking-wider mb-3">Installment Schedule</p>
                   {Array.from({ length: EMI_MONTHS }).map((_, i) => (
                     <div key={i} className="flex justify-between text-white/60">
                       <span className="flex items-center gap-1.5">
@@ -601,10 +436,9 @@ function CheckoutInner() {
               )}
             </div>
 
-            {/* Help text */}
             <p className="text-center text-xs text-white/25 mt-4">
               Questions? <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer"
-                className="underline hover:text-white/40 transition-colors">Chat with us on WhatsApp</a>
+                className="underline hover:text-white/40 transition-colors">Chat on WhatsApp</a>
             </p>
           </motion.div>
         </div>
@@ -613,12 +447,10 @@ function CheckoutInner() {
   )
 }
 
-/* ─── Page wrapper with Suspense (required for useSearchParams) ── */
 export default function CheckoutPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center"
-        style={{ background: 'radial-gradient(ellipse at center, #0d0d1a 0%, #050508 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'radial-gradient(ellipse at center, #0d0d1a 0%, #050508 100%)' }}>
         <Loader2 className="w-10 h-10 animate-spin text-white/40" />
       </div>
     }>
