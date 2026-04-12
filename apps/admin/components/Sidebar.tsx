@@ -5,12 +5,12 @@ import { usePathname, useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
 import {
   LayoutDashboard, BarChart2, Users, Package, DollarSign, Coins,
-  ShoppingCart, Contact, BookOpen, Video, FileText, LifeBuoy,
+  ShoppingCart, Contact, BookOpen, Video, FileText, LifeBuoy, PlayCircle,
   Bell, LogOut, ChevronRight, Zap, Kanban, CalendarDays,
   Tag, Target, FolderOpen, AlarmClock, UserCog, Shield,
   Trophy, MousePointerClick, TrendingUp, Layers, PanelTop,
   Briefcase, UserCheck, UserX, GraduationCap, MessageSquare, ShoppingBag, UserPlus,
-  ClipboardList
+  ClipboardList, HeartHandshake, CreditCard
 } from 'lucide-react'
 
 // permission key matches what's stored in localStorage adminPermissions
@@ -26,6 +26,7 @@ const navItems = [
       { label: 'Free / Unpaid', href: '/learners?tab=free',      icon: UserX,      perm: 'learners' },
     ]
   },
+  { label: 'Partners',        href: '/partners',     icon: HeartHandshake,       perm: 'learners' },
   { label: 'Employees',       href: '/employees',    icon: UserPlus,        perm: 'employees' },
   { label: 'Packages',        href: '/packages',     icon: Package,         perm: 'packages' },
   {
@@ -33,6 +34,7 @@ const navItems = [
       { label: 'Commissions', href: '/finance?tab=commissions', icon: Coins,        perm: 'finance' },
       { label: 'Withdrawals', href: '/finance?tab=withdrawals', icon: DollarSign,   perm: 'finance' },
       { label: 'Purchases',   href: '/finance?tab=purchases',   icon: ShoppingCart, perm: 'finance' },
+      { label: 'EMI / Installments', href: '/emi',              icon: CreditCard,   perm: 'finance' },
     ]
   },
   { label: 'Reports',         href: '/reports',      icon: ClipboardList,   perm: 'finance' },
@@ -40,7 +42,12 @@ const navItems = [
   { label: 'CRM',             href: '/crm',          icon: Contact,         perm: 'crm' },
   { label: 'Mentors',         href: '/mentors',      icon: GraduationCap,   perm: 'mentors' },
   { label: 'Courses',         href: '/courses',      icon: BookOpen,        perm: 'courses' },
-  { label: 'Live Classes',    href: '/live-classes', icon: Video,           perm: 'live-classes' },
+  {
+    label: 'Live Classes', icon: Video, perm: 'live-classes', children: [
+      { label: 'All Classes',  href: '/live-classes', icon: Video,       perm: 'live-classes' },
+      { label: 'Recordings',   href: '/recordings',   icon: PlayCircle,  perm: 'live-classes' },
+    ]
+  },
   { label: 'Blog',            href: '/blog',         icon: FileText,        perm: 'blog' },
   { label: 'Support',         href: '/support',      icon: LifeBuoy,        perm: 'support' },
   { label: 'Coupons',         href: '/coupons',      icon: Tag,             perm: 'coupons' },

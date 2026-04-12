@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import {
   Video, Plus, X, Clock, Users, Play, Square, Trash2,
   BarChart2, CheckCircle2, XCircle, Search, RefreshCw,
-  Calendar, BookOpen, User, Zap, AlertCircle, Eye
+  Calendar, BookOpen, User, Zap, AlertCircle, Eye, Download, Circle
 } from 'lucide-react'
 import { format, formatDistanceToNow, isFuture } from 'date-fns'
 
@@ -18,9 +18,11 @@ const STATUS = {
   cancelled: { label: 'Cancelled', cls: 'bg-red-900/20 text-red-600',    dot: 'bg-red-700' },
 }
 
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://api.peptly.in').replace(/\/api$/, '')
+
 const emptyForm = {
-  title: '', description: '', courseId: '', scheduledAt: '',
-  duration: 60, platform: 'zoom',
+  title: '', description: '', courseId: '', batchId: '', scheduledAt: '',
+  duration: 60, platform: 'agora',
 }
 
 export default function LiveClassesPage() {
@@ -41,6 +43,11 @@ export default function LiveClassesPage() {
   const { data: coursesData } = useQuery({
     queryKey: ['admin-courses-list'],
     queryFn: () => adminAPI.allCourses({ limit: 100 }).then(r => r.data),
+  })
+  const { data: batchesData } = useQuery({
+    queryKey: ['admin-batches-for-course', form.courseId],
+    queryFn: () => adminAPI.courseBatches(form.courseId).then(r => r.data),
+    enabled: !!form.courseId,
   })
   const { data: attendanceData, isLoading: loadingAtt } = useQuery({
     queryKey: ['class-attendance', attendanceModal?._id],
@@ -63,8 +70,8 @@ export default function LiveClassesPage() {
     if (!form.title || !form.scheduledAt) return toast.error('Title and date required')
     setSaving(true)
     try {
-      await adminAPI.createClass({ ...form, duration: Number(form.duration), platform: 'zoom' })
-      toast.success('Class scheduled! Zoom meeting created.')
+      await adminAPI.createClass({ ...form, duration: Number(form.duration), platform: 'agora', batchId: form.batchId || undefined })
+      toast.success('Class scheduled!')
       setShowCreate(false)
       setForm({ ...emptyForm })
       refetch()
@@ -196,6 +203,7 @@ export default function LiveClassesPage() {
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide hidden md:table-cell">Mentor</th>
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide">Schedule</th>
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide hidden lg:table-cell">Attendance</th>
+                    <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide hidden xl:table-cell">Recording</th>
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide">Status</th>
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide">Actions</th>
                   </tr>
@@ -218,6 +226,9 @@ export default function LiveClassesPage() {
                               {cls.course?.title && (
                                 <p className="text-violet-400/70 text-xs mt-0.5 flex items-center gap-1">
                                   <BookOpen className="w-3 h-3" /> {cls.course.title}
+                                  {cls.batch && (
+                                    <span className="text-gray-500 ml-1">· Batch {cls.batch.batchNumber}{cls.batch.label ? ` (${cls.batch.label})` : ''}</span>
+                                  )}
                                 </p>
                               )}
                             </div>
@@ -259,6 +270,33 @@ export default function LiveClassesPage() {
                             <span className="text-gray-600 text-xs">No data yet</span>
                           )}
                         </td>
+                        <td className="px-5 py-4 hidden xl:table-cell">
+                          {cls.recordingUrl ? (
+                            <a
+                              href={`${API_BASE}${cls.recordingUrl}`}
+                              download
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>
+                                Download
+                                {cls.recordingSize ? ` (${(cls.recordingSize / (1024 * 1024)).toFixed(1)} MB)` : ''}
+                              </span>
+                            </a>
+                          ) : (
+                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                              {cls.status === 'live' ? (
+                                <><Circle className="w-2.5 h-2.5 fill-red-400 text-red-400 animate-pulse" /> Recording...</>
+                              ) : cls.status === 'ended' ? (
+                                <span>No recording</span>
+                              ) : (
+                                <span>—</span>
+                              )}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${st.cls}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
@@ -276,12 +314,18 @@ export default function LiveClassesPage() {
                               </button>
                             )}
                             {cls.status === 'live' && (
-                              <button onClick={() => handleEnd(cls)} disabled={isActing}
-                                title="End Class"
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50">
-                                {isActing ? <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" /> : <Square className="w-3 h-3" />}
-                                End
-                              </button>
+                              <>
+                                <a href={`/live-classes/${cls._id}`}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors">
+                                  <Video className="w-3 h-3" /> Join
+                                </a>
+                                <button onClick={() => handleEnd(cls)} disabled={isActing}
+                                  title="End Class"
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50">
+                                  {isActing ? <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" /> : <Square className="w-3 h-3" />}
+                                  End
+                                </button>
+                              </>
                             )}
                             {cls.status === 'ended' && attRecords.length > 0 && (
                               <button onClick={() => setAttendanceModal(cls)}
@@ -351,12 +395,27 @@ export default function LiveClassesPage() {
 
               <div>
                 <label className="text-gray-400 text-xs font-medium block mb-1.5">Link to Course</label>
-                <select value={form.courseId} onChange={e => set('courseId', e.target.value)}
+                <select value={form.courseId} onChange={e => { set('courseId', e.target.value); set('batchId', '') }}
                   className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-violet-500 transition-colors">
                   <option value="">— General / No Course —</option>
                   {courses.map((c: any) => <option key={c._id} value={c._id}>{c.title}</option>)}
                 </select>
               </div>
+
+              {form.courseId && (
+                <div>
+                  <label className="text-gray-400 text-xs font-medium block mb-1.5">Batch (optional)</label>
+                  <select value={form.batchId} onChange={e => set('batchId', e.target.value)}
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-violet-500 transition-colors">
+                    <option value="">— No Batch —</option>
+                    {(batchesData?.batches || []).map((b: any) => (
+                      <option key={b._id} value={b._id}>
+                        Batch {b.batchNumber}{b.label ? ` — ${b.label}` : ''} ({b.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

@@ -67,6 +67,8 @@ export const adminAPI = {
   packages: () => api.get('/admin/packages'),
   createPackage: (data: any) => api.post('/admin/packages', data),
   updatePackage: (id: string, data: any) => api.put(`/admin/packages/${id}`, data),
+  deletePackage: (id: string) => api.delete(`/admin/packages/${id}`),
+  updatePackageEarner: (soldPkgId: string, data: any) => api.patch(`/admin/packages/${soldPkgId}/earner`, data),
   platformSettings: () => api.get('/admin/platform-settings'),
   updatePlatformSettings: (data: any) => api.put('/admin/platform-settings', data),
   // Purchases
@@ -100,6 +102,11 @@ export const adminAPI = {
   endClass: (id: string) => api.patch(`/classes/${id}/end`),
   cancelClass: (id: string) => api.delete(`/classes/${id}`),
   getAttendance: (id: string) => api.get(`/classes/${id}/attendance`),
+  getRecordings: (params?: any) => api.get('/classes/admin/recordings', { params }),
+  agoraToken: (id: string) => api.get(`/classes/${id}/agora-token`),
+  getRoomControl: (id: string) => api.get(`/classes/${id}/room-control`),
+  setRoomControl: (id: string, data: any) => api.post(`/classes/${id}/room-control`, data),
+  courseBatches: (courseId: string) => api.get(`/admin/batches?course=${courseId}`),
   // Coupons
   coupons: () => api.get('/coupons'),
   createCoupon: (data: any) => api.post('/coupons', data),
@@ -191,6 +198,9 @@ export const adminAPI = {
   deleteEmployee: (id: string) => api.delete(`/admin/employees/${id}`),
   // Learners
   learners: (params?: any) => api.get('/admin/learners', { params }),
+  // Partners
+  partners: (params?: any) => api.get('/admin/partners', { params }),
+  setPromoDiscount: (id: string, percent: number) => api.patch(`/admin/partners/${id}/promo-discount`, { promoDiscountPercent: percent }),
   // NOVA AI Agent
   novaConfig: () => api.get('/nova/config'),
   updateNovaConfig: (data: any) => api.put('/nova/config', data),
@@ -215,6 +225,11 @@ export const adminAPI = {
   reportPerformance: (params?: any) => api.get('/admin/reports/performance', { params }),
   reportTeam: () => api.get('/admin/reports/team'),
   reportLearners: (params?: any) => api.get('/admin/reports/learners', { params }),
+  // EMI
+  emi: (params?: any) => api.get('/admin/emi', { params }),
+  emiMarkPaid: (installmentId: string) => api.patch(`/admin/emi/${installmentId}/mark-paid`),
+  emiCollectWallet: (installmentId: string) => api.post(`/admin/emi/${installmentId}/collect-wallet`),
+  emiToggleAccess: (packagePurchaseId: string, lock: boolean) => api.patch(`/admin/emi/${packagePurchaseId}/toggle-access`, { lock }),
 };
 
 export default api;

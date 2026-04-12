@@ -63,6 +63,8 @@ export const courseAPI = {
   addReview: (id: string, data: any) => api.post(`/courses/${id}/review`, data),
   enrolled: () => api.get('/users/enrolled-courses'),
   assignments: (courseId: string) => api.get(`/assignments/course/${courseId}`),
+  sessions: (courseId: string) => api.get(`/courses/${courseId}/sessions`),
+  courseAssignments: (courseId: string) => api.get(`/courses/${courseId}/assignments`),
 };
 
 // Payments
@@ -98,8 +100,27 @@ export const classAPI = {
   cancel: (id: string) => api.delete(`/classes/${id}`),
   detail: (id: string) => api.get(`/classes/${id}/detail`),
   zoomSignature: (id: string) => api.get(`/classes/${id}/zoom-signature`),
+  agoraToken: (id: string) => api.get(`/classes/${id}/agora-token`),
   attendancePing: (id: string) => api.post(`/classes/${id}/attendance/ping`),
   myAttendance: (id: string) => api.get(`/classes/${id}/attendance/me`),
+  uploadRecording: (id: string, formData: FormData, onProgress?: (pct: number) => void) =>
+    api.post(`/classes/${id}/recording`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e: any) => {
+        if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total));
+      },
+    }),
+  summary: (id: string) => api.post(`/classes/${id}/summary`),
+  quizzes: (id: string) => api.get(`/classes/${id}/quizzes`),
+  getRoomControl: (id: string) => api.get(`/classes/${id}/room-control`),
+  setRoomControl: (id: string, data: { mutedAll?: boolean; camOffAll?: boolean }) =>
+    api.post(`/classes/${id}/room-control`, data),
+  myRecordings: () => api.get('/classes/my-recordings'),
+  saveNotes: (id: string, notes: string) => api.patch(`/classes/${id}/notes`, { notes }),
+  getPoll: (id: string) => api.get(`/classes/${id}/poll`),
+  createPoll: (id: string, data: { question: string; options: string[] }) => api.post(`/classes/${id}/poll`, data),
+  votePoll: (id: string, optionIndex: number) => api.post(`/classes/${id}/poll/vote`, { optionIndex }),
+  endPoll: (id: string) => api.delete(`/classes/${id}/poll`),
 };
 
 // Quizzes
@@ -208,6 +229,13 @@ export const mentorAPI = {
   dashboard: () => api.get('/mentor/dashboard'),
   courses: () => api.get('/mentor/courses'),
   courseStudents: (courseId: string) => api.get(`/mentor/courses/${courseId}/students`),
+  courseBatches: (courseId: string) => api.get(`/mentor/courses/${courseId}/batches`),
+  courseSessions: (courseId: string) => api.get(`/mentor/courses/${courseId}/sessions`),
+  courseAssignments: (courseId: string) => api.get(`/mentor/courses/${courseId}/assignments`),
+  createAssignment: (courseId: string, data: any) => api.post(`/mentor/courses/${courseId}/assignments`, data),
+  deleteAssignment: (assignmentId: string) => api.delete(`/mentor/assignments/${assignmentId}`),
+  startBatch: (batchId: string, data?: any) => api.patch(`/mentor/batches/${batchId}/start`, data || {}),
+  markBatchDay: (batchId: string) => api.patch(`/mentor/batches/${batchId}/mark-day`),
   profile: () => api.get('/mentor/profile'),
   updateProfile: (data: any) => api.put('/mentor/profile', data),
 };
@@ -247,6 +275,7 @@ export const partnerAPI = {
   link: () => api.get('/partner/link'),
   qualification: () => api.get('/partner/qualification'),
   achievements: () => api.get('/partner/achievements'),
+  emiCommissions: () => api.get('/partner/emi-commissions'),
 };
 
 // Freelance
@@ -262,7 +291,7 @@ export const freelanceAPI = {
 export const checkoutAPI = {
   getItem: (params: { type: 'package' | 'course'; tier?: string; courseId?: string }) =>
     api.get('/checkout/item', { params }),
-  validateCode: (data: { code: string; codeType: 'promo' | 'coupon'; type: string; tier?: string; courseId?: string; amount: number }) =>
+  validateCode: (data: { code: string; codeType: 'promo' | 'coupon'; type: string; tier?: string; packageId?: string; courseId?: string; amount: number }) =>
     api.post('/checkout/validate-code', data),
   createOrder: (data: { type: 'package' | 'course'; tier?: string; courseId?: string; paymentMode?: 'full' | 'emi'; promoCode?: string; couponCode?: string }) =>
     api.post('/checkout/create-order', data),
@@ -275,12 +304,13 @@ export const checkoutAPI = {
 };
 
 export const phonepeAPI = {
-  createOrder: (data: { type: 'package' | 'course'; tier?: string; courseId?: string; promoCode?: string; couponCode?: string; isEmi?: boolean }) =>
+  createOrder: (data: { type: 'package' | 'course'; packageId?: string; tier?: string; courseId?: string; promoCode?: string; couponCode?: string; isEmi?: boolean }) =>
     api.post('/phonepe/create-order', data),
   getStatus: (merchantOrderId: string, params: { type: string; tier?: string; courseId?: string; couponCode?: string; promoCode?: string; isEmi?: string }) =>
     api.get(`/phonepe/status/${merchantOrderId}`, { params }),
   getEmiStatus: () => api.get('/phonepe/emi'),
   payEmi: (data: { installmentId: string }) => api.post('/phonepe/emi/pay', data),
+  payEmiFromWallet: (data: { installmentId: string }) => api.post('/phonepe/emi/pay-wallet', data),
   verifyEmiStatus: (params: { installmentId: string; orderId: string }) => api.get('/phonepe/emi/status', { params }),
 };
 
