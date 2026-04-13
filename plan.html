@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 40px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .header {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    border-radius: 16px;
+    padding: 32px 36px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header h1 { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .header .sub { color: #c4b5fd; font-size: 13px; margin-top: 6px; }
+  .badge {
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 10px 18px;
+    text-align: center;
+    color: #fff;
+  }
+  .badge .val { font-size: 20px; font-weight: 800; }
+  .badge .lbl { font-size: 10px; color: #c4b5fd; }
+
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #7c3aed;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(124,58,237,0.25);
+  }
+
+  .card {
+    background: #1e293b;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 18px 22px;
+    margin-bottom: 10px;
+  }
+  .card-title { font-size: 14px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+  .card-sub { font-size: 11px; color: #94a3b8; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    margin: 2px 2px 0 0;
+  }
+  .tag-green  { background: rgba(16,185,129,0.15); color: #34d399; }
+  .tag-violet { background: rgba(124,58,237,0.15); color: #a78bfa; }
+  .tag-blue   { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .tag-amber  { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .tag-red    { background: rgba(239,68,68,0.15);  color: #f87171; }
+
+  .checklist { list-style: none; }
+  .checklist li {
+    padding: 5px 0 5px 22px;
+    position: relative;
+    color: #cbd5e1;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .checklist li::before {
+    content: '○';
+    position: absolute;
+    left: 0;
+    color: #7c3aed;
+    font-size: 11px;
+  }
+
+  .priority-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .priority-row:last-child { border: none; }
+  .priority-num {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .priority-text { flex: 1; }
+  .priority-title { font-size: 13px; font-weight: 700; color: #f1f5f9; }
+  .priority-sub { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+
+  .stat-mini {
+    background: #1e293b;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .stat-mini .v { font-size: 22px; font-weight: 800; color: #a78bfa; }
+  .stat-mini .l { font-size: 10px; color: #64748b; margin-top: 2px; }
+
+  .footer {
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    color: #475569;
+    font-size: 10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div style="font-size:11px;color:#c4b5fd;font-weight:600;margin-bottom:6px;">TRULEARNIX · peptly.in</div>
+    <h1>Next Phase Roadmap</h1>
+    <div class="sub">UI Redesign + AI Integration · Planned: 2026-04-14</div>
+  </div>
+  <div style="display:flex;gap:12px;">
+    <div class="badge"><div class="val">6</div><div class="lbl">Panels</div></div>
+    <div class="badge"><div class="val">5</div><div class="lbl">AI Features</div></div>
+    <div class="badge"><div class="val">100%</div><div class="lbl">Structure Done</div></div>
+  </div>
+</div>
+
+<!-- WHAT'S DONE -->
+<div class="section">
+  <div class="section-title">What's Already Built</div>
+  <div class="grid3">
+    <div class="stat-mini"><div class="v">✅</div><div class="l">Auth + Roles (6 types)</div></div>
+    <div class="stat-mini"><div class="v">✅</div><div class="l">EMI Commission System</div></div>
+    <div class="stat-mini"><div class="v">✅</div><div class="l">Sales CRM + Leads</div></div>
+    <div class="stat-mini"><div class="v">✅</div><div class="l">Manager Panel</div></div>
+    <div class="stat-mini"><div class="v">✅</div><div class="l">Affiliate Link + Promo</div></div>
+    <div class="stat-mini"><div class="v">✅</div><div class="l">PhonePe + Wallet</div></div>
+  </div>
+</div>
+
+<!-- TOMORROW PRIORITIES -->
+<div class="section">
+  <div class="section-title">Tomorrow's Priority Order</div>
+  <div class="card">
+    <div class="priority-row">
+      <div class="priority-num">1</div>
+      <div class="priority-text">
+        <div class="priority-title">Learner Panel Full Redesign</div>
+        <div class="priority-sub">Course progress hero · Streak calendar · Focus timer · AI Coach chat bubbles · EMI timeline</div>
+      </div>
+      <span class="tag tag-red">Highest Impact</span>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">2</div>
+      <div class="priority-text">
+        <div class="priority-title">Partner Dashboard Redesign</div>
+        <div class="priority-sub">Earnings graph (Recharts) · Referral funnel · Tier progress bar · Link generator + QR</div>
+      </div>
+      <span class="tag tag-violet">High</span>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">3</div>
+      <div class="priority-text">
+        <div class="priority-title">AI Integration Kick-off</div>
+        <div class="priority-sub">Nova streaming chat · AI Lead Scorer · AI Sales message templates</div>
+      </div>
+      <span class="tag tag-blue">AI</span>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">4</div>
+      <div class="priority-text">
+        <div class="priority-title">Public Landing Page — peptly.in</div>
+        <div class="priority-sub">Course catalog · Partner signup · Testimonials · Hero section</div>
+      </div>
+      <span class="tag tag-green">Marketing</span>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL REDESIGN CHECKLIST -->
+<div class="section">
+  <div class="section-title">Panel-by-Panel Redesign Checklist</div>
+  <div class="grid2">
+
+    <div class="card">
+      <div class="card-title">🎓 Learner Panel</div>
+      <div class="card-sub" style="margin-bottom:8px;">Most user-facing — first priority</div>
+      <ul class="checklist">
+        <li>Dashboard — progress hero + streak calendar</li>
+        <li>Courses — grid with progress bars + continue-watching</li>
+        <li>AI Coach (Nova) — streaming chat + topic chips</li>
+        <li>EMI Status — visual installment timeline + pay button</li>
+        <li>Focus Timer — Pomodoro + session stats</li>
+        <li>Leaderboard — animated rank cards</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🤝 Partner Panel</div>
+      <div class="card-sub" style="margin-bottom:8px;">Revenue driver — second priority</div>
+      <ul class="checklist">
+        <li>Dashboard — earnings graph + tier progress bar</li>
+        <li>Referrals — table with conversion status</li>
+        <li>Link Generator — QR code + UTM builder</li>
+        <li>EMI Commissions — installment grid</li>
+        <li>Earnings History — timeline with filter</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📈 Sales Panel</div>
+      <div class="card-sub" style="margin-bottom:8px;">CRM experience polish</div>
+      <ul class="checklist">
+        <li>Dashboard — daily target progress ring</li>
+        <li>Leads — Kanban board with drag-drop stages</li>
+        <li>Orders — searchable table + EMI breakdown</li>
+        <li>EMI Commissions — installment grid</li>
+        <li>Performance — monthly trend chart</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏢 Admin Panel</div>
+      <div class="card-sub" style="margin-bottom:8px;">Control center polish</div>
+      <ul class="checklist">
+        <li>Dashboard — platform KPI cards + charts</li>
+        <li>Users — advanced filter + bulk actions</li>
+        <li>Packages — visual card editor</li>
+        <li>Reports — downloadable CSV / PDF</li>
+        <li>Analytics — revenue trend + funnel</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- AI FEATURES -->
+<div class="section">
+  <div class="section-title">AI Features to Build</div>
+  <div class="grid2">
+
+    <div class="card">
+      <div class="card-title">🤖 Nova AI Coach</div>
+      <div class="card-sub">Streaming chat · Per-student memory · Context-aware (current course + progress)</div>
+      <div style="margin-top:8px;">
+        <span class="tag tag-violet">OpenAI / Claude API</span>
+        <span class="tag tag-blue">Streaming</span>
+        <span class="tag tag-green">Per-student context</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 AI Lead Scorer</div>
+      <div class="card-sub">Score 0–100 per lead · Based on: tier interest, follow-up history, engagement · Show on lead cards</div>
+      <div style="margin-top:8px;">
+        <span class="tag tag-amber">Sales CRM</span>
+        <span class="tag tag-violet">ML Scoring</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💬 AI Sales Assistant</div>
+      <div class="card-sub">One-click WhatsApp message template for each lead · Personalised by tier + stage</div>
+      <div style="margin-top:8px;">
+        <span class="tag tag-green">WhatsApp</span>
+        <span class="tag tag-blue">Template Gen</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📉 AI Churn Risk</div>
+      <div class="card-sub">Flag learners inactive 7+ days · Show in admin dashboard · Auto-send re-engagement nudge</div>
+      <div style="margin-top:8px;">
+        <span class="tag tag-red">Retention</span>
+        <span class="tag tag-amber">Admin Alert</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💰 Commission Predictor</div>
+      <div class="card-sub">Show partner projected monthly earnings based on current referral rate + conversion</div>
+      <div style="margin-top:8px;">
+        <span class="tag tag-green">Partner UX</span>
+        <span class="tag tag-violet">Forecasting</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 AI Course Recommender</div>
+      <div class="card-sub">Suggest next course/module to learner based on progress, goal, and peer patterns</div>
+      <div style="margin-top:8px;">
+        <span class="tag tag-blue">Personalization</span>
+        <span class="tag tag-violet">Recommendation</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MISSING FEATURES -->
+<div class="section">
+  <div class="section-title">Missing Features to Build</div>
+  <div class="grid3">
+    <div class="card">
+      <div class="card-title">🌳 Referral Tree</div>
+      <div class="card-sub">Multi-level L1→L2→L3 network graph visualizer</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎯 Goal System</div>
+      <div class="card-sub">Admin sets partner goals · Manager tracks · Partner sees progress</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔔 Auto Notifications</div>
+      <div class="card-sub">EMI due reminder · Follow-up reminder via WhatsApp/SMS</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 Certificates</div>
+      <div class="card-sub">Auto-generated PDF on course completion with student name</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🌐 Landing Page</div>
+      <div class="card-sub">peptly.in home — courses, partner signup, testimonials, hero</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Analytics</div>
+      <div class="card-sub">Revenue trend · Conversion funnel · Partner ranking dashboard</div>
+    </div>
+  </div>
+</div>
+
+<!-- TECH STACK -->
+<div class="section">
+  <div class="section-title">Tech Stack</div>
+  <div class="card" style="display:flex;flex-wrap:wrap;gap:8px;padding:16px 20px;">
+    <span class="tag tag-blue" style="font-size:12px;padding:4px 12px;">Next.js 14</span>
+    <span class="tag tag-green" style="font-size:12px;padding:4px 12px;">Node.js / Express</span>
+    <span class="tag tag-violet" style="font-size:12px;padding:4px 12px;">MongoDB / Mongoose</span>
+    <span class="tag tag-amber" style="font-size:12px;padding:4px 12px;">PhonePe Gateway</span>
+    <span class="tag tag-blue" style="font-size:12px;padding:4px 12px;">Socket.IO</span>
+    <span class="tag tag-red" style="font-size:12px;padding:4px 12px;">Tailwind CSS</span>
+    <span class="tag tag-green" style="font-size:12px;padding:4px 12px;">Recharts</span>
+    <span class="tag tag-violet" style="font-size:12px;padding:4px 12px;">Claude / OpenAI API</span>
+    <span class="tag tag-amber" style="font-size:12px;padding:4px 12px;">PM2</span>
+    <span class="tag tag-blue" style="font-size:12px;padding:4px 12px;">Framer Motion</span>
+  </div>
+</div>
+
+<div class="footer">
+  <span>TruLearnix · peptly.in · Built with Claude Code</span>
+  <span>Generated: 2026-04-13 · Next session: 2026-04-14</span>
+</div>
+
+</body>
+</html>
