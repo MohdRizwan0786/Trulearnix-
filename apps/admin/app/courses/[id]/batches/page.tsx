@@ -8,7 +8,8 @@ import toast from 'react-hot-toast'
 import {
   Users, Clock, Plus, X, Loader2, ArrowLeft, CheckCircle,
   XCircle, ArrowRightLeft, Layers, Calendar, AlertCircle,
-  ChevronDown, ChevronRight, Shield, Zap, BarChart2, Play, BookOpen
+  ChevronDown, ChevronRight, Shield, Zap, BarChart2, Play, BookOpen,
+  Trophy, TrendingUp, Star
 } from 'lucide-react'
 
 function formatDate(d: string | Date) {
@@ -35,14 +36,33 @@ function BatchStatusBadge({ status }: { status: string }) {
   )
 }
 
+function ScoreBar({ value, max = 100, color = 'bg-violet-500' }: { value: number; max?: number; color?: string }) {
+  const pct = Math.min(100, Math.round((value / max) * 100))
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-gray-400 w-8 text-right">{value}%</span>
+    </div>
+  )
+}
+
 function BatchCard({ batch, courseId, onTransfer }: { batch: any; courseId: string; onTransfer: (batch: any) => void }) {
   const [open, setOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'students' | 'leaderboard'>('students')
   const qc = useQueryClient()
 
   const { data: studentsData, isLoading: studentsLoading } = useQuery({
     queryKey: ['batch-students', batch._id],
     queryFn: () => adminAPI.batchStudents(batch._id).then(r => r.data),
-    enabled: open
+    enabled: open && activeTab === 'students'
+  })
+
+  const { data: perfData, isLoading: perfLoading } = useQuery({
+    queryKey: ['batch-performance', batch._id],
+    queryFn: () => adminAPI.batchPerformance(batch._id).then(r => r.data),
+    enabled: open && activeTab === 'leaderboard'
   })
 
   const closeBatch = useMutation({
@@ -226,46 +246,125 @@ function BatchCard({ batch, courseId, onTransfer }: { batch: any; courseId: stri
         </div>
       </div>
 
-      {/* Students toggle */}
+      {/* Toggle */}
       <div className="border-t border-white/5">
         <button onClick={() => setOpen(!open)}
           className="w-full flex items-center justify-between px-5 py-3 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
           <span className="flex items-center gap-2">
-            <Users className="w-4 h-4" /> View Students ({batch.enrolledCount})
+            <Users className="w-4 h-4" /> Students & Performance ({batch.enrolledCount})
           </span>
           {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
 
         {open && (
-          <div className="border-t border-white/5 divide-y divide-white/5">
-            {studentsLoading ? (
-              <div className="py-6 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-violet-400" />
-              </div>
-            ) : studentsData?.enrollments?.length === 0 ? (
-              <div className="py-6 text-center text-gray-600 text-sm">No students enrolled yet</div>
-            ) : studentsData?.enrollments?.map((enr: any) => (
-              <div key={enr._id} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
-                <div className="flex items-center gap-3">
-                  {enr.student?.avatar ? (
-                    <img src={enr.student.avatar} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 font-bold text-xs">
-                      {enr.student?.name?.[0] || '?'}
+          <>
+            {/* Sub-tabs */}
+            <div className="flex border-t border-white/5">
+              <button onClick={() => setActiveTab('students')}
+                className={`flex-1 py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'students' ? 'bg-white/5 text-white border-b-2 border-violet-500' : 'text-gray-500 hover:text-white'}`}>
+                <Users className="w-3.5 h-3.5" /> Students
+              </button>
+              <button onClick={() => setActiveTab('leaderboard')}
+                className={`flex-1 py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'leaderboard' ? 'bg-white/5 text-white border-b-2 border-amber-500' : 'text-gray-500 hover:text-white'}`}>
+                <Trophy className="w-3.5 h-3.5" /> Leaderboard
+              </button>
+            </div>
+
+            {/* Students tab */}
+            {activeTab === 'students' && (
+              <div className="divide-y divide-white/5">
+                {studentsLoading ? (
+                  <div className="py-6 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-violet-400" /></div>
+                ) : studentsData?.enrollments?.length === 0 ? (
+                  <div className="py-6 text-center text-gray-600 text-sm">No students enrolled yet</div>
+                ) : studentsData?.enrollments?.map((enr: any) => (
+                  <div key={enr._id} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                    <div className="flex items-center gap-3">
+                      {enr.student?.avatar ? (
+                        <img src={enr.student.avatar} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 font-bold text-xs">
+                          {enr.student?.name?.[0] || '?'}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-white text-sm font-medium">{enr.student?.name || 'Unknown'}</p>
+                        <p className="text-gray-500 text-xs">{enr.student?.email}</p>
+                      </div>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-white text-sm font-medium">{enr.student?.name || 'Unknown'}</p>
-                    <p className="text-gray-500 text-xs">{enr.student?.email}</p>
+                    <button onClick={() => onTransfer({ studentId: enr.student?._id, studentName: enr.student?.name, fromBatchId: batch._id, fromBatchLabel: batch.label || `Batch ${batch.batchNumber}` })}
+                      className="flex items-center gap-1 text-xs text-violet-400 hover:text-white hover:bg-violet-500 px-2.5 py-1.5 rounded-lg bg-violet-500/10 transition-colors">
+                      <ArrowRightLeft className="w-3 h-3" /> Transfer
+                    </button>
                   </div>
-                </div>
-                <button onClick={() => onTransfer({ studentId: enr.student?._id, studentName: enr.student?.name, fromBatchId: batch._id, fromBatchLabel: batch.label || `Batch ${batch.batchNumber}` })}
-                  className="flex items-center gap-1 text-xs text-violet-400 hover:text-white hover:bg-violet-500 px-2.5 py-1.5 rounded-lg bg-violet-500/10 transition-colors">
-                  <ArrowRightLeft className="w-3 h-3" /> Transfer
-                </button>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* Leaderboard tab */}
+            {activeTab === 'leaderboard' && (
+              <div>
+                {perfLoading ? (
+                  <div className="py-6 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-amber-400" /></div>
+                ) : !perfData?.performance?.length ? (
+                  <div className="py-6 text-center text-gray-600 text-sm">No performance data yet</div>
+                ) : (
+                  <>
+                    {/* Header row */}
+                    <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-3 px-5 py-2 text-xs text-gray-600 border-b border-white/5">
+                      <span className="w-6">#</span>
+                      <span>Student</span>
+                      <span className="w-20 text-center">Progress</span>
+                      <span className="w-20 text-center">Attendance</span>
+                      <span className="w-20 text-center">Assignments</span>
+                      <span className="w-16 text-center">Score</span>
+                    </div>
+                    {perfData.performance.map((p: any, i: number) => (
+                      <div key={i} className={`grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-3 items-center px-5 py-3 hover:bg-white/[0.02] transition-colors ${i === 0 ? 'bg-amber-500/5' : i === 1 ? 'bg-gray-500/5' : i === 2 ? 'bg-orange-500/5' : ''}`}>
+                        <div className="w-6 text-center">
+                          {i === 0 ? <Trophy className="w-4 h-4 text-amber-400 mx-auto" />
+                            : i === 1 ? <span className="text-gray-400 font-bold text-sm">2</span>
+                            : i === 2 ? <span className="text-orange-400 font-bold text-sm">3</span>
+                            : <span className="text-gray-600 text-sm">{i + 1}</span>}
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          {p.student?.avatar ? (
+                            <img src={p.student.avatar} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 font-bold text-xs flex-shrink-0">
+                              {p.student?.name?.[0] || '?'}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-white text-xs font-medium truncate">{p.student?.name}</p>
+                            <p className="text-gray-600 text-xs truncate hidden sm:block">{p.student?.email}</p>
+                          </div>
+                        </div>
+                        <div className="w-20">
+                          <ScoreBar value={p.progressPercent} color="bg-blue-500" />
+                        </div>
+                        <div className="w-20">
+                          <ScoreBar value={p.attendancePct} color="bg-green-500" />
+                        </div>
+                        <div className="w-20 text-center">
+                          <span className="text-xs text-gray-400">{p.assignmentsSubmitted}/{p.totalAssignments}</span>
+                          {p.totalAssignments > 0 && <ScoreBar value={p.avgAssignmentScore} color="bg-violet-500" />}
+                        </div>
+                        <div className="w-16 text-center">
+                          <span className={`text-sm font-black ${p.compositeScore >= 80 ? 'text-emerald-400' : p.compositeScore >= 50 ? 'text-amber-400' : 'text-gray-400'}`}>
+                            {p.compositeScore}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="px-5 py-2 text-xs text-gray-600 border-t border-white/5">
+                      Score = Progress (40%) + Attendance (30%) + Assignments (30%)
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

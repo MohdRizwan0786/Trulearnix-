@@ -175,7 +175,7 @@ function EarningsCalc({ rate, accentColor, accentColor2 }: { rate: number; accen
 
         <div>
           <p className="text-gray-400 text-xs font-medium mb-3">Avg. package value they buy</p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[4999, 9999, 19999, 29999].map(v => (
               <button key={v} onClick={() => setTier(v)}
                 className="py-2.5 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95"
@@ -217,7 +217,6 @@ function EarningsCalc({ rate, accentColor, accentColor2 }: { rate: number; accen
 /* ── FAQ ─────────────────────────────────────────────────── */
 const FAQS = [
   { q: 'Can I upgrade my plan later?', a: 'Yes! You can upgrade anytime and only pay the difference. Your learning progress is always saved.' },
-  { q: 'Is there a money-back guarantee?', a: '100% yes! 30-day full refund, no questions asked. We want you to feel confident.' },
   { q: 'How does the Partner Program work?', a: 'Share your personal partner link. Every time someone joins through it, you earn income instantly — no selling skills required, just help others learn.' },
   { q: 'Can I pay in EMI?', a: 'Yes, EMI options are available via Razorpay (3–12 months, 0% interest on select plans). Choose at checkout.' },
   { q: 'Do I get lifetime access?', a: 'Yes! All courses, content, and updates are accessible for lifetime once enrolled. No expiry.' },
@@ -419,7 +418,6 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
               {/* Trust badges */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
                 className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-green-500" /> 30-day money-back</span>
                 <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-blue-400" /> Secure checkout</span>
                 <span className="flex items-center gap-1.5"><InfinityIcon className="w-3.5 h-3.5 text-purple-400" /> Lifetime access</span>
               </motion.div>
@@ -477,7 +475,7 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
             { val: pkg?.commissionRate || 0, suffix: '%', label: 'Income Rate', icon: TrendingUp, prefix: '' },
             { val: 500, suffix: '+', label: 'Courses Access', icon: BookOpen, prefix: '' },
             { val: 10000, suffix: '+', label: 'Active Members', icon: Users, prefix: '' },
-            { val: 30, suffix: ' Days', label: 'Money-Back', icon: Shield, prefix: '' },
+            { val: 100, suffix: '%', label: 'Lifetime Access', icon: Shield, prefix: '' },
           ].map((s, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 }} viewport={{ once: true }}
@@ -574,14 +572,16 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
               <Clock className="w-7 h-7" style={{ color: cfg.accentColor }} />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg sm:text-xl font-black text-white mb-1">Flexible EMI — Start at ₹{Math.round(price / 12).toLocaleString()}/mo</h3>
-              <p className="text-gray-500 text-sm mb-4">Pay in easy monthly installments. No extra interest charged.</p>
+              <h3 className="text-lg sm:text-xl font-black text-white mb-1">Flexible EMI — ₹{(pkg.emiMonthlyAmount || 0).toLocaleString()} × {pkg.emiDays?.length || 1} installments</h3>
+              <p className="text-gray-500 text-sm mb-4">Pay in easy installments. No extra interest charged.</p>
               <div className="flex flex-wrap gap-2">
-                {[3, 6, 9, 12].map((m: number) => (
-                  <div key={m} className="rounded-xl px-4 py-2.5 text-center"
+                {(pkg.emiDays || []).map((day: number, i: number) => (
+                  <div key={i} className="rounded-xl px-4 py-2.5 text-center"
                     style={{ background: cfg.accentColor + '12', border: `1px solid ${cfg.accentColor}25` }}>
-                    <p className="font-black text-white text-base">₹{Math.round(price / m).toLocaleString()}</p>
-                    <p className="text-[10px] mt-0.5 font-bold" style={{ color: cfg.accentColor }}>× {m} months</p>
+                    <p className="font-black text-white text-base">₹{(pkg.emiMonthlyAmount || 0).toLocaleString()}</p>
+                    <p className="text-[10px] mt-0.5 font-bold" style={{ color: cfg.accentColor }}>
+                      {i === 0 ? 'Today' : `Day ${day}`}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -702,7 +702,6 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
               Join thousands of learners growing their skills and income with TruLearnix.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-white/50 mb-8">
-              <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-green-400" /> 30-day money-back</span>
               <span className="flex items-center gap-1.5"><InfinityIcon className="w-3.5 h-3.5 text-blue-400" /> Lifetime access</span>
               <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-yellow-400" /> Instant activation</span>
             </div>

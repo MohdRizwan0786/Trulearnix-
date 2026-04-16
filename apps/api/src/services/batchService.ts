@@ -8,7 +8,7 @@ import Course from '../models/Course';
  */
 export async function getOrCreateActiveBatch(courseId: string): Promise<IBatch | null> {
   const course = await Course.findById(courseId).select('batchSettings');
-  if (!course || !course.batchSettings?.enabled) return null;
+  if (!course) return null;
 
   // Auto-close expired active batches
   await Batch.updateMany(

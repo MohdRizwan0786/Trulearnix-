@@ -15,7 +15,14 @@ export interface IWithdrawal extends Document {
   processedAt?: Date;
   tdsRate: number;
   tdsAmount: number;
+  gatewayFee: number;
+  gatewayFeeGst: number;
   netAmount: number;
+  // HR approval fields
+  hrStatus: 'pending' | 'approved' | 'rejected';
+  hrApprovedBy?: mongoose.Types.ObjectId;
+  hrApprovedAt?: Date;
+  hrRejectionReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,7 +42,13 @@ const WithdrawalSchema = new Schema<IWithdrawal>({
   processedAt: Date,
   tdsRate: { type: Number, default: 0 },
   tdsAmount: { type: Number, default: 0 },
+  gatewayFee: { type: Number, default: 0 },
+  gatewayFeeGst: { type: Number, default: 0 },
   netAmount: { type: Number, default: 0 },
+  hrStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  hrApprovedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  hrApprovedAt: Date,
+  hrRejectionReason: String,
 }, { timestamps: true });
 
 WithdrawalSchema.index({ user: 1, status: 1 });

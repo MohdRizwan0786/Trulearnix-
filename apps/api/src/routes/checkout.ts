@@ -127,6 +127,11 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
         await User.findByIdAndUpdate(earner._id, {
           $push: { notifications: { type: 'commission', message: `🎉 ₹${commAmt} earned! L${mlmLevel} commission from ${tier} package sale.`, read: false, createdAt: new Date() } }
         });
+        // Push notification to earner
+        try {
+          const { notify } = await import('../services/pushService');
+          await notify(earner._id, `💰 ₹${commAmt} Commission Earned!`, `You earned a Level ${mlmLevel} commission from a ${tier} package sale.`, { type: 'commission', url: '/partner/earnings', tag: 'commission' });
+        } catch {}
       } catch (levelErr: any) {
         console.error(`[MLM Commission Error] L${mlmLevel} for purchase ${purchaseId}:`, levelErr.message);
       }
@@ -564,6 +569,12 @@ router.post('/verify', protect, async (req: any, res) => {
       } catch (notifErr: any) {
         console.error('[Package Notification Error]', notifErr.message);
       }
+
+      // Push notification to buyer
+      try {
+        const { notify } = await import('../services/pushService');
+        await notify(req.user._id, `🎉 Welcome to ${pkg?.name || tier}!`, `Your account is now upgraded. Start your learning journey now!`, { type: 'success', url: '/student/courses', tag: 'package-purchase' });
+      } catch {}
 
       return res.json({ success: true, message: `Welcome to ${pkg?.name || tier}!`, tier, isEmi: purchase.isEmi });
     }

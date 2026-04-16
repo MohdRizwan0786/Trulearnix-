@@ -1,13 +1,56 @@
 'use client'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowRight, Zap, Video, Award, Shield, RefreshCcw, CreditCard } from 'lucide-react'
 import Tilt3D from '@/components/ui/Tilt3D'
 
+const DEFAULT_PILLS = [
+  { label: 'Live Classes' },
+  { label: 'AI Certificate' },
+  { label: 'Earn & Grow' },
+]
+
+const PILL_ICONS = [Video, Award, Zap]
+
 export default function CTASection() {
+  const [promoBannerText, setPromoBannerText] = useState('🎉 Limited Offer — First month FREE with code LEARN2024')
+  const [promoCode, setPromoCode]             = useState('LEARN2024')
+  const [headline, setHeadline]               = useState('Ready to Transform Your Career?')
+  const [subheadline, setSubheadline]         = useState('Join 50,000+ learners. Start with free courses, attend live classes, earn certificates, and grow your income — all in one platform.')
+  const [featurePills, setFeaturePills]       = useState(DEFAULT_PILLS)
+  const [primaryCTAText, setPrimaryCTAText]   = useState('Start Learning Free')
+  const [primaryCTAHref, setPrimaryCTAHref]   = useState('/register')
+  const [secondaryCTAText, setSecondaryCTAText] = useState('Browse Courses')
+  const [secondaryCTAHref, setSecondaryCTAHref] = useState('/courses')
+
+  useEffect(() => {
+    fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/cta')
+      .then(r => r.json())
+      .then(res => {
+        const d = res.data
+        if (!d) return
+        if (d.promoBannerText)  setPromoBannerText(d.promoBannerText)
+        if (d.promoCode)        setPromoCode(d.promoCode)
+        if (d.headline)         setHeadline(d.headline)
+        if (d.subheadline)      setSubheadline(d.subheadline)
+        if (d.featurePills?.length) setFeaturePills(d.featurePills)
+        if (d.primaryCTAText)   setPrimaryCTAText(d.primaryCTAText)
+        if (d.primaryCTAHref)   setPrimaryCTAHref(d.primaryCTAHref)
+        if (d.secondaryCTAText) setSecondaryCTAText(d.secondaryCTAText)
+        if (d.secondaryCTAHref) setSecondaryCTAHref(d.secondaryCTAHref)
+      })
+      .catch(() => {})
+  }, [])
+
+  // Split headline at known break points for styling
+  const headlineParts = headline.split(' ')
+  const midpoint = Math.floor(headlineParts.length / 2)
+  const line1 = headlineParts.slice(0, midpoint).join(' ')
+  const line2 = headlineParts.slice(midpoint).join(' ')
+
   return (
     <section className="py-10 md:py-14 px-4 relative overflow-hidden">
-      {/* 3D perspective background glows */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(ellipse, rgba(124,58,237,0.14) 0%, transparent 70%)' }} />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[300px] rounded-full pointer-events-none blur-3xl"
@@ -28,57 +71,55 @@ export default function CTASection() {
               <div className="py-2.5 px-4 text-center"
                 style={{ background: 'linear-gradient(90deg, #7c3aed, #6366f1, #7c3aed)' }}>
                 <p className="text-white text-xs font-bold">
-                  🎉 Limited Offer — First month FREE with code{' '}
-                  <strong className="bg-white/20 px-2 py-0.5 rounded font-black tracking-wider">LEARN2024</strong>
+                  {promoBannerText.replace(promoCode, '').trim()}{' '}
+                  {promoCode && (
+                    <strong className="bg-white/20 px-2 py-0.5 rounded font-black tracking-wider">{promoCode}</strong>
+                  )}
                 </p>
               </div>
 
               <div className="p-6 sm:p-10 md:p-16 text-center">
-                {/* Feature pills — 3D floating */}
+                {/* Feature pills */}
                 <div className="flex items-center justify-center gap-4 mb-10 flex-wrap">
-                  {[
-                    { icon: Video, label: 'Live Classes' },
-                    { icon: Award, label: 'AI Certificate' },
-                    { icon: Zap, label: 'Earn & Grow' },
-                  ].map((f, i) => (
-                    <motion.div key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      viewport={{ once: true }}
-                      className="flex items-center gap-2 text-sm text-gray-300 px-4 py-2 rounded-full"
-                      style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)'
-                      }}>
-                      <f.icon className="w-4 h-4 text-violet-400" />
-                      {f.label}
-                    </motion.div>
-                  ))}
+                  {featurePills.map((f, i) => {
+                    const Icon = PILL_ICONS[i % PILL_ICONS.length]
+                    return (
+                      <motion.div key={i}
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        viewport={{ once: true }}
+                        className="flex items-center gap-2 text-sm text-gray-300 px-4 py-2 rounded-full"
+                        style={{
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)'
+                        }}>
+                        <Icon className="w-4 h-4 text-violet-400" />
+                        {f.label}
+                      </motion.div>
+                    )
+                  })}
                 </div>
 
                 {/* Headline */}
                 <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white mb-5 leading-tight text-3d">
-                  Ready to{' '}
-                  <span className="gradient-shift-text">Transform</span>
-                  <br />
-                  Your Career?
+                  {line1}{' '}
+                  <span className="gradient-shift-text">{line2}</span>
                 </h2>
 
                 <p className="text-gray-400 text-base sm:text-lg mb-8 sm:mb-12 max-w-xl mx-auto leading-relaxed">
-                  Join 50,000+ learners. Start with free courses, attend live classes,
-                  earn certificates, and grow your income — all in one platform.
+                  {subheadline}
                 </p>
 
                 {/* CTA buttons */}
                 <div className="flex flex-col xs:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-10">
-                  <Link href="/register" className="btn-primary text-base sm:text-lg px-8 sm:px-12 py-3.5 sm:py-4 group w-full xs:w-auto">
-                    Start Learning Free
+                  <Link href={primaryCTAHref} className="btn-primary text-base sm:text-lg px-8 sm:px-12 py-3.5 sm:py-4 group w-full xs:w-auto">
+                    {primaryCTAText}
                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </Link>
-                  <Link href="/courses" className="btn-outline text-sm sm:text-base px-6 sm:px-10 py-3.5 sm:py-4 w-full xs:w-auto">
-                    Browse Courses
+                  <Link href={secondaryCTAHref} className="btn-outline text-sm sm:text-base px-6 sm:px-10 py-3.5 sm:py-4 w-full xs:w-auto">
+                    {secondaryCTAText}
                   </Link>
                 </div>
 

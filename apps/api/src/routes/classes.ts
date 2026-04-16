@@ -3,10 +3,12 @@ import { createClass, getUpcomingClasses, joinClass, startClass, endClass, cance
 import { protect, authorize } from '../middleware/auth';
 import LiveClass from '../models/LiveClass';
 import Enrollment from '../models/Enrollment';
-import { generateZoomSignature } from '../services/zoomSdkService';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { EgressClient, EncodedFileType, RoomServiceClient } from 'livekit-server-sdk';
+import Course from '../models/Course';
+import Webinar from '../models/Webinar';
 
 const recordingsDir = '/var/www/trulearnix/uploads/recordings';
 if (!fs.existsSync(recordingsDir)) fs.mkdirSync(recordingsDir, { recursive: true });
@@ -113,33 +115,46 @@ router.get('/:id/detail', protect, async (req: any, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
-// ── Agora Token ────────────────────────────────────────────────────────────────
-router.get('/:id/agora-token', protect, async (req: any, res) => {
+// ── LiveKit Token ──────────────────────────────────────────────────────────────
+router.get('/:id/livekit-token', protect, async (req: any, res) => {
   try {
     const cls = await LiveClass.findById(req.params.id);
     if (!cls) return res.status(404).json({ success: false, message: 'Class not found' });
 
-    const appId = process.env.AGORA_APP_ID || '';
-    const appCertificate = process.env.AGORA_APP_CERTIFICATE || '';
-    const channelName = (cls as any).agoraChannelName || cls._id.toString();
+    const apiKey = process.env.LIVEKIT_API_KEY || '';
+    const apiSecret = process.env.LIVEKIT_API_SECRET || '';
+    const livekitUrl = process.env.LIVEKIT_URL || '';
+
+    if (!apiKey || !apiSecret) {
+      return res.status(500).json({ success: false, message: 'LiveKit not configured' });
+    }
+
+    const roomName = (cls as any).livekitRoomName || (cls as any).agoraChannelName || cls._id.toString();
     const isMentor = cls.mentor.toString() === req.user._id.toString()
       || ['superadmin', 'admin', 'manager'].includes(req.user.role);
 
-    let token: string | null = null;
-    if (appCertificate) {
-      const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
-      const uid = 0;
-      const role = isMentor ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
-      const expireTime = Math.floor(Date.now() / 1000) + 3600;
-      token = RtcTokenBuilder.buildTokenWithUid(appId, appCertificate, channelName, uid, role, expireTime);
-    }
+    const { AccessToken } = require('livekit-server-sdk');
+    const at = new AccessToken(apiKey, apiSecret, {
+      identity: req.user._id.toString(),
+      name: req.user.name,
+      ttl: 7200, // 2 hours
+    });
+
+    at.addGrant({
+      roomJoin: true,
+      room: roomName,
+      canPublish: isMentor,
+      canSubscribe: true,
+      canPublishData: true,
+    });
+
+    const token = await at.toJwt();
 
     res.json({
       success: true,
-      appId,
       token,
-      channelName,
-      uid: 0,
+      livekitUrl,
+      roomName,
       role: isMentor ? 'host' : 'audience',
       userName: req.user.name,
       classTitle: cls.title,
@@ -148,30 +163,97 @@ router.get('/:id/agora-token', protect, async (req: any, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
-// ── Zoom SDK Signature ─────────────────────────────────────────────────────────
-router.get('/:id/zoom-signature', protect, async (req: any, res) => {
+
+// ── Egress helpers ────────────────────────────────────────────────────────────
+const getLivekitHost = () =>
+  process.env.LIVEKIT_URL!.replace('wss://', 'https://').replace('ws://', 'http://');
+
+const getEgressClient = () => new EgressClient(
+  getLivekitHost(), process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!
+);
+
+const getRoomClient = () => new RoomServiceClient(
+  getLivekitHost(), process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!
+);
+
+// Helper: stop egress and save recording URL to class
+const stopClassEgress = async (cls: any) => {
+  if (!(cls as any).egressId) return null;
+  try {
+    const client = getEgressClient();
+    await client.stopEgress((cls as any).egressId);
+  } catch (e) {
+    console.warn('stopEgress failed (may already be stopped):', e);
+  }
+  const recordingUrl = `/uploads/recordings/${(cls as any).recordingFileName}`;
+  cls.recordingUrl = recordingUrl;
+  cls.recordingSize = undefined;
+  (cls as any).egressId = null;
+
+  // Link recording to curriculum lesson if tied to one
+  if ((cls as any).lessonId && cls.course) {
+    try {
+      await Course.updateOne(
+        { _id: cls.course, 'modules.lessons._id': (cls as any).lessonId },
+        { $set: { 'modules.$[].lessons.$[l].videoUrl': `${process.env.API_BASE_URL || 'https://api.peptly.in'}${recordingUrl}` } },
+        { arrayFilters: [{ 'l._id': (cls as any).lessonId }] }
+      );
+    } catch (linkErr) {
+      console.warn('Failed to link recording to lesson:', linkErr);
+    }
+  }
+  return recordingUrl;
+};
+
+// ── Egress: Server-side recording ─────────────────────────────────────────────
+router.post('/:id/egress/start', protect, authorize('mentor', 'superadmin', 'admin', 'manager'), async (req: any, res) => {
   try {
     const cls = await LiveClass.findById(req.params.id);
     if (!cls) return res.status(404).json({ success: false, message: 'Class not found' });
-    if (!cls.zoomMeetingId) return res.status(400).json({ success: false, message: 'No Zoom meeting linked' });
+    if ((cls as any).egressId) return res.json({ success: true, egressId: (cls as any).egressId, alreadyRunning: true });
 
-    const isMentor = cls.mentor.toString() === req.user._id.toString()
-      || ['superadmin', 'admin', 'manager'].includes(req.user.role);
-    const role = isMentor ? 1 : 0;
+    const roomName = (cls as any).livekitRoomName || cls._id.toString();
+    const fileName = `class-${cls._id}-${Date.now()}.mp4`;
+    const egressClient = getEgressClient();
+    let info: any;
 
-    const signature = generateZoomSignature(cls.zoomMeetingId, role);
-    res.json({
-      success: true,
-      signature,
-      sdkKey: process.env.ZOOM_SDK_KEY || process.env.ZOOM_API_KEY || '',
-      meetingNumber: cls.zoomMeetingId,
-      password: cls.zoomPassword || '',
-      role,
-      userName: req.user.name,
-      userEmail: req.user.email,
-      duration: cls.duration,
-      title: cls.title,
-    });
+    try {
+      // Participant egress — no Chrome needed, records host's tracks directly
+      const participants = await getRoomClient().listParticipants(roomName);
+      const publisher = (participants as any[]).find((p: any) => p.tracks && p.tracks.length > 0);
+      if (publisher) {
+        info = await egressClient.startParticipantEgress(
+          roomName,
+          publisher.identity,
+          { file: { fileType: EncodedFileType.MP4, filepath: `/recordings/${fileName}` } }
+        );
+      } else {
+        // No publisher yet — fall back to room composite (waits for someone to publish)
+        info = await egressClient.startRoomCompositeEgress(roomName, {
+          file: { fileType: EncodedFileType.MP4, filepath: `/recordings/${fileName}` },
+        } as any);
+      }
+    } catch {
+      info = await egressClient.startRoomCompositeEgress(roomName, {
+        file: { fileType: EncodedFileType.MP4, filepath: `/recordings/${fileName}` },
+      } as any);
+    }
+
+    (cls as any).egressId = info.egressId;
+    (cls as any).recordingFileName = fileName;
+    await cls.save();
+    res.json({ success: true, egressId: info.egressId });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+router.post('/:id/egress/stop', protect, authorize('mentor', 'superadmin', 'admin', 'manager'), async (req: any, res) => {
+  try {
+    const cls = await LiveClass.findById(req.params.id);
+    if (!cls) return res.status(404).json({ success: false, message: 'Class not found' });
+    if (!(cls as any).egressId) return res.status(400).json({ success: false, message: 'No active recording' });
+    const recordingUrl = await stopClassEgress(cls);
+    await cls.save();
+    res.json({ success: true, recordingUrl });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -306,14 +388,38 @@ router.post('/:id/room-control', protect, authorize('mentor', 'superadmin', 'adm
 });
 
 // Student polls for their control state
-router.get('/:id/room-control', protect, (req: any, res) => {
-  const state = roomControls.get(req.params.id) || { mutedAll: false, camOffAll: false };
-  res.json({ success: true, ...state });
+router.get('/:id/room-control', protect, async (req: any, res) => {
+  try {
+    const state = roomControls.get(req.params.id) || { mutedAll: false, camOffAll: false };
+    const cls = await LiveClass.findById(req.params.id).select('status');
+    res.json({ success: true, ...state, classStatus: cls?.status || 'unknown' });
+  } catch { res.json({ success: true, mutedAll: false, camOffAll: false, classStatus: 'unknown' }); }
 });
 
 router.get('/:id/join', protect, joinClass);
 router.patch('/:id/start', protect, authorize('mentor', 'superadmin', 'admin', 'manager'), startClass);
-router.patch('/:id/end', protect, authorize('mentor', 'superadmin', 'admin', 'manager'), endClass);
+
+// End class — auto-stops any running egress recording before marking ended
+router.patch('/:id/end', protect, authorize('mentor', 'superadmin', 'admin', 'manager'), async (req: any, res) => {
+  try {
+    const isAdmin = ['superadmin', 'admin', 'manager'].includes(req.user.role);
+    const filter: any = { _id: req.params.id };
+    if (!isAdmin) filter.mentor = req.user._id;
+    const cls = await LiveClass.findOne(filter);
+    if (!cls) return res.status(404).json({ success: false, message: 'Class not found' });
+
+    // Auto-stop egress if running
+    if ((cls as any).egressId) {
+      await stopClassEgress(cls);
+    }
+
+    cls.status = 'ended';
+    cls.endedAt = new Date();
+    await cls.save();
+    res.json({ success: true, liveClass: cls });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 router.delete('/:id', protect, authorize('mentor', 'superadmin', 'admin', 'manager'), cancelClass);
 
 // ── AI Class Summary ──────────────────────────────────────────────────────────
@@ -420,12 +526,38 @@ router.get('/admin/recordings', protect, authorize('superadmin', 'admin', 'manag
       if (to) filter.scheduledAt.$lte = new Date(to as string);
     }
 
-    const recordings = await LiveClass.find(filter)
+    const classRecordings = await LiveClass.find(filter)
       .populate('mentor', 'name email avatar')
       .populate('course', 'title')
       .populate('batch', 'batchNumber label')
       .sort('-endedAt')
       .limit(Number(limit));
+
+    const webinarRecordings = await Webinar.find({ recordingUrl: { $exists: true, $ne: null } })
+      .populate('createdBy', 'name email avatar')
+      .sort('-endedAt')
+      .limit(Number(limit));
+
+    const webinarsMapped = webinarRecordings.map((w: any) => ({
+      _id: w._id,
+      title: w.title,
+      recordingUrl: w.recordingUrl,
+      recordingSize: w.recordingSize,
+      recordingFileName: w.recordingFileName,
+      duration: w.duration,
+      endedAt: w.endedAt,
+      scheduledAt: w.scheduledAt,
+      type: w.type,
+      _recordingType: 'webinar',
+      mentor: w.createdBy,
+      course: null,
+      batch: null,
+    }));
+
+    const recordings = [
+      ...classRecordings.map((c: any) => ({ ...c.toObject(), _recordingType: 'class' })),
+      ...webinarsMapped,
+    ].sort((a: any, b: any) => new Date(b.endedAt || 0).getTime() - new Date(a.endedAt || 0).getTime());
 
     res.json({ success: true, recordings });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }

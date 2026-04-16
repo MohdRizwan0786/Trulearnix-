@@ -11,7 +11,10 @@ import {
   LayoutDashboard, BarChart2, Package, Contact, BookOpen, Video,
   LifeBuoy, Bell, Tag, Layers, PanelTop, Kanban, Target,
   MousePointerClick, FolderOpen, Trophy, Zap, GraduationCap,
-  KeyRound, CheckSquare, Square
+  KeyRound, CheckSquare, Square, Wallet, CreditCard, Mic2,
+  Megaphone, CalendarDays, UmbrellaOff, Star, ClipboardList,
+  ScanLine, Sparkles, UserCog, HeartHandshake,
+  BadgePercent, BarChart3, Receipt, Radio
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -22,62 +25,85 @@ const PERMISSION_GROUPS = [
     items: [
       { key: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
       { key: 'analytics',  label: 'Analytics',  icon: BarChart2 },
+      { key: 'reports',    label: 'Reports',    icon: BarChart3 },
       { key: 'security',   label: 'Security',   icon: Shield },
+      { key: 'nova',       label: 'Nova AI',    icon: Sparkles },
     ]
   },
   {
     group: 'Users & Team', color: 'text-pink-400', bg: 'bg-pink-500/10',
     items: [
-      { key: 'users',     label: 'All Users',  icon: Users },
-      { key: 'learners',  label: 'Learners',   icon: GraduationCap },
-      { key: 'employees', label: 'Employees',  icon: UserPlus },
-      { key: 'mentors',   label: 'Mentors',    icon: UserCheck },
+      { key: 'users',      label: 'All Users',  icon: Users },
+      { key: 'learners',   label: 'Learners',   icon: GraduationCap },
+      { key: 'employees',  label: 'Employees',  icon: UserPlus },
+      { key: 'mentors',    label: 'Mentors',    icon: UserCheck },
+      { key: 'partners',   label: 'Partners',   icon: HeartHandshake },
+      { key: 'sales-team', label: 'Sales Team', icon: UserCog },
+      { key: 'kyc',        label: 'KYC Review', icon: ScanLine },
     ]
   },
   {
-    group: 'Revenue', color: 'text-amber-400', bg: 'bg-amber-500/10',
+    group: 'Revenue & Finance', color: 'text-amber-400', bg: 'bg-amber-500/10',
     items: [
-      { key: 'packages', label: 'Packages', icon: Package },
-      { key: 'finance',  label: 'Finance',  icon: DollarSign },
+      { key: 'packages',        label: 'Packages',        icon: Package },
+      { key: 'finance',         label: 'Finance',         icon: DollarSign },
+      { key: 'withdrawals',     label: 'Withdrawals',     icon: Wallet },
+      { key: 'emi',             label: 'EMI',             icon: CreditCard },
+      { key: 'employee-salary', label: 'Employee Salary', icon: Receipt },
+      { key: 'mentor-salary',   label: 'Mentor Salary',   icon: BadgePercent },
     ]
   },
   {
     group: 'Sales & Marketing', color: 'text-emerald-400', bg: 'bg-emerald-500/10',
     items: [
-      { key: 'marketing',   label: 'Marketing',    icon: Briefcase },
-      { key: 'crm',         label: 'CRM',          icon: Contact },
-      { key: 'coupons',     label: 'Coupons',      icon: Tag },
-      { key: 'funnel',      label: 'Funnel',       icon: TrendingUp },
-      { key: 'ads-tracking',label: 'Ads Tracking', icon: MousePointerClick },
+      { key: 'marketing',    label: 'Marketing',    icon: Briefcase },
+      { key: 'crm',          label: 'CRM',          icon: Contact },
+      { key: 'coupons',      label: 'Coupons',      icon: Tag },
+      { key: 'funnel',       label: 'Funnel',       icon: TrendingUp },
+      { key: 'ads-tracking', label: 'Ads Tracking', icon: MousePointerClick },
     ]
   },
   {
     group: 'Content', color: 'text-blue-400', bg: 'bg-blue-500/10',
     items: [
-      { key: 'courses',      label: 'Courses',     icon: BookOpen },
-      { key: 'live-classes', label: 'Live Classes',icon: Video },
-      { key: 'blog',         label: 'Blog',        icon: FileText },
-      { key: 'materials',    label: 'Materials',   icon: FolderOpen },
-      { key: 'content',      label: 'Website CMS', icon: PanelTop },
-      { key: 'popups',       label: 'Popups',      icon: Layers },
+      { key: 'courses',          label: 'Courses',          icon: BookOpen },
+      { key: 'live-classes',     label: 'Live Classes',     icon: Video },
+      { key: 'webinars',         label: 'Webinars',         icon: Radio },
+      { key: 'recordings',       label: 'Recordings',       icon: Mic2 },
+      { key: 'partner-training', label: 'Partner Training', icon: GraduationCap },
+      { key: 'blog',             label: 'Blog',             icon: FileText },
+      { key: 'materials',        label: 'Materials',        icon: FolderOpen },
+      { key: 'content',          label: 'Website CMS',      icon: PanelTop },
+      { key: 'popups',           label: 'Popups',           icon: Layers },
     ]
   },
   {
     group: 'Engagement', color: 'text-cyan-400', bg: 'bg-cyan-500/10',
     items: [
-      { key: 'support',       label: 'Support',       icon: LifeBuoy },
-      { key: 'notifications', label: 'Notifications', icon: Bell },
-      { key: 'achievements',  label: 'Achievements',  icon: Trophy },
+      { key: 'support',         label: 'Support',         icon: LifeBuoy },
+      { key: 'notifications',   label: 'Notifications',   icon: Bell },
+      { key: 'announcements',   label: 'Announcements',   icon: Megaphone },
+      { key: 'achievements',    label: 'Achievements',    icon: Trophy },
+      { key: 'qualifications',  label: 'Qualifications',  icon: Star },
+      { key: 'report-cards',    label: 'Report Cards',    icon: ClipboardList },
     ]
   },
   {
-    group: 'Operations', color: 'text-indigo-400', bg: 'bg-indigo-500/10',
+    group: 'HR & Operations', color: 'text-indigo-400', bg: 'bg-indigo-500/10',
     items: [
-      { key: 'kanban',    label: 'Kanban',    icon: Kanban },
-      { key: 'calendar',  label: 'Calendar',  icon: Target },
-      { key: 'reminders', label: 'Reminders', icon: Bell },
-      { key: 'goals',     label: 'Goals/OKR', icon: Target },
-      { key: 'trulance',  label: 'TruLance',  icon: Zap },
+      { key: 'hr',         label: 'HR',         icon: Settings },
+      { key: 'attendance', label: 'Attendance', icon: CalendarDays },
+      { key: 'holidays',   label: 'Holidays',   icon: UmbrellaOff },
+      { key: 'kanban',     label: 'Kanban',     icon: Kanban },
+      { key: 'calendar',   label: 'Calendar',   icon: Target },
+      { key: 'reminders',  label: 'Reminders',  icon: Bell },
+      { key: 'goals',      label: 'Goals/OKR',  icon: Target },
+    ]
+  },
+  {
+    group: 'TruLance', color: 'text-rose-400', bg: 'bg-rose-500/10',
+    items: [
+      { key: 'trulance', label: 'TruLance', icon: Zap },
     ]
   },
 ]
@@ -86,13 +112,13 @@ const ALL_PERMS = PERMISSION_GROUPS.flatMap(g => g.items.map(i => i.key))
 
 // Default permissions per department
 const DEPT_DEFAULTS: Record<string, string[]> = {
-  hr:         ['dashboard','users','learners','employees'],
-  sales:      ['dashboard','crm','analytics','packages','marketing','learners'],
-  marketing:  ['dashboard','marketing','blog','content','analytics','notifications','popups','ads-tracking','funnel'],
-  content:    ['dashboard','blog','courses','materials','content','live-classes'],
-  finance:    ['dashboard','finance','analytics','packages'],
-  operations: ['dashboard','kanban','calendar','reminders','goals','funnel','analytics'],
-  support:    ['dashboard','support','users','notifications'],
+  hr:         ['dashboard','users','learners','employees','hr','attendance','holidays','employee-salary','mentor-salary','kyc','reports'],
+  sales:      ['dashboard','crm','analytics','packages','marketing','learners','partners','sales-team','funnel','ads-tracking','coupons'],
+  marketing:  ['dashboard','marketing','blog','content','analytics','notifications','announcements','popups','ads-tracking','funnel'],
+  content:    ['dashboard','blog','courses','materials','content','live-classes','webinars','recordings','partner-training'],
+  finance:    ['dashboard','finance','analytics','packages','withdrawals','emi','employee-salary','mentor-salary','reports'],
+  operations: ['dashboard','kanban','calendar','reminders','goals','funnel','analytics','hr','attendance','holidays'],
+  support:    ['dashboard','support','users','notifications','announcements'],
   tech:       ALL_PERMS,
   general:    ['dashboard'],
 }
@@ -110,9 +136,12 @@ const DEPARTMENTS = [
 ]
 
 const ROLES = [
-  { value: 'manager',    label: 'Manager',    color: 'text-yellow-400', bg: 'bg-yellow-500/15', desc: 'Daily ops, team tasks, view reports' },
-  { value: 'admin',      label: 'Admin',      color: 'text-orange-400', bg: 'bg-orange-500/15', desc: 'Full admin access, all modules' },
-  { value: 'superadmin', label: 'Super Admin',color: 'text-red-400',    bg: 'bg-red-500/15',    desc: 'Unrestricted — highest authority' },
+  { value: 'employee',         label: 'Employee',        color: 'text-gray-400',    bg: 'bg-gray-500/15',    desc: 'Standard staff — module-based access' },
+  { value: 'team_lead',        label: 'Team Lead',       color: 'text-blue-400',    bg: 'bg-blue-500/15',    desc: 'Leads a team, extended module access' },
+  { value: 'manager',          label: 'Manager',         color: 'text-yellow-400',  bg: 'bg-yellow-500/15',  desc: 'Department manager, reports & ops' },
+  { value: 'department_head',  label: 'Department Head', color: 'text-orange-400',  bg: 'bg-orange-500/15',  desc: 'Head of department, full dept access' },
+  { value: 'admin',            label: 'Admin',           color: 'text-violet-400',  bg: 'bg-violet-500/15',  desc: 'Full admin access to all modules' },
+  { value: 'superadmin',       label: 'Super Admin',     color: 'text-red-400',     bg: 'bg-red-500/15',     desc: 'Unrestricted — highest authority' },
 ]
 
 function getDept(val: string) { return DEPARTMENTS.find(d => d.value === val) || DEPARTMENTS[8] }
@@ -129,7 +158,7 @@ export default function EmployeesPage() {
   const [showPermsFor, setShowPermsFor] = useState<string | null>(null) // employee id to show permissions modal
 
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', role: 'manager', department: 'general', password: '', joiningDate: ''
+    name: '', email: '', phone: '', role: 'employee', department: 'general', password: '', joiningDate: ''
   })
   const [permissions, setPermissions] = useState<string[]>(DEPT_DEFAULTS['general'])
   const [showPwd, setShowPwd]   = useState(false)
@@ -168,7 +197,7 @@ export default function EmployeesPage() {
       await adminAPI.createEmployee({ ...form, permissions })
       toast.success('Employee created!')
       setShowModal(false)
-      setForm({ name: '', email: '', phone: '', role: 'manager', department: 'general', password: '', joiningDate: '' })
+      setForm({ name: '', email: '', phone: '', role: 'employee', department: 'general', password: '', joiningDate: '' })
       setPermissions(DEPT_DEFAULTS['general'])
       qc.invalidateQueries({ queryKey: ['admin-employees'] })
     } catch (err: any) {
@@ -220,20 +249,27 @@ export default function EmployeesPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Employees</h1>
-            <p className="text-gray-400 text-sm mt-0.5">{data?.total || 0} team members</p>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-600 flex items-center justify-center shadow-lg">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                Employee Management
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">
+                {data?.total || 0} team members across {DEPARTMENTS.length} departments
+              </p>
+            </div>
+            <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
+              <UserPlus className="w-4 h-4" /> Add Employee
+            </button>
           </div>
-          <button onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-violet-500/25 active:scale-95">
-            <UserPlus className="w-4 h-4" />
-            Add Employee
-          </button>
         </div>
 
-        {/* Department filter cards */}
+        {/* ── Department filter cards ── */}
         <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
           {DEPARTMENTS.map(dept => {
             const Icon = dept.icon

@@ -12,8 +12,10 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
+import { Room, RoomEvent, Track, ParticipantEvent } from 'livekit-client'
 
 interface ChatMsg { id: number; name: string; msg: string; time: string; isMe?: boolean }
+interface RemoteUser { identity: string; name: string; hasVideo: boolean; hasAudio: boolean; videoTrack?: any; audioTrack?: any }
 type Tab = 'chat' | 'participants' | 'quiz' | 'poll'
 
 // ── IndexedDB helpers for crash-safe recording ──────────────────────────────
@@ -69,12 +71,12 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
   const router = useRouter()
   const chatEndRef = useRef<HTMLDivElement>(null)
 
-  const clientRef = useRef<any>(null)
+  const roomRef = useRef<Room | null>(null)
   const localVideoTrackRef = useRef<any>(null)
   const localAudioTrackRef = useRef<any>(null)
   const localScreenTrackRef = useRef<any>(null)
-  const localVideoContainerRef = useRef<HTMLDivElement>(null)
-  const pipCameraRef = useRef<HTMLDivElement>(null)
+  const localVideoContainerRef = useRef<HTMLVideoElement>(null)
+  const pipCameraRef = useRef<HTMLVideoElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordingChunksRef = useRef<Blob[]>([])
 
@@ -82,9 +84,9 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
   const [micOn, setMicOn] = useState(true)
   const [camOn, setCamOn] = useState(true)
   const [screenSharing, setScreenSharing] = useState(false)
-  const [remoteUsers, setRemoteUsers] = useState<any[]>([])
-  const [mutedStudents, setMutedStudents] = useState<Set<number>>(new Set())
-  const [hiddenVideos, setHiddenVideos] = useState<Set<number>>(new Set())
+  const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
+  const [mutedStudents, setMutedStudents] = useState<Set<string>>(new Set())
+  const [hiddenVideos, setHiddenVideos] = useState<Set<string>>(new Set())
   const [allMicMuted, setAllMicMuted] = useState(false)
   const [allCamHidden, setAllCamHidden] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('chat')
@@ -99,6 +101,11 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
   const [isRecording, setIsRecording] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [classEnded, setClassEnded] = useState(false)
+  const [recordingSaved, setRecordingSaved] = useState(false)
+  const [disconnected, setDisconnected] = useState(false)
+  const [rejoining, setRejoining] = useState(false)
+  const [leftTemporarily, setLeftTemporarily] = useState(false)
   const [activeQuiz, setActiveQuiz] = useState<any>(null)
   const [quizScores, setQuizScores] = useState<{ name: string; score: number }[]>([])
   const [showLeaderboard, setShowLeaderboard] = useState(false)
@@ -111,11 +118,13 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
   const pollIntervalRef = useRef<any>(null)
 
   const { data: tokenData, isLoading } = useQuery({
-    queryKey: ['agora-token-mentor', params.id],
-    queryFn: () => classAPI.agoraToken(params.id).then(r => r.data),
+    queryKey: ['livekit-token-mentor', params.id],
+    queryFn: () => classAPI.livekitToken(params.id).then(r => r.data),
     retry: false,
+    staleTime: Infinity,       // never refetch automatically
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
-
   const { data: quizzesData } = useQuery({
     queryKey: ['class-quizzes', params.id],
     queryFn: () => classAPI.quizzes(params.id).then(r => r.data),
@@ -124,11 +133,16 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
   const endMutation = useMutation({
     mutationFn: () => classAPI.end(params.id),
     onSuccess: async () => {
-      await stopAndUploadRecording()
+      // Disconnect from room if still connected
+      if (roomRef.current) await leaveChannel()
+      setLeftTemporarily(false)
+      setDisconnected(false)
+      setClassEnded(true)
       classAPI.summary(params.id).catch(() => {})
-      await leaveChannel()
-      toast.success('Class ended')
-      router.push('/mentor/classes')
+      setIsUploading(true)
+      classAPI.stopEgress(params.id)
+        .then(() => { setRecordingSaved(true); setIsUploading(false) })
+        .catch(e => { console.warn('Egress stop:', e?.response?.data?.message || e?.message); setRecordingSaved(true); setIsUploading(false) })
     }
   })
 
@@ -138,9 +152,9 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
   }, [])
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMsgs])
   useEffect(() => {
-    if (!tokenData?.appId) return
-    initAgora(tokenData)
-    return () => { leaveChannel() }
+    if (!tokenData?.livekitUrl || !tokenData?.token) return
+    if (roomRef.current) return   // already connected, don't reinit
+    initLiveKit(tokenData)
   }, [tokenData])
 
   // Poll for admin presence
@@ -163,64 +177,128 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
     return () => clearInterval(interval)
   }, [params.id])
 
-  const initAgora = async (data: any) => {
+  const initLiveKit = async (data: any) => {
     try {
-      const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-      AgoraRTC.setLogLevel(4)
-      const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
-      clientRef.current = client
-      await client.setClientRole('host')
-      await client.join(data.appId, data.channelName, data.token || null, data.uid || null)
+      const room = new Room({
+        adaptiveStream: true,
+        dynacast: true,
+        videoCaptureDefaults: {
+          resolution: { width: 2560, height: 1440, frameRate: 30 }, // 2K
+        },
+        audioCaptureDefaults: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 2,
+        },
+        publishDefaults: {
+          videoCodec: 'vp9',
+          videoEncoding: { maxBitrate: 8_000_000, maxFramerate: 30 },
+          audioPreset: { maxBitrate: 320_000 }, // 320kbps — best audio
+          dtx: false,   // disable discontinuous transmission for constant audio quality
+          red: true,    // redundant audio encoding — reduces packet loss artifacts
+          simulcast: true,
+        },
+      })
+      roomRef.current = room
 
-      const tracks: any[] = []
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        const identity = participant.identity
+        const name = participant.name || identity
+        setRemoteUsers(prev => prev.find(u => u.identity === identity) ? prev : [...prev, { identity, name, hasVideo: false, hasAudio: false }])
+        addSysMsg(`👋 ${name} joined`)
+
+        participant.on(ParticipantEvent.TrackSubscribed, (track, pub) => {
+          const isVideo = track.kind === Track.Kind.Video
+          const isAudio = track.kind === Track.Kind.Audio
+          setRemoteUsers(prev => prev.map(u => u.identity === identity
+            ? { ...u, hasVideo: isVideo ? true : u.hasVideo, hasAudio: isAudio ? true : u.hasAudio, videoTrack: isVideo ? track : u.videoTrack, audioTrack: isAudio ? track : u.audioTrack }
+            : u))
+          if (isVideo) setTimeout(() => { const el = document.getElementById(`rv-${identity}`) as HTMLVideoElement | null; if (el) track.attach(el) }, 200)
+          if (isAudio && !mutedStudents.has(identity)) { const el = track.attach(); el.style.display = 'none'; document.body.appendChild(el) }
+        })
+
+        participant.on(ParticipantEvent.TrackUnsubscribed, (track) => {
+          track.detach()
+          const isVideo = track.kind === Track.Kind.Video
+          const isAudio = track.kind === Track.Kind.Audio
+          setRemoteUsers(prev => prev.map(u => u.identity === identity
+            ? { ...u, hasVideo: isVideo ? false : u.hasVideo, hasAudio: isAudio ? false : u.hasAudio, videoTrack: isVideo ? undefined : u.videoTrack, audioTrack: isAudio ? undefined : u.audioTrack }
+            : u))
+        })
+      })
+
+      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        setRemoteUsers(prev => prev.filter(u => u.identity !== participant.identity))
+        addSysMsg(`${participant.name || participant.identity} left`)
+      })
+
+      room.on(RoomEvent.Disconnected, () => {
+        if (!classEnded) {
+          setJoined(false)
+          setDisconnected(true)
+        }
+      })
+
+      await room.connect(data.livekitUrl, data.token)
+
       try {
-        const audio = await AgoraRTC.createMicrophoneAudioTrack()
-        localAudioTrackRef.current = audio
-        tracks.push(audio)
+        await room.localParticipant.setMicrophoneEnabled(true)
+        const audioPub = room.localParticipant.getTrackPublication(Track.Source.Microphone)
+        if (audioPub?.audioTrack) localAudioTrackRef.current = audioPub.audioTrack
       } catch { setMicOn(false); toast('⚠️ Mic not found', { duration: 2000 }) }
+
       try {
-        const video = await AgoraRTC.createCameraVideoTrack()
-        localVideoTrackRef.current = video
-        tracks.push(video)
-        setTimeout(() => { if (localVideoContainerRef.current) video.play(localVideoContainerRef.current) }, 100)
+        await room.localParticipant.setCameraEnabled(true)
+        const videoPub = room.localParticipant.getTrackPublication(Track.Source.Camera)
+        if (videoPub?.videoTrack) {
+          localVideoTrackRef.current = videoPub.videoTrack
+          setTimeout(() => { if (localVideoContainerRef.current) videoPub.videoTrack!.attach(localVideoContainerRef.current) }, 100)
+        }
       } catch { setCamOn(false); toast('⚠️ Camera not found', { duration: 2000 }) }
 
-      if (tracks.length > 0) await client.publish(tracks)
       setJoined(true)
       addSysMsg('✅ You are live!')
-      setTimeout(() => startRecording(), 1000)
 
-      client.on('user-published', async (ru: any, mt: 'video' | 'audio') => {
-        await client.subscribe(ru, mt)
-        setRemoteUsers(prev => prev.find((u: any) => u.uid === ru.uid) ? prev.map((u: any) => u.uid === ru.uid ? ru : u) : [...prev, ru])
-        if (mt === 'video') setTimeout(() => { const el = document.getElementById(`rv-${ru.uid}`); if (el) ru.videoTrack?.play(el) }, 200)
-        if (mt === 'audio') { if (!mutedStudents.has(ru.uid)) ru.audioTrack?.play() }
-        addSysMsg(`👋 A student joined`)
-      })
-      client.on('user-left', (ru: any) => {
-        setRemoteUsers(prev => prev.filter((u: any) => u.uid !== ru.uid))
-        addSysMsg(`A student left`)
-      })
+      // Start server-side egress recording
+      classAPI.startEgress(params.id).catch(e => console.warn('Egress start failed:', e?.response?.data?.message || e?.message))
     } catch (err: any) { toast.error('Connection error: ' + (err?.message || 'Unknown')) }
   }
 
   const leaveChannel = async () => {
-    localVideoTrackRef.current?.close()
-    localAudioTrackRef.current?.close()
-    localScreenTrackRef.current?.close()
-    await clientRef.current?.leave()
+    await roomRef.current?.disconnect()
+    roomRef.current = null
+  }
+
+  const leaveTemporarily = async () => {
+    await leaveChannel()
+    setJoined(false)
+    setLeftTemporarily(true)
+  }
+
+  const rejoin = async () => {
+    setRejoining(true)
+    setDisconnected(false)
+    setLeftTemporarily(false)
+    try {
+      // Fetch a fresh token for reconnection
+      const freshData = await classAPI.livekitToken(params.id).then((r: any) => r.data)
+      roomRef.current = null  // ensure initLiveKit runs fresh
+      await initLiveKit(freshData)
+    } catch { setDisconnected(true) }
+    finally { setRejoining(false) }
   }
 
   const startRecording = async () => {
     try {
       const mediaTracks: MediaStreamTrack[] = []
-      if (localVideoTrackRef.current) {
-        const vt = localVideoTrackRef.current.getMediaStreamTrack?.()
-        if (vt) mediaTracks.push(vt)
-      }
-      if (localAudioTrackRef.current) {
-        const at = localAudioTrackRef.current.getMediaStreamTrack?.()
-        if (at) mediaTracks.push(at)
+      const room = roomRef.current
+      if (room) {
+        const videoPub = room.localParticipant.getTrackPublication(Track.Source.Camera)
+        const audioPub = room.localParticipant.getTrackPublication(Track.Source.Microphone)
+        if (videoPub?.videoTrack?.mediaStreamTrack) mediaTracks.push(videoPub.videoTrack.mediaStreamTrack)
+        if (audioPub?.audioTrack?.mediaStreamTrack) mediaTracks.push(audioPub.audioTrack.mediaStreamTrack)
       }
       if (mediaTracks.length === 0) return
 
@@ -271,10 +349,12 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
         const fd = new FormData()
         fd.append('recording', blob, `class-${params.id}.webm`)
         await classAPI.uploadRecording(params.id, fd, (pct) => setUploadProgress(pct))
-        await idbClearChunks(params.id) // only clear after confirmed upload
+        await idbClearChunks(params.id)
         toast.success('Recording saved!')
-      } catch {
-        toast.error('Recording upload failed — chunks kept, retry on re-open')
+      } catch (uploadErr: any) {
+        const msg = uploadErr?.response?.data?.message || uploadErr?.message || 'Unknown error'
+        toast.error(`Recording upload failed: ${msg}`)
+        console.error('Recording upload error:', uploadErr)
         // Don't clear IndexedDB — chunks survive for a retry
       } finally {
         setIsUploading(false)
@@ -298,118 +378,106 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
 
   const toggleMic = async () => {
     try {
-      if (!localAudioTrackRef.current) {
-        const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-        const t = await AgoraRTC.createMicrophoneAudioTrack()
-        localAudioTrackRef.current = t
-        await clientRef.current?.publish([t])
-        setMicOn(true)
-      } else { await localAudioTrackRef.current.setEnabled(!micOn); setMicOn(v => !v) }
+      const room = roomRef.current
+      if (!room) return
+      const enabled = !micOn
+      await room.localParticipant.setMicrophoneEnabled(enabled)
+      setMicOn(enabled)
     } catch { toast.error('Microphone not available') }
   }
 
   const toggleCam = async () => {
     try {
-      if (!localVideoTrackRef.current) {
-        const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-        const t = await AgoraRTC.createCameraVideoTrack()
-        localVideoTrackRef.current = t
-        await clientRef.current?.publish([t])
-        if (localVideoContainerRef.current) t.play(localVideoContainerRef.current)
-        setCamOn(true)
-      } else { await localVideoTrackRef.current.setEnabled(!camOn); setCamOn(v => !v) }
+      const room = roomRef.current
+      if (!room) return
+      const enabled = !camOn
+      await room.localParticipant.setCameraEnabled(enabled)
+      if (enabled) {
+        setTimeout(() => {
+          const pub = room.localParticipant.getTrackPublication(Track.Source.Camera)
+          if (pub?.videoTrack && localVideoContainerRef.current) pub.videoTrack.attach(localVideoContainerRef.current)
+        }, 100)
+      }
+      setCamOn(enabled)
     } catch { toast.error('Camera not available') }
   }
 
   const toggleScreenShare = async () => {
+    const room = roomRef.current
+    if (!room) return
     if (screenSharing) {
-      // Stop screen share
-      localScreenTrackRef.current?.stop()
-      localScreenTrackRef.current?.close()
-      localScreenTrackRef.current = null
-      // Republish camera if it was on
-      if (clientRef.current && localVideoTrackRef.current) {
-        try {
-          await clientRef.current.unpublish()
-          await clientRef.current.publish([localAudioTrackRef.current, localVideoTrackRef.current].filter(Boolean))
-        } catch {}
-        // Restore camera to main container
-        setTimeout(() => {
-          if (localVideoContainerRef.current) localVideoTrackRef.current?.play(localVideoContainerRef.current)
-        }, 100)
-      }
+      await room.localParticipant.setScreenShareEnabled(false)
+      // Restore camera to main container
+      setTimeout(() => {
+        const pub = room.localParticipant.getTrackPublication(Track.Source.Camera)
+        if (pub?.videoTrack && localVideoContainerRef.current) pub.videoTrack.attach(localVideoContainerRef.current)
+      }, 100)
       setScreenSharing(false)
       toast('Screen sharing stopped')
     } else {
       try {
-        const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-        const st = await AgoraRTC.createScreenVideoTrack({ encoderConfig: '1080p_1' }, 'disable')
-        localScreenTrackRef.current = st
-        // Unpublish camera, publish screen
-        try {
-          await clientRef.current?.unpublish([localVideoTrackRef.current].filter(Boolean))
-          await clientRef.current?.publish([st])
-        } catch {}
-        // Screen in main container
-        if (localVideoContainerRef.current) st.play(localVideoContainerRef.current)
-        // Camera in PiP
-        if (camOn && localVideoTrackRef.current) {
-          setTimeout(() => {
-            if (pipCameraRef.current) localVideoTrackRef.current?.play(pipCameraRef.current)
-          }, 150)
-        }
+        await room.localParticipant.setScreenShareEnabled(true, {
+          resolution: { width: 1920, height: 1080, frameRate: 15 },
+          contentHint: 'detail',  // optimized for text/slides (sharp, not motion-blurred)
+        })
+        setTimeout(() => {
+          const screenPub = room.localParticipant.getTrackPublication(Track.Source.ScreenShare)
+          if (screenPub?.videoTrack && localVideoContainerRef.current) screenPub.videoTrack.attach(localVideoContainerRef.current)
+          if (camOn) {
+            const camPub = room.localParticipant.getTrackPublication(Track.Source.Camera)
+            if (camPub?.videoTrack && pipCameraRef.current) camPub.videoTrack.attach(pipCameraRef.current)
+          }
+        }, 150)
         setScreenSharing(true)
         toast.success('Screen sharing started')
         // Auto-stop when user closes browser share dialog
-        st.on('track-ended', () => {
-          toggleScreenShare()
+        room.localParticipant.on(ParticipantEvent.LocalTrackUnpublished, (pub) => {
+          if (pub.source === Track.Source.ScreenShare && screenSharing) setScreenSharing(false)
         })
       } catch { toast.error('Screen share cancelled or not supported') }
     }
   }
 
-  const muteStudent = (uid: number) => {
-    const ru = remoteUsers.find((u: any) => u.uid === uid)
+  const muteStudent = (identity: string) => {
+    const ru = remoteUsers.find(u => u.identity === identity)
     if (!ru) return
-    if (mutedStudents.has(uid)) {
-      ru.audioTrack?.play()
-      setMutedStudents(prev => { const s = new Set(prev); s.delete(uid); return s })
+    if (mutedStudents.has(identity)) {
+      ru.audioTrack?.attach()
+      setMutedStudents(prev => { const s = new Set(prev); s.delete(identity); return s })
       toast('🔊 Student unmuted')
     } else {
-      ru.audioTrack?.stop()
-      setMutedStudents(prev => { const s = new Set(prev); s.add(uid); return s })
+      ru.audioTrack?.detach()
+      setMutedStudents(prev => { const s = new Set(prev); s.add(identity); return s })
       toast('🔇 Student muted')
     }
   }
 
-  const hideStudentCam = (uid: number) => {
-    const ru = remoteUsers.find((u: any) => u.uid === uid)
+  const hideStudentCam = (identity: string) => {
+    const ru = remoteUsers.find(u => u.identity === identity)
     if (!ru) return
-    if (hiddenVideos.has(uid)) {
-      // Show video again
-      const el = document.getElementById(`rv-${uid}`)
-      if (el) ru.videoTrack?.play(el)
-      setHiddenVideos(prev => { const s = new Set(prev); s.delete(uid); return s })
+    if (hiddenVideos.has(identity)) {
+      const el = document.getElementById(`rv-${identity}`) as HTMLVideoElement | null
+      if (el) ru.videoTrack?.attach(el)
+      setHiddenVideos(prev => { const s = new Set(prev); s.delete(identity); return s })
       toast('📷 Student camera shown')
     } else {
-      ru.videoTrack?.stop()
-      setHiddenVideos(prev => { const s = new Set(prev); s.add(uid); return s })
+      ru.videoTrack?.detach()
+      setHiddenVideos(prev => { const s = new Set(prev); s.add(identity); return s })
       toast('🚫 Student camera hidden')
     }
   }
 
   const toggleMuteAll = async () => {
-    const live = clientRef.current?.remoteUsers || []
     if (allMicMuted) {
-      live.forEach((ru: any) => ru.audioTrack?.play())
+      remoteUsers.forEach(ru => { if (ru.audioTrack) ru.audioTrack.attach() })
       setMutedStudents(new Set())
       setAllMicMuted(false)
       await classAPI.setRoomControl(params.id, { mutedAll: false }).catch(() => {})
       toast.success('🔊 All students unmuted')
       addSysMsg('🔊 All students unmuted')
     } else {
-      live.forEach((ru: any) => ru.audioTrack?.stop())
-      setMutedStudents(new Set(live.map((ru: any) => ru.uid)))
+      remoteUsers.forEach(ru => { if (ru.audioTrack) ru.audioTrack.detach() })
+      setMutedStudents(new Set(remoteUsers.map(ru => ru.identity)))
       setAllMicMuted(true)
       await classAPI.setRoomControl(params.id, { mutedAll: true }).catch(() => {})
       toast.success('🔇 All students muted')
@@ -418,12 +486,11 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
   }
 
   const toggleHideAllCams = async () => {
-    const live = clientRef.current?.remoteUsers || []
     if (allCamHidden) {
-      live.forEach((ru: any) => {
+      remoteUsers.forEach(ru => {
         if (ru.videoTrack) {
-          const el = document.getElementById(`rv-${ru.uid}`)
-          if (el) ru.videoTrack.play(el)
+          const el = document.getElementById(`rv-${ru.identity}`) as HTMLVideoElement | null
+          if (el) ru.videoTrack.attach(el)
         }
       })
       setHiddenVideos(new Set())
@@ -432,8 +499,8 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
       toast.success('📷 All cameras shown')
       addSysMsg('📷 All cameras shown')
     } else {
-      live.forEach((ru: any) => ru.videoTrack?.stop())
-      setHiddenVideos(new Set(live.filter((ru: any) => ru.videoTrack).map((ru: any) => ru.uid)))
+      remoteUsers.forEach(ru => { if (ru.videoTrack) ru.videoTrack.detach() })
+      setHiddenVideos(new Set(remoteUsers.filter(ru => ru.hasVideo).map(ru => ru.identity)))
       setAllCamHidden(true)
       await classAPI.setRoomControl(params.id, { camOffAll: true }).catch(() => {})
       toast.success('🚫 All cameras stopped')
@@ -505,6 +572,76 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
     </div>
   )
 
+  // Class fully ended — show Mark as Complete (must be before leftTemporarily check)
+  if (classEnded) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-dark-900 gap-6 p-6">
+        <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
+          <Square className="w-8 h-8 text-green-400" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">Class Ended</h2>
+          <p className="text-gray-400 text-sm">
+            {isUploading ? 'Saving recording, please wait...' : recordingSaved ? 'Recording saved successfully!' : 'Class has been ended.'}
+          </p>
+        </div>
+        {isUploading && (
+          <div className="flex items-center gap-3 text-yellow-400">
+            <div className="w-5 h-5 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm">Saving recording...</span>
+          </div>
+        )}
+        {recordingSaved && (
+          <div className="flex items-center gap-2 text-green-400 text-sm">
+            <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">✓</div>
+            Recording saved
+          </div>
+        )}
+        <button
+          onClick={() => router.push('/mentor/classes')}
+          disabled={isUploading}
+          className="px-8 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-wait text-white font-semibold text-sm transition-colors">
+          {isUploading ? 'Please wait...' : 'Mark as Complete'}
+        </button>
+      </div>
+    )
+  }
+
+  // Temporarily left — rejoin or end
+  if (leftTemporarily || disconnected) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-dark-900 gap-6 p-6">
+        <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center">
+          <Square className="w-8 h-8 text-yellow-400" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">
+            {disconnected ? 'Connection Lost' : 'You Left the Class'}
+          </h2>
+          <p className="text-gray-400 text-sm">
+            {disconnected ? 'You were disconnected. Class is still running for students.' : 'Class is still running. Students are still in the room.'}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={rejoin}
+            disabled={rejoining}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white font-semibold text-sm transition-colors">
+            {rejoining
+              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Rejoining...</>
+              : 'Rejoin Class'}
+          </button>
+          <button
+            onClick={() => endMutation.mutate()}
+            disabled={endMutation.isPending}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-semibold text-sm transition-colors">
+            End Class
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-screen w-screen flex flex-col bg-dark-900 overflow-hidden">
 
@@ -530,6 +667,10 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
             className="hidden sm:flex items-center gap-1 text-xs text-gray-400 hover:text-white bg-white/5 px-2.5 py-1.5 rounded-lg">
             <Copy className="w-3.5 h-3.5" /> Share
           </button>
+          <button onClick={leaveTemporarily}
+            className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-gray-300 text-xs font-medium px-3 py-1.5 rounded-lg">
+            Leave
+          </button>
           <button onClick={() => endMutation.mutate()} disabled={endMutation.isPending}
             className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
             <Square className="w-3 h-3" /> End
@@ -545,7 +686,7 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
           {!joined ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
               <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-gray-400 text-sm">Connecting to Agora...</p>
+              <p className="text-gray-400 text-sm">Connecting to classroom...</p>
             </div>
           ) : (
             <div className="flex-1 flex flex-col gap-1 p-1 min-h-0 overflow-hidden">
@@ -553,7 +694,7 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
               <div className="flex-1 relative rounded-xl overflow-hidden bg-dark-900 min-h-0">
 
                 {/* Main container — screen share OR camera */}
-                <div ref={localVideoContainerRef} className="w-full h-full" />
+                <video ref={localVideoContainerRef} className="w-full h-full object-cover" autoPlay playsInline muted />
 
                 {/* No cam + no screen = avatar placeholder */}
                 {!camOn && !screenSharing && (
@@ -591,7 +732,7 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
                 {/* PiP camera — shows when screen sharing AND camera is on */}
                 {screenSharing && camOn && (
                   <div className="absolute bottom-3 right-3 w-36 h-24 sm:w-48 sm:h-32 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl bg-dark-800">
-                    <div ref={pipCameraRef} className="w-full h-full" />
+                    <video ref={pipCameraRef} className="w-full h-full object-cover" autoPlay playsInline muted />
                     <div className="absolute bottom-1 left-1 text-[9px] text-white bg-black/60 px-1.5 py-0.5 rounded">
                       Camera
                     </div>
@@ -602,26 +743,26 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
               {/* Remote students */}
               {remoteUsers.length > 0 && (
                 <div className="flex gap-1 h-32 flex-shrink-0 overflow-x-auto">
-                  {remoteUsers.map((ru: any, i) => (
-                    <div key={ru.uid} className="relative rounded-xl overflow-hidden bg-dark-700 flex-shrink-0 w-44">
-                      <div id={`rv-${ru.uid}`} className="w-full h-full" />
-                      {hiddenVideos.has(ru.uid) && (
+                  {remoteUsers.map((ru, i) => (
+                    <div key={ru.identity} className="relative rounded-xl overflow-hidden bg-dark-700 flex-shrink-0 w-44">
+                      <video id={`rv-${ru.identity}`} className="w-full h-full object-cover" autoPlay playsInline muted />
+                      {hiddenVideos.has(ru.identity) && (
                         <div className="absolute inset-0 bg-dark-800 flex flex-col items-center justify-center gap-1">
                           <VideoOff className="w-5 h-5 text-gray-500" />
                           <span className="text-[10px] text-gray-500">Cam off</span>
                         </div>
                       )}
                       <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between gap-1">
-                        <span className="text-[10px] text-white bg-black/60 px-1.5 py-0.5 rounded truncate flex-1">Student {i + 1}</span>
+                        <span className="text-[10px] text-white bg-black/60 px-1.5 py-0.5 rounded truncate flex-1">{ru.name || `Student ${i + 1}`}</span>
                         <div className="flex gap-0.5">
-                          <button onClick={() => muteStudent(ru.uid)} title={mutedStudents.has(ru.uid) ? 'Unmute' : 'Mute mic'}
-                            className={`p-0.5 rounded ${mutedStudents.has(ru.uid) ? 'bg-red-500/90' : 'bg-black/60 hover:bg-red-500/70'}`}>
-                            {mutedStudents.has(ru.uid) ? <MicOff className="w-3 h-3 text-white" /> : <Mic className="w-3 h-3 text-white" />}
+                          <button onClick={() => muteStudent(ru.identity)} title={mutedStudents.has(ru.identity) ? 'Unmute' : 'Mute mic'}
+                            className={`p-0.5 rounded ${mutedStudents.has(ru.identity) ? 'bg-red-500/90' : 'bg-black/60 hover:bg-red-500/70'}`}>
+                            {mutedStudents.has(ru.identity) ? <MicOff className="w-3 h-3 text-white" /> : <Mic className="w-3 h-3 text-white" />}
                           </button>
-                          {ru.videoTrack && (
-                            <button onClick={() => hideStudentCam(ru.uid)} title={hiddenVideos.has(ru.uid) ? 'Show cam' : 'Hide cam'}
-                              className={`p-0.5 rounded ${hiddenVideos.has(ru.uid) ? 'bg-red-500/90' : 'bg-black/60 hover:bg-red-500/70'}`}>
-                              {hiddenVideos.has(ru.uid) ? <VideoOff className="w-3 h-3 text-white" /> : <Video className="w-3 h-3 text-white" />}
+                          {ru.hasVideo && (
+                            <button onClick={() => hideStudentCam(ru.identity)} title={hiddenVideos.has(ru.identity) ? 'Show cam' : 'Hide cam'}
+                              className={`p-0.5 rounded ${hiddenVideos.has(ru.identity) ? 'bg-red-500/90' : 'bg-black/60 hover:bg-red-500/70'}`}>
+                              {hiddenVideos.has(ru.identity) ? <VideoOff className="w-3 h-3 text-white" /> : <Video className="w-3 h-3 text-white" />}
                             </button>
                           )}
                         </div>
@@ -682,7 +823,7 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
             {activeTab === 'participants' && (
               <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
 
-                {/* Bulk controls — Zoom-style */}
+                {/* Bulk controls */}
                 {remoteUsers.length > 0 && (
                   <div className="flex gap-2 mb-1">
                     <button onClick={toggleMuteAll}
@@ -714,39 +855,39 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
                   </div>
                 </div>
                 {/* Students */}
-                {remoteUsers.map((ru: any, i) => (
-                  <div key={ru.uid} className="bg-dark-700/50 rounded-xl p-2.5 space-y-2">
+                {remoteUsers.map((ru, i) => (
+                  <div key={ru.identity} className="bg-dark-700/50 rounded-xl p-2.5 space-y-2">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">S{i + 1}</div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white">Student {i + 1}</p>
+                        <p className="text-sm text-white">{ru.name || `Student ${i + 1}`}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          {ru.audioTrack && <span className="text-[10px] text-green-400 flex items-center gap-0.5"><Mic className="w-2.5 h-2.5" />Mic on</span>}
-                          {ru.videoTrack && <span className="text-[10px] text-blue-400 flex items-center gap-0.5"><Video className="w-2.5 h-2.5" />Cam on</span>}
-                          {!ru.audioTrack && !ru.videoTrack && <span className="text-[10px] text-gray-500">Watching</span>}
+                          {ru.hasAudio && <span className="text-[10px] text-green-400 flex items-center gap-0.5"><Mic className="w-2.5 h-2.5" />Mic on</span>}
+                          {ru.hasVideo && <span className="text-[10px] text-blue-400 flex items-center gap-0.5"><Video className="w-2.5 h-2.5" />Cam on</span>}
+                          {!ru.hasAudio && !ru.hasVideo && <span className="text-[10px] text-gray-500">Watching</span>}
                         </div>
                       </div>
                     </div>
                     {/* Controls row */}
                     <div className="flex gap-1.5">
-                      <button onClick={() => muteStudent(ru.uid)} title={mutedStudents.has(ru.uid) ? 'Unmute mic' : 'Mute mic'}
+                      <button onClick={() => muteStudent(ru.identity)} title={mutedStudents.has(ru.identity) ? 'Unmute mic' : 'Mute mic'}
                         className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                          mutedStudents.has(ru.uid)
+                          mutedStudents.has(ru.identity)
                             ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                             : 'bg-dark-600 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-white/5'
                         }`}>
-                        {mutedStudents.has(ru.uid) ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-                        {mutedStudents.has(ru.uid) ? 'Muted' : 'Mic'}
+                        {mutedStudents.has(ru.identity) ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                        {mutedStudents.has(ru.identity) ? 'Muted' : 'Mic'}
                       </button>
-                      <button onClick={() => hideStudentCam(ru.uid)} title={hiddenVideos.has(ru.uid) ? 'Show camera' : 'Hide camera'}
-                        disabled={!ru.videoTrack}
+                      <button onClick={() => hideStudentCam(ru.identity)} title={hiddenVideos.has(ru.identity) ? 'Show camera' : 'Hide camera'}
+                        disabled={!ru.hasVideo}
                         className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-                          hiddenVideos.has(ru.uid)
+                          hiddenVideos.has(ru.identity)
                             ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                             : 'bg-dark-600 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-white/5'
                         }`}>
-                        {hiddenVideos.has(ru.uid) ? <VideoOff className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
-                        {hiddenVideos.has(ru.uid) ? 'Cam off' : 'Cam'}
+                        {hiddenVideos.has(ru.identity) ? <VideoOff className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
+                        {hiddenVideos.has(ru.identity) ? 'Cam off' : 'Cam'}
                       </button>
                     </div>
                   </div>
@@ -1000,6 +1141,10 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
           </button>
         </div>
 
+        <button onClick={leaveTemporarily}
+          className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-gray-300 font-medium px-3 sm:px-4 py-2 rounded-xl text-sm">
+          Leave
+        </button>
         <button onClick={() => endMutation.mutate()} disabled={endMutation.isPending}
           className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white font-bold px-3 sm:px-5 py-2 rounded-xl text-sm">
           <Square className="w-4 h-4" /><span className="hidden sm:block">End</span>

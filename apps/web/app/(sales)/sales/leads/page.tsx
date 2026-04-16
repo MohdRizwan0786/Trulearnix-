@@ -11,13 +11,14 @@ import {
 import toast from 'react-hot-toast'
 
 const PIPELINE: { key: string; label: string; icon: string; color: string; glow: string; bar: string }[] = [
-  { key: 'new',         label: 'New',        icon: '🆕', color: 'text-slate-300',  glow: 'bg-slate-500/15 border-slate-500/25',  bar: 'bg-slate-500' },
-  { key: 'contacted',   label: 'Contacted',  icon: '📞', color: 'text-blue-400',   glow: 'bg-blue-500/15 border-blue-500/25',    bar: 'bg-blue-500' },
-  { key: 'interested',  label: 'Interested', icon: '⭐', color: 'text-amber-400',  glow: 'bg-amber-500/15 border-amber-500/25',  bar: 'bg-amber-500' },
-  { key: 'demo_done',   label: 'Demo Done',  icon: '🎥', color: 'text-purple-400', glow: 'bg-purple-500/15 border-purple-500/25', bar: 'bg-purple-500' },
-  { key: 'negotiating', label: 'Negotiate',  icon: '🤝', color: 'text-orange-400', glow: 'bg-orange-500/15 border-orange-500/25', bar: 'bg-orange-500' },
-  { key: 'paid',        label: 'Paid',       icon: '✅', color: 'text-green-400',  glow: 'bg-green-500/15 border-green-500/25',  bar: 'bg-green-500' },
-  { key: 'lost',        label: 'Lost',       icon: '❌', color: 'text-red-400',    glow: 'bg-red-500/15 border-red-500/25',      bar: 'bg-red-500' },
+  { key: 'new',             label: 'New',            icon: '🆕', color: 'text-slate-300',  glow: 'bg-slate-500/15 border-slate-500/25',   bar: 'bg-slate-500' },
+  { key: 'contacted',       label: 'Contacted',      icon: '📞', color: 'text-blue-400',   glow: 'bg-blue-500/15 border-blue-500/25',     bar: 'bg-blue-500' },
+  { key: 'interested',      label: 'Interested',     icon: '⭐', color: 'text-amber-400',  glow: 'bg-amber-500/15 border-amber-500/25',   bar: 'bg-amber-500' },
+  { key: 'demo_done',       label: 'Demo Done',      icon: '🎥', color: 'text-purple-400', glow: 'bg-purple-500/15 border-purple-500/25', bar: 'bg-purple-500' },
+  { key: 'negotiating',     label: 'Negotiate',      icon: '🤝', color: 'text-orange-400', glow: 'bg-orange-500/15 border-orange-500/25', bar: 'bg-orange-500' },
+  { key: 'token_collected', label: 'Token Collected',icon: '💰', color: 'text-yellow-400', glow: 'bg-yellow-500/15 border-yellow-500/25', bar: 'bg-yellow-500' },
+  { key: 'paid',            label: 'Paid',           icon: '✅', color: 'text-green-400',  glow: 'bg-green-500/15 border-green-500/25',   bar: 'bg-green-500' },
+  { key: 'lost',            label: 'Lost',           icon: '❌', color: 'text-red-400',    glow: 'bg-red-500/15 border-red-500/25',       bar: 'bg-red-500' },
 ]
 
 const AI_STYLE: Record<string, string> = {

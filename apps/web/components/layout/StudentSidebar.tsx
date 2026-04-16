@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, BookOpen, Video, Award, Wallet, TrendingUp, Bot, Users, Briefcase, Star, FileQuestion, LogOut, Lock, User, FolderGit2, FileText, X } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Video, Award, Wallet, TrendingUp, Bot, Briefcase, Star, FileQuestion, LogOut, Lock, User, FolderGit2, FileText, X, Bell, LifeBuoy } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { authAPI } from '@/lib/api'
 import { useRouter } from 'next/navigation'
@@ -14,20 +14,21 @@ export default function StudentSidebar({ onClose }: { onClose?: () => void }) {
   const isAffiliate = (user as any)?.isAffiliate
 
   const navItems = [
-    { href: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/student/courses', icon: BookOpen, label: 'My Courses' },
-    { href: '/student/classes', icon: Video, label: 'Live Classes' },
-    { href: '/student/ai-coach', icon: Bot, label: 'AI Coach' },
-    { href: '/student/community', icon: Users, label: 'Community' },
-    { href: '/student/jobs', icon: Briefcase, label: 'Job Engine' },
-    { href: '/student/brand', icon: Star, label: 'Personal Brand' },
-    { href: '/student/quizzes', icon: FileQuestion, label: 'Quizzes' },
-    { href: '/student/certificates', icon: Award, label: 'Certificates' },
-    { href: '/student/wallet', icon: Wallet, label: 'Wallet' },
-    { href: '/student/assignments', icon: FileText, label: 'Assignments' },
-    { href: '/student/projects', icon: FolderGit2, label: 'Projects' },
-    { href: '/student/freelance', icon: Briefcase, label: 'Freelance' },
-    { href: '/student/profile', icon: User, label: 'Profile' },
+    { href: '/student/dashboard',     icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/student/courses',       icon: BookOpen,        label: 'My Courses' },
+    { href: '/student/classes',       icon: Video,           label: 'Live Classes' },
+    { href: '/student/ai-coach',      icon: Bot,             label: 'AI Coach' },
+    { href: '/student/announcements', icon: Bell,            label: 'Announcements' },
+    { href: '/student/jobs',          icon: Briefcase,       label: 'Job Engine' },
+    { href: '/student/brand',         icon: Star,            label: 'Personal Brand' },
+    { href: '/student/quizzes',       icon: FileQuestion,    label: 'Quizzes' },
+    { href: '/student/certificates',  icon: Award,           label: 'Certificates' },
+    { href: '/student/wallet',        icon: Wallet,          label: 'Wallet' },
+    { href: '/student/assignments',   icon: FileText,        label: 'Assignments' },
+    { href: '/student/projects',      icon: FolderGit2,      label: 'Projects' },
+    { href: '/student/freelance',     icon: Briefcase,       label: 'Freelance' },
+    { href: '/student/support',       icon: LifeBuoy,        label: 'Support' },
+    { href: '/student/profile',       icon: User,            label: 'Profile' },
   ]
 
   const handleLogout = async () => {

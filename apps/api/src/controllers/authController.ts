@@ -20,7 +20,7 @@ function generateAutoPassword(): string {
 // Stores form data in Redis only — NO DB entry until OTP is verified
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, phone, age, country, state, role, referralCode } = req.body;
+    const { name, email, phone, age, country, state, role, referralCode, password } = req.body;
     if (!name || !email || !phone) {
       return res.status(400).json({ success: false, message: 'Name, email and phone are required' });
     }
@@ -32,7 +32,7 @@ export const register = async (req: Request, res: Response) => {
 
     const tempId = crypto.randomUUID();
     const otp = generateOTP();
-    const autoPassword = generateAutoPassword();
+    const autoPassword = (password && password.length >= 6) ? password : generateAutoPassword();
 
     // Store all registration data in Redis (30 min) — no DB write yet
     const regData = JSON.stringify({ name, email: email.toLowerCase().trim(), phone, age, country: country || 'India', state, role: role || 'student', referralCode: referralCode || '', autoPassword });

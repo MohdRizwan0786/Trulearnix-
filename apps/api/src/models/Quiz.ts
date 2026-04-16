@@ -12,6 +12,7 @@ export interface IQuestion {
 export interface IQuiz extends Document {
   title: string;
   course: mongoose.Types.ObjectId;
+  batch?: mongoose.Types.ObjectId;
   module?: mongoose.Types.ObjectId;
   lesson?: mongoose.Types.ObjectId;
   mentor: mongoose.Types.ObjectId;
@@ -35,6 +36,7 @@ const QuestionSchema = new Schema<IQuestion>({
 const QuizSchema = new Schema<IQuiz>({
   title: { type: String, required: true },
   course: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+  batch: { type: Schema.Types.ObjectId, ref: 'Batch' },
   module: { type: Schema.Types.ObjectId },
   lesson: { type: Schema.Types.ObjectId },
   mentor: { type: Schema.Types.ObjectId, ref: 'User', required: true },

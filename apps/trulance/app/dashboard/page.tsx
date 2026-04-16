@@ -150,7 +150,7 @@ export default function DashboardPage() {
 
               <button onClick={logout}
                 className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 rounded-xl transition-colors font-medium">
-                Logout from TruLance
+                Logout from TruLancer
               </button>
             </div>
           </div>

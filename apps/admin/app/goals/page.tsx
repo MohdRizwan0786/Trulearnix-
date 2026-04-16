@@ -75,29 +75,42 @@ export default function GoalsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Goals & OKR</h1>
-            <p className="text-gray-400 text-sm mt-1">Objectives & Key Results tracking</p>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                Goals & OKR
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">Objectives & Key Results tracking</p>
+            </div>
+            <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
+              <Plus className="w-4 h-4" /> New Goal
+            </button>
           </div>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" /> New Goal
-          </button>
         </div>
 
-        {/* Summary */}
+        {/* ── Summary Cards ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Goals', value: summary.total, color: 'text-white' },
-            { label: 'On Track', value: summary.onTrack, color: 'text-green-400' },
-            { label: 'At Risk', value: summary.atRisk, color: 'text-yellow-400' },
-            { label: 'Avg Progress', value: `${summary.avgProgress}%`, color: 'text-violet-400' },
-          ].map(s => (
-            <div key={s.label} className="bg-slate-800 rounded-2xl p-4 border border-white/5">
-              <p className="text-gray-400 text-xs">{s.label}</p>
-              <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
-            </div>
-          ))}
+          <div className="kpi-violet">
+            <p className="text-2xl font-black text-white">{summary.total}</p>
+            <p className="text-white/70 text-xs mt-1">Total Goals</p>
+          </div>
+          <div className="kpi-emerald">
+            <p className="text-2xl font-black text-white">{summary.onTrack}</p>
+            <p className="text-white/70 text-xs mt-1">On Track</p>
+          </div>
+          <div className="kpi-amber">
+            <p className="text-2xl font-black text-white">{summary.atRisk}</p>
+            <p className="text-white/70 text-xs mt-1">At Risk</p>
+          </div>
+          <div className="kpi-cyan">
+            <p className="text-2xl font-black text-white">{summary.avgProgress}%</p>
+            <p className="text-white/70 text-xs mt-1">Avg Progress</p>
+          </div>
         </div>
 
         {showForm && (

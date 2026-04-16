@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { IndianRupee, Users, Star, ArrowRight, Zap, Crown, Flame, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import { TOP_AFFILIATES, type Affiliate } from '@/lib/affiliateData'
+import { type Affiliate } from '@/lib/affiliateData'
 
-const steps = [
+const DEFAULT_STEPS = [
   { num: '01', title: 'Join & Learn',     desc: 'Enroll in any plan. Start your Pro or Elite membership.',                                       color: '#a78bfa' },
   { num: '02', title: 'Share Your Link',  desc: 'Get your personal partner link. Share it with friends, family, and on social media.',             color: '#34d399' },
   { num: '03', title: 'Earn Every Month', desc: 'Help others learn skills — earn 10–25% income on every successful enrollment, every month.',     color: '#fbbf24' },
@@ -40,7 +40,7 @@ function formatINR(n: number) {
 
 function EarnerCard({ e, color }: { e: any; color: string }) {
   const tier = tierConfig[e.tier as keyof typeof tierConfig] || tierConfig.Starter
-  const earned = e.monthlyEarnings ?? e.earned ?? 0
+  const earned = e.totalEarnings ?? e.monthlyEarnings ?? e.earned ?? 0
   const invites = e.invites ?? 0
   const barW = Math.min((invites / 220) * 100, 100)
 
@@ -49,9 +49,17 @@ function EarnerCard({ e, color }: { e: any; color: string }) {
       className="relative rounded-2xl p-4 cursor-default h-full"
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
     >
-      <div className="absolute top-3 right-3 text-[10px] font-black px-2 py-0.5 rounded-full"
-        style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.color}44` }}>
-        {tier.label}
+      <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+        <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
+          style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.color}44` }}>
+          {tier.label}
+        </span>
+        {e.isIndustrialPartner && (
+          <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+            style={{ background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)' }}>
+            🏭 Industrial + TruLearnix Earning
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-2.5 mb-3">
@@ -88,19 +96,46 @@ function EarnerCard({ e, color }: { e: any; color: string }) {
   )
 }
 
-export default function EarningsProofSection() {
-  const [earners, setEarners] = useState<any[]>(TOP_AFFILIATES)
+export default function EarningsProofSection({ initialEarners = [] }: { initialEarners?: any[] }) {
+  const [earners, setEarners] = useState<any[]>(initialEarners)
+  const [loadingEarners, setLoadingEarners] = useState(initialEarners.length === 0)
+  const [steps, setSteps] = useState(DEFAULT_STEPS)
+  const [heading, setHeading] = useState('Learn & Earn ₹30K–₹2L+ Every Month')
+  const [subheading, setSubheading] = useState("Our Earn Program isn't a side hustle — students are replacing their salaries.")
+  const [sectionHeading, setSectionHeading] = useState('How Earning Works')
+  const [leaderboardHeading, setLeaderboardHeading] = useState('Top Earners This Month')
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/affiliate/leaderboard`)
+    const fetchLeaderboard = () => {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/affiliate/leaderboard`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && d.leaderboard?.length) setEarners(d.leaderboard.slice(0, 6))
+        })
+        .catch(() => {})
+        .finally(() => setLoadingEarners(false))
+    }
+
+    fetchLeaderboard()
+    const interval = setInterval(fetchLeaderboard, 2 * 60 * 1000) // every 2 min
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/movement`)
       .then(r => r.json())
       .then(d => {
-        if (d.success && d.leaderboard?.length) setEarners(d.leaderboard.slice(0, 6))
+        if (!d.success || !d.data) return
+        if (d.data.heading) setHeading(d.data.heading)
+        if (d.data.subheading) setSubheading(d.data.subheading)
+        if (d.data.sectionHeading) setSectionHeading(d.data.sectionHeading)
+        if (d.data.leaderboardHeading) setLeaderboardHeading(d.data.leaderboardHeading)
+        if (d.data.steps?.length) {
+          const STEP_COLORS = ['#a78bfa', '#34d399', '#fbbf24']
+          setSteps(d.data.steps.map((s: any, i: number) => ({ ...s, color: STEP_COLORS[i % STEP_COLORS.length] })))
+        }
       })
       .catch(() => {})
-  }, [])
 
-  const doubled = [...earners, ...earners]
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <section className="py-10 md:py-16 px-4 relative overflow-hidden" style={{ background: '#060810' }}>
@@ -124,50 +159,56 @@ export default function EarningsProofSection() {
 
           <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-5">
-            Learn &amp; Earn{' '}
             <span style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              ₹30K–₹2L+
+              {heading}
             </span>
-            <span className="block mt-2 text-white">Every Month</span>
           </motion.h2>
 
           <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
             className="text-gray-400 max-w-xl mx-auto text-sm sm:text-base">
-            Our Earn Program isn't a side hustle — students are replacing their salaries.
+            {subheading}
           </motion.p>
         </div>
 
         {/* Earner cards — mobile: auto-scroll | desktop: grid */}
         <div className="mb-6">
-          {/* Mobile marquee */}
-          <div className="md:hidden relative">
-            <div className="absolute inset-y-0 left-0 w-6 z-10 pointer-events-none"
-              style={{ background: 'linear-gradient(90deg, #060810, transparent)' }} />
-            <div className="absolute inset-y-0 right-0 w-6 z-10 pointer-events-none"
-              style={{ background: 'linear-gradient(270deg, #060810, transparent)' }} />
-            <div className="overflow-hidden">
-              <div className="marquee-fwd flex items-stretch" style={{ animationDuration: '24s' }}>
-                {doubled.map((e, i) => (
-                  <div key={i} className="flex-shrink-0 w-[220px] mx-2 py-1">
+          {loadingEarners ? (
+            /* Skeleton */
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="rounded-2xl h-36 animate-pulse"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }} />
+              ))}
+            </div>
+          ) : earners.length === 0 ? null : (
+            <>
+              {/* Mobile marquee */}
+              <div className="md:hidden relative">
+                <div className="absolute inset-y-0 left-0 w-6 z-10 pointer-events-none"
+                  style={{ background: 'linear-gradient(90deg, #060810, transparent)' }} />
+                <div className="absolute inset-y-0 right-0 w-6 z-10 pointer-events-none"
+                  style={{ background: 'linear-gradient(270deg, #060810, transparent)' }} />
+                <div className="overflow-hidden">
+                  <div className="marquee-fwd flex items-stretch" style={{ animationDuration: '24s' }}>
+                    {[...earners, ...earners].map((e, i) => (
+                      <div key={i} className="flex-shrink-0 w-[220px] mx-2 py-1">
+                        <EarnerCard e={e} color={getColor(e.rank ?? i+1)} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop grid */}
+              <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-4">
+                {earners.map((e, i) => (
+                  <div key={e.rank ?? i}>
                     <EarnerCard e={e} color={getColor(e.rank ?? i+1)} />
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-
-          {/* Desktop grid */}
-          <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {earners.map((e, i) => (
-              <motion.div key={e.rank ?? i}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07 }}
-                viewport={{ once: true }}>
-                <EarnerCard e={e} color={getColor(e.rank ?? i+1)} />
-              </motion.div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
 
         {/* View All */}
@@ -187,9 +228,8 @@ export default function EarningsProofSection() {
           className="rounded-3xl p-4 sm:p-8 md:p-10 mb-8"
           style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <h3 className="text-center text-xl md:text-3xl font-black text-white mb-6">
-            How to Start Earning in{' '}
             <span style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              3 Simple Steps
+              {sectionHeading}
             </span>
           </h3>
 

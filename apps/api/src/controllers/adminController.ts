@@ -102,11 +102,24 @@ export const rejectCourse = async (req: AuthRequest, res: Response) => {
 
 export const getTickets = async (req: AuthRequest, res: Response) => {
   try {
-    const { status } = req.query;
+    const { status, userType, priority, limit = 100 } = req.query as any;
     const query: any = {};
     if (status) query.status = status;
-    const tickets = await SupportTicket.find(query).populate('user', 'name email').sort('-createdAt');
-    res.json({ success: true, tickets });
+    if (userType && userType !== 'all') query.userType = userType;
+    if (priority) query.priority = priority;
+    const tickets = await SupportTicket.find(query)
+      .populate('user', 'name email phone avatar packageTier affiliateCode role')
+      .populate('assignedTo', 'name email')
+      .sort('-createdAt')
+      .limit(parseInt(limit));
+    const stats = {
+      open: await SupportTicket.countDocuments({ status: 'open' }),
+      inProgress: await SupportTicket.countDocuments({ status: 'in_progress' }),
+      resolved: await SupportTicket.countDocuments({ status: 'resolved' }),
+      partner: await SupportTicket.countDocuments({ userType: 'partner' }),
+      learner: await SupportTicket.countDocuments({ userType: 'learner' }),
+    };
+    res.json({ success: true, tickets, stats });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -114,17 +127,19 @@ export const getTickets = async (req: AuthRequest, res: Response) => {
 
 export const updateTicket = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, message } = req.body;
+    const { status, message, reply, replyAction } = req.body;
     const ticket = await SupportTicket.findById(req.params.id);
     if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
 
-    ticket.status = status;
-    if (message) {
-      ticket.messages.push({ sender: req.user._id, senderRole: 'admin', message, createdAt: new Date() });
+    if (status) ticket.status = status;
+    const msg = message || reply;
+    if (msg) {
+      ticket.messages.push({ sender: req.user._id, senderRole: 'admin', message: msg, createdAt: new Date() });
     }
     if (status === 'resolved') ticket.resolvedAt = new Date();
     await ticket.save();
-    res.json({ success: true, ticket });
+    const populated = await ticket.populate('user', 'name email phone avatar');
+    res.json({ success: true, ticket: populated });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -67,31 +67,47 @@ export default function HRPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">HR & Team Management</h1>
-            <p className="text-gray-400 text-sm mt-1">Manage admin roles and access</p>
-          </div>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <h1 className="text-2xl font-black text-white flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-600 flex items-center justify-center shadow-lg">
+              <Users className="w-5 h-5 text-white" />
+            </div>
+            HR & Team Management
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">Manage admin roles, permissions and team access</p>
         </div>
 
-        {/* Stats */}
+        {/* ── KPI Stats ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Team Members', value: summary.total, icon: Users, color: 'text-violet-400' },
-            { label: 'Active', value: summary.active, icon: UserCheck, color: 'text-green-400' },
-            { label: 'Admins', value: summary.admins, icon: Shield, color: 'text-orange-400' },
-            { label: 'Managers', value: summary.managers, icon: UserCheck, color: 'text-blue-400' },
-          ].map(s => (
-            <div key={s.label} className="bg-slate-800 rounded-2xl p-4 border border-white/5 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color} bg-slate-700`}>
-                <s.icon className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-gray-400 text-xs">{s.label}</p>
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-              </div>
+          <div className="kpi-violet">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+              <Users className="w-5 h-5 text-white" />
             </div>
-          ))}
+            <p className="text-2xl font-black text-white">{summary.total}</p>
+            <p className="text-white/70 text-xs mt-1">Team Members</p>
+          </div>
+          <div className="kpi-emerald">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+              <UserCheck className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-2xl font-black text-white">{summary.active}</p>
+            <p className="text-white/70 text-xs mt-1">Active</p>
+          </div>
+          <div className="kpi-orange">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+              <Shield className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-2xl font-black text-white">{summary.admins}</p>
+            <p className="text-white/70 text-xs mt-1">Admins</p>
+          </div>
+          <div className="kpi-blue">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+              <UserCheck className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-2xl font-black text-white">{summary.managers}</p>
+            <p className="text-white/70 text-xs mt-1">Managers</p>
+          </div>
         </div>
 
         {/* Filters */}

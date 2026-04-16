@@ -46,7 +46,7 @@ api.interceptors.response.use(
 
 export default api;
 
-// Public TruLance APIs
+// Public TruLancer APIs
 export const trulanceAPI = {
   getProjects: (params?: any) => api.get('/trulance/projects', { params }),
   getProject: (id: string) => api.get(`/trulance/projects/${id}`),

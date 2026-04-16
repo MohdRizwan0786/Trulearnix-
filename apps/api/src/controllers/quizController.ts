@@ -73,6 +73,33 @@ export const submitQuiz = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getStudentQuizzes = async (req: AuthRequest, res: Response) => {
+  try {
+    const enrollments = await Enrollment.find({ student: req.user._id }).select('course quizResults');
+    const courseIds = enrollments.map(e => e.course);
+    const quizzes = await Quiz.find({ course: { $in: courseIds }, isPublished: true })
+      .populate('course', 'title thumbnail')
+      .select('-questions.correctOption -questions.explanation')
+      .sort('-createdAt');
+
+    const quizResultsMap: Record<string, any> = {};
+    for (const enrollment of enrollments) {
+      for (const qr of enrollment.quizResults || []) {
+        quizResultsMap[qr.quizId?.toString()] = qr;
+      }
+    }
+
+    const quizzesWithResult = quizzes.map(q => ({
+      ...q.toObject(),
+      result: quizResultsMap[q._id?.toString()] || null,
+    }));
+
+    res.json({ success: true, quizzes: quizzesWithResult });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getMentorQuizzes = async (req: AuthRequest, res: Response) => {
   try {
     const quizzes = await Quiz.find({ mentor: req.user._id }).populate('course', 'title').sort('-createdAt');

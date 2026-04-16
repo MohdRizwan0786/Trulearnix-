@@ -8,22 +8,22 @@ import {
   Mic, MicOff, Video, VideoOff, Users, MessageSquare, Send,
   LogOut, Eye, ShieldCheck, X
 } from 'lucide-react'
+import { Room, RoomEvent, Track, ParticipantEvent } from 'livekit-client'
 
 interface ChatMsg { id: number; name: string; msg: string; time: string; isMe?: boolean }
+interface RemoteUser { identity: string; name: string; hasVideo: boolean; hasAudio: boolean; videoTrack?: any; audioTrack?: any }
 
 export default function AdminClassRoom({ params }: { params: { id: string } }) {
   const router = useRouter()
   const adminName = (typeof window !== 'undefined' ? localStorage.getItem('adminName') : null) || 'Admin'
 
-  const clientRef = useRef<any>(null)
-  const localAudioTrackRef = useRef<any>(null)
-  const localVideoTrackRef = useRef<any>(null)
-  const localVideoContainerRef = useRef<HTMLDivElement>(null)
+  const roomRef = useRef<Room | null>(null)
+  const localVideoContainerRef = useRef<HTMLVideoElement>(null)
 
   const [joined, setJoined] = useState(false)
   const [micOn, setMicOn] = useState(false)
   const [camOn, setCamOn] = useState(false)
-  const [remoteUsers, setRemoteUsers] = useState<any[]>([])
+  const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
   const [panelOpen, setPanelOpen] = useState(true)
   const [chatInput, setChatInput] = useState('')
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([
@@ -32,8 +32,8 @@ export default function AdminClassRoom({ params }: { params: { id: string } }) {
   const [timer, setTimer] = useState(0)
 
   const { data: tokenData, isLoading } = useQuery({
-    queryKey: ['agora-token-admin', params.id],
-    queryFn: () => adminAPI.agoraToken(params.id).then(r => r.data),
+    queryKey: ['livekit-token-admin', params.id],
+    queryFn: () => adminAPI.livekitToken(params.id).then(r => r.data),
     retry: false,
   })
 
@@ -42,53 +42,75 @@ export default function AdminClassRoom({ params }: { params: { id: string } }) {
     queryFn: () => adminAPI.getClass(params.id).then(r => r.data),
   })
 
-  // Timer
   useEffect(() => {
     const t = setInterval(() => setTimer(s => s + 1), 1000)
     return () => clearInterval(t)
   }, [])
 
-  // Init Agora when token ready
   useEffect(() => {
-    if (!tokenData?.appId) return
-    initAgora(tokenData)
+    if (!tokenData?.livekitUrl || !tokenData?.token) return
+    initLiveKit(tokenData)
     return () => { handleLeave(false) }
   }, [tokenData])
 
-  // Notify room that admin joined
   const notifyAdminJoin = async (inRoom: boolean) => {
     try {
-      await adminAPI.setRoomControl(params.id, {
-        adminInRoom: inRoom,
-        adminName: inRoom ? adminName : '',
-      })
+      await adminAPI.setRoomControl(params.id, { adminInRoom: inRoom, adminName: inRoom ? adminName : '' })
     } catch {}
   }
 
-  const initAgora = async (data: any) => {
+  const initLiveKit = async (data: any) => {
     try {
-      const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-      AgoraRTC.setLogLevel(4)
-      const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
-      clientRef.current = client
-      await client.setClientRole('host')
-      await client.join(data.appId, data.channelName, data.token || null, null)
+      const room = new Room({
+        adaptiveStream: true,
+        dynacast: true,
+        audioCaptureDefaults: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 2,
+        },
+        publishDefaults: {
+          videoCodec: 'vp9',
+          audioPreset: { maxBitrate: 320_000 },
+          dtx: false,
+          red: true,
+        },
+      })
+      roomRef.current = room
 
-      client.on('user-published', async (ru: any, mt: 'video' | 'audio') => {
-        await client.subscribe(ru, mt)
-        setRemoteUsers(prev => prev.find((u: any) => u.uid === ru.uid) ? prev.map((u: any) => u.uid === ru.uid ? ru : u) : [...prev, ru])
-        if (mt === 'video') {
-          setTimeout(() => {
-            const el = document.getElementById(`admin-rv-${ru.uid}`)
-            if (el) ru.videoTrack?.play(el)
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        const identity = participant.identity
+        const name = participant.name || identity
+        setRemoteUsers(prev => prev.find(u => u.identity === identity) ? prev : [...prev, { identity, name, hasVideo: false, hasAudio: false }])
+
+        participant.on(ParticipantEvent.TrackSubscribed, (track) => {
+          const isVideo = track.kind === Track.Kind.Video
+          const isAudio = track.kind === Track.Kind.Audio
+          setRemoteUsers(prev => prev.map(u => u.identity === identity
+            ? { ...u, hasVideo: isVideo ? true : u.hasVideo, hasAudio: isAudio ? true : u.hasAudio, videoTrack: isVideo ? track : u.videoTrack, audioTrack: isAudio ? track : u.audioTrack }
+            : u))
+          if (isVideo) setTimeout(() => {
+            const el = document.getElementById(`admin-rv-${identity}`) as HTMLVideoElement | null
+            if (el) track.attach(el)
           }, 200)
-        }
-        if (mt === 'audio') ru.audioTrack?.play()
-      })
-      client.on('user-left', (ru: any) => {
-        setRemoteUsers(prev => prev.filter((u: any) => u.uid !== ru.uid))
+          if (isAudio) { const el = track.attach(); el.style.display = 'none'; document.body.appendChild(el) }
+        })
+
+        participant.on(ParticipantEvent.TrackUnsubscribed, (track) => {
+          track.detach()
+          setRemoteUsers(prev => prev.map(u => u.identity === identity
+            ? { ...u, hasVideo: track.kind === Track.Kind.Video ? false : u.hasVideo, hasAudio: track.kind === Track.Kind.Audio ? false : u.hasAudio }
+            : u))
+        })
       })
 
+      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        setRemoteUsers(prev => prev.filter(u => u.identity !== participant.identity))
+      })
+
+      await room.connect(data.livekitUrl, data.token)
       setJoined(true)
       await notifyAdminJoin(true)
       toast.success('Joined as Admin Observer')
@@ -98,43 +120,35 @@ export default function AdminClassRoom({ params }: { params: { id: string } }) {
   }
 
   const handleLeave = async (navigate = true) => {
-    localAudioTrackRef.current?.close()
-    localVideoTrackRef.current?.close()
-    localAudioTrackRef.current = null
-    localVideoTrackRef.current = null
-    await clientRef.current?.leave()
+    await roomRef.current?.disconnect()
+    roomRef.current = null
     await notifyAdminJoin(false)
     if (navigate) router.push('/live-classes')
   }
 
   const toggleMic = async () => {
     try {
-      if (!localAudioTrackRef.current) {
-        const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-        const t = await AgoraRTC.createMicrophoneAudioTrack()
-        localAudioTrackRef.current = t
-        await clientRef.current?.publish([t])
-        setMicOn(true)
-      } else {
-        await localAudioTrackRef.current.setEnabled(!micOn)
-        setMicOn(v => !v)
-      }
+      const room = roomRef.current
+      if (!room) return
+      const enabled = !micOn
+      await room.localParticipant.setMicrophoneEnabled(enabled)
+      setMicOn(enabled)
     } catch { toast.error('Mic not available') }
   }
 
   const toggleCam = async () => {
     try {
-      if (!localVideoTrackRef.current) {
-        const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-        const t = await AgoraRTC.createCameraVideoTrack()
-        localVideoTrackRef.current = t
-        await clientRef.current?.publish([t])
-        if (localVideoContainerRef.current) t.play(localVideoContainerRef.current)
-        setCamOn(true)
-      } else {
-        await localVideoTrackRef.current.setEnabled(!camOn)
-        setCamOn(v => !v)
+      const room = roomRef.current
+      if (!room) return
+      const enabled = !camOn
+      await room.localParticipant.setCameraEnabled(enabled)
+      if (enabled) {
+        setTimeout(() => {
+          const pub = room.localParticipant.getTrackPublication(Track.Source.Camera)
+          if (pub?.videoTrack && localVideoContainerRef.current) pub.videoTrack.attach(localVideoContainerRef.current)
+        }, 100)
       }
+      setCamOn(enabled)
     } catch { toast.error('Camera not available') }
   }
 
@@ -192,17 +206,15 @@ export default function AdminClassRoom({ params }: { params: { id: string } }) {
             </div>
           ) : (
             <div className="flex-1 flex flex-col gap-1 p-2 min-h-0 overflow-auto">
-              {/* Admin local video (if cam on) */}
               {camOn && (
                 <div className="relative rounded-xl overflow-hidden bg-slate-900 w-48 h-32 flex-shrink-0 self-end">
-                  <div ref={localVideoContainerRef} className="w-full h-full" />
+                  <video ref={localVideoContainerRef} className="w-full h-full object-cover" autoPlay playsInline muted />
                   <div className="absolute bottom-1 left-1 text-[9px] text-white bg-black/60 px-1.5 py-0.5 rounded">
                     {adminName} (You)
                   </div>
                 </div>
               )}
 
-              {/* Remote participants grid */}
               {remoteUsers.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
                   <Eye className="w-12 h-12 text-violet-400/30" />
@@ -211,20 +223,20 @@ export default function AdminClassRoom({ params }: { params: { id: string } }) {
                 </div>
               ) : (
                 <div className={`grid gap-2 flex-1 ${remoteUsers.length === 1 ? 'grid-cols-1' : remoteUsers.length <= 4 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                  {remoteUsers.map((ru: any, i) => (
-                    <div key={ru.uid} className="relative rounded-xl overflow-hidden bg-slate-900 min-h-0">
-                      <div id={`admin-rv-${ru.uid}`} className="w-full h-full" />
-                      {!ru.videoTrack && (
+                  {remoteUsers.map((ru, i) => (
+                    <div key={ru.identity} className="relative rounded-xl overflow-hidden bg-slate-900 min-h-0">
+                      <video id={`admin-rv-${ru.identity}`} className="w-full h-full object-cover" autoPlay playsInline />
+                      {!ru.hasVideo && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-800">
                           <div className="w-12 h-12 bg-violet-500/20 rounded-full flex items-center justify-center">
-                            <span className="text-xl font-bold text-violet-400">P{i + 1}</span>
+                            <span className="text-xl font-bold text-violet-400">{(ru.name || 'P')[0].toUpperCase()}</span>
                           </div>
                           <span className="text-xs text-gray-500">No camera</span>
                         </div>
                       )}
                       <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-lg">
-                        {ru.audioTrack ? <Mic className="w-3 h-3 text-green-400" /> : <MicOff className="w-3 h-3 text-red-400" />}
-                        Participant {i + 1}
+                        {ru.hasAudio ? <Mic className="w-3 h-3 text-green-400" /> : <MicOff className="w-3 h-3 text-red-400" />}
+                        {ru.name || `Participant ${i + 1}`}
                       </div>
                     </div>
                   ))}
@@ -247,7 +259,6 @@ export default function AdminClassRoom({ params }: { params: { id: string } }) {
               </button>
             </div>
 
-            {/* Participants list */}
             <div className="p-3 space-y-2 flex-shrink-0 border-b border-white/5 max-h-40 overflow-y-auto">
               <div className="flex items-center gap-2 p-2 bg-violet-500/10 rounded-xl border border-violet-500/20">
                 <div className="w-7 h-7 bg-violet-500 rounded-full flex items-center justify-center text-white text-xs font-bold">A</div>
@@ -257,15 +268,15 @@ export default function AdminClassRoom({ params }: { params: { id: string } }) {
                 </div>
                 <ShieldCheck className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
               </div>
-              {remoteUsers.map((ru: any, i) => (
-                <div key={ru.uid} className="flex items-center gap-2 p-2 bg-white/[0.03] rounded-xl">
-                  <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center text-gray-300 text-xs font-bold">P{i + 1}</div>
+              {remoteUsers.map((ru, i) => (
+                <div key={ru.identity} className="flex items-center gap-2 p-2 bg-white/[0.03] rounded-xl">
+                  <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center text-gray-300 text-xs font-bold">{(ru.name || 'P')[0].toUpperCase()}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white">Participant {i + 1}</p>
+                    <p className="text-sm text-white truncate">{ru.name || `Participant ${i + 1}`}</p>
                   </div>
                   <div className="flex gap-1">
-                    {ru.audioTrack ? <Mic className="w-3 h-3 text-green-400" /> : <MicOff className="w-3 h-3 text-red-400" />}
-                    {ru.videoTrack ? <Video className="w-3 h-3 text-blue-400" /> : <VideoOff className="w-3 h-3 text-gray-600" />}
+                    {ru.hasAudio ? <Mic className="w-3 h-3 text-green-400" /> : <MicOff className="w-3 h-3 text-red-400" />}
+                    {ru.hasVideo ? <Video className="w-3 h-3 text-blue-400" /> : <VideoOff className="w-3 h-3 text-gray-600" />}
                   </div>
                 </div>
               ))}
@@ -274,7 +285,6 @@ export default function AdminClassRoom({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Chat */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
               {chatMsgs.map(msg => (
                 <div key={msg.id} className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}>

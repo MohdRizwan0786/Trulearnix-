@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
 import AdminLayout from '@/components/AdminLayout'
 import toast from 'react-hot-toast'
-import { Plus, Edit2, Trash2, X, Eye, Star } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Eye, Star, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 
 const STATUS_OPTIONS = ['draft', 'published', 'archived']
@@ -96,14 +96,22 @@ export default function BlogPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Blog CMS</h1>
-            <p className="text-gray-400 text-sm mt-0.5">{blogs.length} articles</p>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-700 flex items-center justify-center shadow-lg">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                Blog CMS
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">{blogs.length} articles published</p>
+            </div>
+            <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+              <Plus className="w-4 h-4" /> New Article
+            </button>
           </div>
-          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-            <Plus className="w-4 h-4" /> New Article
-          </button>
         </div>
 
         {/* Blog list */}

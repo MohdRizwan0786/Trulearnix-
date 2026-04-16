@@ -8,6 +8,11 @@ import SalesOrder from '../models/SalesOrder';
 import PackagePurchase from '../models/PackagePurchase';
 import Commission from '../models/Commission';
 import EmiInstallment from '../models/EmiInstallment';
+import Withdrawal from '../models/Withdrawal';
+import Transaction from '../models/Transaction';
+import Achievement from '../models/Achievement';
+import UserAchievement from '../models/UserAchievement';
+import Course from '../models/Course';
 import { StandardCheckoutClient, Env, StandardCheckoutPayRequest } from '@phonepe-pg/pg-sdk-node';
 import { sendPurchaseWelcomeEmail } from '../services/emailService';
 import { sendWhatsAppText } from '../services/whatsappMetaService';
@@ -457,6 +462,10 @@ router.post('/orders/:id/verify-payment', ...guard, async (req: any, res) => {
 
     if (order.paymentType === 'token' && amountPaid < order.totalAmount) {
       order.status = 'token_paid'; order.tokenPaid = true;
+      await Lead.findOneAndUpdate(
+        { salesOrderId: order._id },
+        { stage: 'token_collected', tokenCollected: true, tokenAmount: order.tokenAmount }
+      );
     } else if (amountPaid >= order.totalAmount) {
       order.status = 'paid';
     } else {
@@ -519,10 +528,26 @@ router.get('/link', ...guard, async (req: any, res) => {
       registerUrl: `${baseUrl}/register?ref=${code}&next=/checkout?type=package%26packageId=${pkg._id}%26promo=${code}`,
     }));
 
+    const courses = await Course.find({ status: 'published', salesRefDiscountPercent: { $gt: 0 } })
+      .select('title slug price discountPrice salesRefDiscountPercent thumbnail')
+      .sort('-createdAt').limit(50);
+
+    const courseLinks = courses.map((c: any) => {
+      const basePrice = c.discountPrice || c.price;
+      const refPrice = Math.round(basePrice * (1 - (c.salesRefDiscountPercent || 0) / 100));
+      return {
+        id: c._id, title: c.title, slug: c.slug,
+        basePrice, refPrice, discountPercent: c.salesRefDiscountPercent || 0,
+        thumbnail: c.thumbnail,
+        refUrl: `${baseUrl}/courses/${c.slug}?ref=${code}`,
+      };
+    });
+
     res.json({
       success: true,
       affiliateCode: code,
       packageLinks,
+      courseLinks,
       generalLink: `${baseUrl}/register?ref=${code}`,
     });
   } catch (e: any) {
@@ -621,6 +646,10 @@ router.get('/public/order/:id/phonepe-status', async (req, res) => {
       if (order.paymentType === 'token' && amountPaid < order.totalAmount) {
         order.status = 'token_paid'; order.tokenPaid = true;
         await order.save();
+        await Lead.findOneAndUpdate(
+          { salesOrderId: order._id },
+          { stage: 'token_collected', tokenCollected: true, tokenAmount: order.tokenAmount }
+        );
         return res.json({ success: true, state: 'COMPLETED', status: 'token_paid' });
       } else {
         order.status = 'paid';
@@ -750,6 +779,205 @@ router.get('/emi-commissions', ...guard, async (req: any, res) => {
     const pendingCommission = enriched.filter(i => !i.commissionPaid && i.status !== 'paid').reduce((s, i) => s + (i.commissionAmount || 0), 0);
 
     res.json({ success: true, installments: enriched, totalCommission, earnedCommission, pendingCommission });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── GET/POST /api/sales/kyc ───────────────────────────────────────────────────
+const salesGuard = [protect, authorize('salesperson', 'admin', 'superadmin')];
+
+router.get('/kyc', ...salesGuard, async (req: any, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('kyc name email phone avatar');
+    res.json({ success: true, kyc: user?.kyc || { status: 'pending' }, user: { name: user?.name, email: user?.email, phone: user?.phone, avatar: user?.avatar } });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+router.post('/kyc', ...salesGuard, async (req: any, res) => {
+  try {
+    const { avatar, pan, panName, panPhoto, aadhar, aadharName, aadharPhoto, bankAccount, bankIfsc, bankName, bankHolderName } = req.body;
+    await User.findByIdAndUpdate(req.user._id, {
+      kyc: { pan, panName, panPhoto, aadhar, aadharName, aadharPhoto, bankAccount, bankIfsc, bankName, bankHolderName, status: 'submitted', submittedAt: new Date() },
+      ...(avatar ? { avatar } : {}),
+    });
+    res.json({ success: true, message: 'KYC submitted successfully. Our team will verify within 1-3 business days.' });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── GET /api/sales/withdrawals ────────────────────────────────────────────────
+router.get('/withdrawals', ...salesGuard, async (req: any, res) => {
+  try {
+    const withdrawals = await Withdrawal.find({ user: req.user._id }).sort({ createdAt: -1 }).lean();
+    const user = await User.findById(req.user._id).select('wallet totalWithdrawn kyc name affiliateCode').lean() as any;
+    res.json({
+      success: true,
+      withdrawals,
+      wallet: user?.wallet || 0,
+      totalWithdrawn: user?.totalWithdrawn || 0,
+      kycStatus: user?.kyc?.status || 'pending',
+      bankAccount: user?.kyc?.bankAccount || '',
+      partnerName: user?.name || '',
+      affiliateCode: user?.affiliateCode || '',
+      partnerPan: user?.kyc?.pan || '',
+      partnerBankAccount: user?.kyc?.bankAccount || '',
+      partnerBankIfsc: user?.kyc?.bankIfsc || '',
+      partnerBankHolder: user?.kyc?.bankHolderName || user?.name || '',
+    });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── POST /api/sales/withdraw ──────────────────────────────────────────────────
+router.post('/withdraw', ...salesGuard, async (req: any, res) => {
+  try {
+    if (req.user.kyc?.status !== 'verified') {
+      return res.status(400).json({ success: false, message: 'KYC verification required before withdrawal. Please complete and get your KYC approved.' });
+    }
+    const { amount } = req.body;
+    const amt = Number(amount);
+    if (!amt || amt < 500) return res.status(400).json({ success: false, message: 'Minimum withdrawal amount is ₹500' });
+    if (amt > (req.user.wallet || 0)) return res.status(400).json({ success: false, message: 'Insufficient wallet balance' });
+    const existing = await Withdrawal.findOne({ user: req.user._id, hrStatus: 'pending' });
+    if (existing) return res.status(400).json({ success: false, message: 'You already have a pending withdrawal request. Please wait for it to be processed.' });
+    const tdsRate = 2;
+    const tdsAmount = Math.round(amt * tdsRate / 100);
+    const gatewayFee = 4.40;
+    const gatewayFeeGst = Math.round(gatewayFee * 0.18 * 100) / 100;
+    const totalGatewayFee = Math.round((gatewayFee + gatewayFeeGst) * 100) / 100;
+    const netAmount = amt - tdsAmount - totalGatewayFee;
+    await User.findByIdAndUpdate(req.user._id, { $inc: { wallet: -amt, totalWithdrawn: amt } });
+    const withdrawal = await Withdrawal.create({
+      user: req.user._id,
+      amount: amt,
+      method: 'bank',
+      accountName: req.user.kyc?.bankHolderName,
+      accountNumber: req.user.kyc?.bankAccount,
+      ifscCode: req.user.kyc?.bankIfsc,
+      status: 'pending',
+      hrStatus: 'pending',
+      tdsRate,
+      tdsAmount,
+      gatewayFee: totalGatewayFee,
+      gatewayFeeGst,
+      netAmount,
+    });
+    res.json({ success: true, message: 'Withdrawal request submitted. HR will review and process within 3-5 business days.', withdrawal });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── GET /api/sales/achievements ──────────────────────────────────────────────
+router.get('/achievements', ...salesGuard, async (req: any, res) => {
+  try {
+    const [user, orderCount, existingAchievements, userAchievements] = await Promise.all([
+      User.findById(req.user._id).select('totalEarnings name avatar createdAt').lean(),
+      SalesOrder.countDocuments({ salesperson: req.user._id, status: 'paid' }),
+      (Achievement as any).find({ enabled: true, category: 'sales' }).sort({ order: 1 }).lean(),
+      (UserAchievement as any).find({ userId: req.user._id }).lean(),
+    ]);
+
+    let allAchievements = existingAchievements;
+
+    // Seed sales-specific defaults if none exist
+    if (allAchievements.length === 0) {
+      const AchievementModel = Achievement as any;
+      await AchievementModel.insertMany([
+        { title: 'Sales Star', description: 'Welcome to the TruLearnix Sales Team!', badge: '⭐', triggerType: 'join', triggerValue: 0, requirement: 'Join Sales Team', posterTheme: 0, order: 0, category: 'sales', enabled: true },
+        { title: 'First Sale', description: 'Closed your very first sale!', badge: '🎯', triggerType: 'first_earn', triggerValue: 0, requirement: 'Close 1 sale', posterTheme: 1, order: 1, category: 'sales', enabled: true },
+        { title: '5 Sales Club', description: 'Closed 5 successful sales!', badge: '🔥', triggerType: 'earn_amount', triggerValue: 1, requirement: 'Close 5 sales', posterTheme: 5, order: 2, category: 'sales', enabled: true },
+        { title: '20 Sales Warrior', description: 'Closed 20 successful sales!', badge: '⚡', triggerType: 'earn_amount', triggerValue: 1, requirement: 'Close 20 sales', posterTheme: 2, order: 3, category: 'sales', enabled: true },
+        { title: '₹10K Earner', description: 'Crossed ₹10,000 in total commissions!', badge: '💰', triggerType: 'earn_amount', triggerValue: 10000, requirement: 'Earn ₹10,000', posterTheme: 2, order: 4, category: 'sales', enabled: true },
+        { title: '₹50K Sales Pro', description: 'Crossed ₹50,000 in total commissions!', badge: '🏆', triggerType: 'earn_amount', triggerValue: 50000, requirement: 'Earn ₹50,000', posterTheme: 3, order: 5, category: 'sales', enabled: true },
+        { title: 'Lakhpati Seller', description: 'Crossed ₹1,00,000 in total commissions!', badge: '👑', triggerType: 'earn_amount', triggerValue: 100000, requirement: 'Earn ₹1 Lakh', posterTheme: 4, order: 6, category: 'sales', enabled: true },
+        { title: '50 Sales Legend', description: 'Crossed ₹5 Lakh in commissions!', badge: '🦁', triggerType: 'earn_amount', triggerValue: 500000, requirement: 'Earn ₹5 Lakh', posterTheme: 1, order: 7, category: 'sales', enabled: true },
+      ]);
+      allAchievements = await AchievementModel.find({ enabled: true, category: 'sales' }).sort({ order: 1 }).lean();
+    }
+
+    const earnedMap: Record<string, Date> = {};
+    userAchievements.forEach((ua: any) => { earnedMap[ua.achievementId.toString()] = ua.earnedAt; });
+
+    const toUnlock: string[] = [];
+    for (const ach of allAchievements) {
+      if (earnedMap[ach._id.toString()]) continue;
+      let earned = false;
+      switch (ach.triggerType) {
+        case 'join': earned = true; break;
+        case 'first_earn': earned = (user?.totalEarnings || 0) > 0; break;
+        case 'earn_amount': earned = (user?.totalEarnings || 0) >= ach.triggerValue; break;
+        case 'order_count': earned = orderCount >= ach.triggerValue; break;
+      }
+      if (earned) toUnlock.push(ach._id.toString());
+    }
+
+    if (toUnlock.length > 0) {
+      const now = new Date();
+      await (UserAchievement as any).bulkWrite(toUnlock.map((achId: string) => ({
+        updateOne: {
+          filter: { userId: req.user._id, achievementId: achId },
+          update: { $setOnInsert: { userId: req.user._id, achievementId: achId, earnedAt: now } },
+          upsert: true,
+        },
+      })));
+      toUnlock.forEach((id: string) => { earnedMap[id] = new Date(); });
+    }
+
+    const achievements = allAchievements.map((ach: any) => ({
+      _id: ach._id, title: ach.title, description: ach.description, badge: ach.badge,
+      triggerType: ach.triggerType, requirement: ach.requirement, posterTheme: ach.posterTheme,
+      order: ach.order, earned: !!earnedMap[ach._id.toString()], earnedAt: earnedMap[ach._id.toString()] || null,
+    }));
+
+    res.json({ success: true, achievements, user: { name: user?.name, avatar: user?.avatar, totalEarnings: user?.totalEarnings, orderCount } });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── GET /api/sales/earnings ───────────────────────────────────────────────────
+router.get('/earnings', ...salesGuard, async (req: any, res) => {
+  try {
+    const { period = '30', from, to } = req.query as any;
+    let startDate: Date, endDate = new Date();
+    if (period === 'custom' && from && to) {
+      startDate = new Date(from); endDate = new Date(to); endDate.setHours(23, 59, 59, 999);
+    } else if (period === 'today') {
+      startDate = new Date(); startDate.setHours(0, 0, 0, 0);
+    } else if (period === '7') {
+      startDate = new Date(Date.now() - 7 * 86400000);
+    } else {
+      startDate = new Date(Date.now() - 30 * 86400000);
+    }
+
+    const commissions = await Commission.find({ earner: req.user._id, createdAt: { $gte: startDate, $lte: endDate } })
+      .populate('buyer', 'name').sort({ createdAt: -1 }).lean() as any[];
+
+    const totalEarnings = commissions.reduce((s, c) => s + (c.commissionAmount || 0), 0);
+    const byPackage: Record<string, number> = {};
+    commissions.forEach((c: any) => {
+      const key = c.buyerPackageTier || c.saleType || 'Other';
+      byPackage[key] = (byPackage[key] || 0) + (c.commissionAmount || 0);
+    });
+
+    const recentCommissions = commissions.slice(0, 20).map((c: any) => ({
+      _id: c._id,
+      amount: c.commissionAmount,
+      type: c.saleType,
+      packageTier: c.buyerPackageTier,
+      customerName: (c.buyer as any)?.name || 'Customer',
+      createdAt: c.createdAt,
+      status: c.status || 'approved',
+    }));
+
+    // Monthly breakdown (last 6 months)
+    const monthly: { month: string; total: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(); d.setMonth(d.getMonth() - i);
+      const mStart = new Date(d.getFullYear(), d.getMonth(), 1);
+      const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+      const mTotal = commissions
+        .filter((c: any) => new Date(c.createdAt) >= mStart && new Date(c.createdAt) <= mEnd)
+        .reduce((s, c) => s + (c.amount || 0), 0);
+      monthly.push({ month: d.toLocaleString('en-IN', { month: 'short', year: '2-digit' }), total: mTotal });
+    }
+
+    const user = await User.findById(req.user._id).select('wallet totalEarnings').lean() as any;
+    res.json({ success: true, totalEarnings, byPackage, recentCommissions, monthly, wallet: user?.wallet || 0, allTimeEarnings: user?.totalEarnings || 0 });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 

@@ -9,11 +9,24 @@ const router = Router();
 
 router.get('/me', protect, async (req: any, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password -refreshToken');
+    const user = await User.findById(req.user._id)
+      .select('-password -refreshToken')
+      .populate('managerId', 'name phone avatar')
+      .populate('upline1', 'name phone avatar affiliateCode')
+      .lean();
+
     const enrollmentCount = await Enrollment.countDocuments({ student: req.user._id });
     const PAID_TIERS = ['starter', 'pro', 'elite', 'supreme'];
-    const hasAccess = PAID_TIERS.includes(user?.packageTier || '') || !!user?.isAffiliate || enrollmentCount > 0;
-    res.json({ success: true, user, enrollmentCount, hasAccess });
+    const hasAccess = PAID_TIERS.includes((user as any)?.packageTier || '') || !!(user as any)?.isAffiliate || enrollmentCount > 0;
+
+    // Attach sponsor info from upline1 if not already in sponsorCode field
+    const enriched = {
+      ...user,
+      managerInfo: (user as any)?.managerId || null,
+      sponsorInfo: (user as any)?.upline1 || null,
+    };
+
+    res.json({ success: true, user: enriched, enrollmentCount, hasAccess });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -39,7 +52,9 @@ router.post('/avatar', protect, uploadToS3.single('avatar'), async (req: any, re
 router.get('/enrolled-courses', protect, async (req: any, res) => {
   try {
     const enrollments = await Enrollment.find({ student: req.user._id })
-      .populate('course', 'title thumbnail slug category level').sort('-createdAt');
+      .populate('course', 'title thumbnail slug category level')
+      .populate('batch', 'label batchNumber status')
+      .sort('-createdAt');
     res.json({ success: true, enrollments });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -184,6 +199,30 @@ router.get('/announcements', protect, async (_req, res) => {
       ],
     }).sort({ priority: -1, createdAt: -1 }).limit(20);
     res.json({ success: true, announcements });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// GET /api/users/portfolio/:slug — Public portfolio by name slug (no auth required)
+router.get('/portfolio/:slug', async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/-/g, ' ').toLowerCase();
+    const user = await User.findOne({
+      name: { $regex: new RegExp(`^${slug}$`, 'i') },
+      isActive: true,
+    }).select('name avatar bio expertise socialLinks xpPoints level packageTier createdAt');
+    if (!user) return res.status(404).json({ success: false, message: 'Portfolio not found' });
+
+    const Certificate = (await import('../models/Certificate')).default;
+    const Project = (await import('../models/Project')).default;
+    const Enrollment = (await import('../models/Enrollment')).default;
+
+    const [certs, projects, enrollments] = await Promise.all([
+      Certificate.find({ student: user._id }).populate('course', 'title thumbnail').sort('-issuedAt').limit(10),
+      Project.find({ createdBy: user._id, isPublic: true }).select('title description techStack liveUrl githubUrl thumbnail likes').limit(10),
+      Enrollment.find({ student: user._id }).populate('course', 'title thumbnail').select('course completedAt progress').limit(10),
+    ]);
+
+    res.json({ success: true, user, certs, projects, enrollments });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 

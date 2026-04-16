@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Logo from '@/components/ui/Logo'
+import { Room, RoomEvent, Track, ParticipantEvent } from 'livekit-client'
 
 interface ChatMsg { id: number; name: string; msg: string; time: string; isMe?: boolean }
 interface QuizOption { text: string; _id?: string }
@@ -23,12 +24,12 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
   const { user } = useAuthStore()
   const chatEndRef = useRef<HTMLDivElement>(null)
 
-  // Agora refs
-  const clientRef = useRef<any>(null)
+  // LiveKit refs
+  const roomRef = useRef<Room | null>(null)
   const localAudioTrackRef = useRef<any>(null)
   const localVideoTrackRef = useRef<any>(null)
-  const mentorVideoContainerRef = useRef<HTMLDivElement>(null)
-  const localVideoContainerRef = useRef<HTMLDivElement>(null)
+  const mentorVideoContainerRef = useRef<HTMLVideoElement>(null)
+  const localVideoContainerRef = useRef<HTMLVideoElement>(null)
   const pingIntervalRef = useRef<any>(null)
   const quizPollRef = useRef<any>(null)
   const controlPollRef = useRef<any>(null)
@@ -37,8 +38,9 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
   const camOnRef = useRef(false)
   const isHostRef = useRef(false)
 
-  // Agora state
+  // LiveKit state
   const [joined, setJoined] = useState(false)
+  const [classKicked, setClassKicked] = useState(false)
   const [mentorOnline, setMentorOnline] = useState(false)
   const [isHost, setIsHost] = useState(false)
   const [micOn, setMicOn] = useState(false)
@@ -81,10 +83,10 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
   const [myScore, setMyScore] = useState<number | null>(null)
   const [quizTimeLeft, setQuizTimeLeft] = useState<number | null>(null)
 
-  // Fetch Agora token
+  // Fetch LiveKit token
   const { data: tokenData, isLoading, error } = useQuery({
-    queryKey: ['agora-token-student', params.id],
-    queryFn: () => classAPI.agoraToken(params.id).then(r => r.data),
+    queryKey: ['livekit-token-student', params.id],
+    queryFn: () => classAPI.livekitToken(params.id).then(r => r.data),
     retry: false,
   })
 
@@ -109,15 +111,9 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
         // Mentor muted all
         if (res.mutedAll && !prev.mutedAll) {
           setMentorMutedAll(true)
-          if (micOnRef.current && localAudioTrackRef.current) {
-            try { await clientRef.current?.unpublish([localAudioTrackRef.current]) } catch {}
-            localAudioTrackRef.current?.close()
-            localAudioTrackRef.current = null
+          if (micOnRef.current) {
+            try { await roomRef.current?.localParticipant.setMicrophoneEnabled(false) } catch {}
             setMicOnSync(false)
-            if (!camOnRef.current) {
-              try { await clientRef.current?.setClientRole('audience') } catch {}
-              setIsHostSync(false)
-            }
           }
           toast('🔇 Mentor muted your mic', { duration: 3000 })
         }
@@ -129,15 +125,9 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
         // Mentor stopped all cams
         if (res.camOffAll && !prev.camOffAll) {
           setMentorCamOff(true)
-          if (camOnRef.current && localVideoTrackRef.current) {
-            try { await clientRef.current?.unpublish([localVideoTrackRef.current]) } catch {}
-            localVideoTrackRef.current?.close()
-            localVideoTrackRef.current = null
+          if (camOnRef.current) {
+            try { await roomRef.current?.localParticipant.setCameraEnabled(false) } catch {}
             setCamOnSync(false)
-            if (!micOnRef.current) {
-              try { await clientRef.current?.setClientRole('audience') } catch {}
-              setIsHostSync(false)
-            }
           }
           toast('📷 Mentor turned off your camera', { duration: 3000 })
         }
@@ -156,6 +146,13 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
         }
 
         prevControlRef.current = { mutedAll: res.mutedAll, camOffAll: res.camOffAll, adminInRoom: !!res.adminInRoom }
+
+        // Check if class has ended — kick students out
+        if (res.classStatus === 'ended' || res.classStatus === 'cancelled') {
+          clearInterval(controlPollRef.current)
+          await roomRef.current?.disconnect()
+          setClassKicked(true)
+        }
       } catch {}
     }
     controlPollRef.current = setInterval(poll, 3000)
@@ -205,59 +202,73 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMsgs])
 
-  // Init Agora audience
+  // Init LiveKit
   useEffect(() => {
-    if (!tokenData?.appId || !tokenData?.channelName) return
-    initAgora(tokenData)
+    if (!tokenData?.livekitUrl || !tokenData?.token) return
+    initLiveKit(tokenData)
     return () => { leaveChannel() }
   }, [tokenData])
 
-  const initAgora = async (data: any) => {
+  const initLiveKit = async (data: any) => {
     try {
-      const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-      AgoraRTC.setLogLevel(4)
+      const room = new Room({
+        adaptiveStream: true,
+        dynacast: true,
+        audioCaptureDefaults: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 2,
+        },
+        publishDefaults: {
+          videoCodec: 'vp9',
+          audioPreset: { maxBitrate: 320_000 },
+          dtx: false,
+          red: true,
+        },
+      })
+      roomRef.current = room
 
-      const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
-      clientRef.current = client
-
-      await client.setClientRole('audience')
-      await client.join(data.appId, data.channelName, data.token || null, data.uid || null)
-
-      setJoined(true)
-      addSystemMsg('✅ Connected! Waiting for mentor...')
-
-      client.on('user-published', async (remoteUser: any, mediaType: 'video' | 'audio') => {
-        await client.subscribe(remoteUser, mediaType)
-        if (mediaType === 'video') {
+      room.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
+        if (track.kind === Track.Kind.Video) {
           setMentorOnline(true)
           setTimeout(() => {
-            if (mentorVideoContainerRef.current) remoteUser.videoTrack?.play(mentorVideoContainerRef.current)
+            if (mentorVideoContainerRef.current) track.attach(mentorVideoContainerRef.current)
           }, 200)
           addSystemMsg('🎥 Mentor started video')
         }
-        if (mediaType === 'audio') {
-          if (!muted) remoteUser.audioTrack?.play()
+        if (track.kind === Track.Kind.Audio) {
           setMentorOnline(true)
+          if (!muted) {
+            const el = track.attach()
+            el.style.display = 'none'
+            document.body.appendChild(el)
+          }
         }
       })
 
-      client.on('user-unpublished', (_: any, mediaType: 'video' | 'audio') => {
-        if (mediaType === 'video') setMentorOnline(false)
+      room.on(RoomEvent.TrackUnsubscribed, (track) => {
+        track.detach()
+        if (track.kind === Track.Kind.Video) setMentorOnline(false)
       })
 
-      client.on('user-left', () => {
+      room.on(RoomEvent.ParticipantDisconnected, () => {
         setMentorOnline(false)
         addSystemMsg('📢 Mentor left the class')
       })
+
+      await room.connect(data.livekitUrl, data.token)
+      setJoined(true)
+      addSystemMsg('✅ Connected! Waiting for mentor...')
     } catch (err: any) {
       toast.error('Could not join: ' + (err.message || 'Check permissions'))
     }
   }
 
   const leaveChannel = async () => {
-    localAudioTrackRef.current?.close()
-    localVideoTrackRef.current?.close()
-    await clientRef.current?.leave()
+    await roomRef.current?.disconnect()
+    roomRef.current = null
   }
 
   // Toggle mic
@@ -266,28 +277,12 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
       toast('🔇 Mentor has muted the class', { duration: 2000 }); return
     }
     try {
-      const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-      if (!micOnRef.current) {
-        if (!isHostRef.current) {
-          await clientRef.current?.setClientRole('host')
-          setIsHostSync(true)
-        }
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack()
-        localAudioTrackRef.current = audioTrack
-        await clientRef.current?.publish([audioTrack])
-        setMicOnSync(true)
-        toast.success('Microphone on', { duration: 1500 })
-      } else {
-        await clientRef.current?.unpublish([localAudioTrackRef.current])
-        localAudioTrackRef.current?.close()
-        localAudioTrackRef.current = null
-        setMicOnSync(false)
-        toast('Microphone off', { duration: 1500 })
-        if (!camOnRef.current) {
-          await clientRef.current?.setClientRole('audience')
-          setIsHostSync(false)
-        }
-      }
+      const room = roomRef.current
+      if (!room) return
+      const enable = !micOnRef.current
+      await room.localParticipant.setMicrophoneEnabled(enable)
+      setMicOnSync(enable)
+      toast(enable ? 'Microphone on' : 'Microphone off', { duration: 1500 })
     } catch (err: any) {
       toast.error('Mic error: ' + (err.message || 'Device not found'))
     }
@@ -299,31 +294,18 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
       toast('📷 Mentor has turned off cameras', { duration: 2000 }); return
     }
     try {
-      const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
-      if (!camOnRef.current) {
-        if (!isHostRef.current) {
-          await clientRef.current?.setClientRole('host')
-          setIsHostSync(true)
-        }
-        const videoTrack = await AgoraRTC.createCameraVideoTrack()
-        localVideoTrackRef.current = videoTrack
-        await clientRef.current?.publish([videoTrack])
+      const room = roomRef.current
+      if (!room) return
+      const enable = !camOnRef.current
+      await room.localParticipant.setCameraEnabled(enable)
+      if (enable) {
         setTimeout(() => {
-          if (localVideoContainerRef.current) videoTrack.play(localVideoContainerRef.current)
+          const pub = room.localParticipant.getTrackPublication(Track.Source.Camera)
+          if (pub?.videoTrack && localVideoContainerRef.current) pub.videoTrack.attach(localVideoContainerRef.current)
         }, 100)
-        setCamOnSync(true)
-        toast.success('Camera on', { duration: 1500 })
-      } else {
-        await clientRef.current?.unpublish([localVideoTrackRef.current])
-        localVideoTrackRef.current?.close()
-        localVideoTrackRef.current = null
-        setCamOnSync(false)
-        toast('Camera off', { duration: 1500 })
-        if (!micOnRef.current) {
-          await clientRef.current?.setClientRole('audience')
-          setIsHostSync(false)
-        }
       }
+      setCamOnSync(enable)
+      toast(enable ? 'Camera on' : 'Camera off', { duration: 1500 })
     } catch (err: any) {
       toast.error('Camera error: ' + (err.message || 'Device not found'))
     }
@@ -385,6 +367,19 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
 
   const canSubmitQuiz = activeQuiz && !quizSubmitted &&
     activeQuiz.questions.every(q => selectedAnswers[q._id] !== undefined)
+
+  if (classKicked) return (
+    <div className="h-screen bg-dark-900 flex items-center justify-center p-4">
+      <div className="text-center max-w-sm">
+        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Video className="w-8 h-8 text-red-400" />
+        </div>
+        <h3 className="text-white font-bold text-lg mb-2">Class Has Ended</h3>
+        <p className="text-gray-400 text-sm mb-6">The mentor has ended this class. Thank you for attending!</p>
+        <Link href="/student/classes" className="btn-primary text-sm px-6 py-2.5">Back to Classes</Link>
+      </div>
+    </div>
+  )
 
   if (isLoading) return (
     <div className="h-screen bg-dark-900 flex items-center justify-center">
@@ -462,7 +457,7 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
             </div>
           ) : (
             <div className="flex-1 relative min-h-0">
-              <div ref={mentorVideoContainerRef} className="w-full h-full" />
+              <video ref={mentorVideoContainerRef} className="w-full h-full object-cover" autoPlay playsInline />
               {!mentorOnline && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-dark-900 gap-4">
                   <div className="w-20 h-20 bg-primary-500/20 rounded-full flex items-center justify-center">
@@ -483,7 +478,7 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
           {/* Local video pip */}
           {camOn && (
             <div className="absolute bottom-14 right-3 w-28 h-20 sm:w-36 sm:h-24 bg-dark-800 rounded-xl overflow-hidden border-2 border-primary-500/50 shadow-xl">
-              <div ref={localVideoContainerRef} className="w-full h-full" />
+              <video ref={localVideoContainerRef} className="w-full h-full object-cover" autoPlay playsInline muted />
               <div className="absolute bottom-1 left-1 text-[9px] text-white bg-black/60 px-1.5 rounded">You</div>
             </div>
           )}

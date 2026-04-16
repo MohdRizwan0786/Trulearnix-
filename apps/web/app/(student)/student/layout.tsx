@@ -10,6 +10,7 @@ import { Lock, Zap, Star, ArrowRight, CheckCircle2 } from 'lucide-react'
 const FREE_ALLOWED_PREFIXES = [
   '/student/profile',
   '/student/upgrade',
+  '/student/support',
 ]
 
 const PAID_TIERS = ['starter', 'pro', 'elite', 'supreme']

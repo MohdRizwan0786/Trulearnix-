@@ -157,26 +157,48 @@ function PayOrderInner() {
   if (payState === 'success' || order?.status === 'paid') return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-violet-950 to-slate-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-8 text-center">
-          <CheckCircle className="w-16 h-16 text-white mx-auto mb-3" />
-          <h1 className="text-white text-2xl font-bold">
-            {order?.status === 'paid' && payState === 'idle' ? 'Already Paid' : 'Payment Successful!'}
-          </h1>
-        </div>
-        <div className="p-6 space-y-4">
-          <p className="text-gray-700 text-center">Your payment is confirmed. Access will be activated shortly.</p>
-          <div className="bg-gray-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Order Reference</p>
-            <p className="text-xs font-mono text-gray-800 break-all">{orderId}</p>
+        {order?.status === 'paid' && payState === 'idle' ? (
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-8 text-center">
+            <CheckCircle className="w-16 h-16 text-white mx-auto mb-3" />
+            <h1 className="text-white text-2xl font-bold">Already Paid</h1>
+            <p className="text-green-100 text-sm mt-1">This order has already been completed.</p>
           </div>
-          <div className="bg-green-50 rounded-xl p-4">
-            <p className="text-sm font-semibold text-green-800 mb-1">What's next?</p>
-            <ul className="space-y-1 text-xs text-green-700">
-              <li>• Login at peptly.in with your registered email</li>
-              <li>• Package access activates within minutes</li>
-              <li>• Contact support if you face any issues</li>
+        ) : (
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-8 text-center">
+            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-12 h-12 text-white" />
+            </div>
+            <p className="text-green-100 text-sm font-medium uppercase tracking-widest mb-1">Payment Received</p>
+            <h1 className="text-white text-3xl font-black">Thank You!</h1>
+            <p className="text-green-100 text-sm mt-2">{order?.customer?.name || 'Your'} payment is confirmed.</p>
+          </div>
+        )}
+        <div className="p-6 space-y-4">
+          <div className="bg-gray-50 rounded-xl p-4 text-center">
+            <p className="text-2xl font-black text-gray-800">
+              ₹{fmt(order?.totalAmount || 0)}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">{order?.package?.name || order?.packageTier + ' Package'} · 1 Year Access</p>
+          </div>
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+            <p className="text-sm font-semibold text-green-800 mb-2">What happens next?</p>
+            <ul className="space-y-1.5 text-xs text-green-700">
+              <li className="flex items-start gap-2"><CheckCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /><span>Your TruLearnix account is now active</span></li>
+              <li className="flex items-start gap-2"><CheckCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /><span>Login at <strong>peptly.in</strong> with your registered email</span></li>
+              <li className="flex items-start gap-2"><CheckCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /><span>Welcome email with login details has been sent</span></li>
+              <li className="flex items-start gap-2"><CheckCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /><span>Contact support if you face any issues</span></li>
             </ul>
           </div>
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-xs text-gray-400 mb-1">Order Reference</p>
+            <p className="text-xs font-mono text-gray-600 break-all">{orderId}</p>
+          </div>
+          {order?.salesperson?.name && (
+            <p className="text-center text-xs text-gray-400">
+              Your Sales Rep: <span className="text-gray-600 font-medium">{order.salesperson.name}</span>
+              {order.salesperson.phone && <> · <a href={`tel:${order.salesperson.phone}`} className="text-blue-500">{order.salesperson.phone}</a></>}
+            </p>
+          )}
         </div>
       </div>
     </div>

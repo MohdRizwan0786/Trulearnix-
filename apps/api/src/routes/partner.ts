@@ -6,6 +6,7 @@ import Lead from '../models/Lead';
 import Package from '../models/Package';
 import Course from '../models/Course';
 import PlatformSettings from '../models/PlatformSettings';
+import Withdrawal from '../models/Withdrawal';
 import { protect } from '../middleware/auth';
 
 const router = Router();
@@ -21,8 +22,25 @@ const affiliateGuard = async (req: any, res: any, next: any) => {
 // ── GET /api/partner/dashboard ────────────────────────────────────────────────
 router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
   try {
+    const { period, from, to } = req.query as any;
+
+    // Build period date filter for stats
+    const now = new Date();
+    let periodStart: Date | null = null;
+    let periodEnd: Date | null = null;
+    if (period === 'today') {
+      periodStart = new Date(now); periodStart.setHours(0, 0, 0, 0);
+    } else if (period === '7') {
+      periodStart = new Date(now); periodStart.setDate(periodStart.getDate() - 7);
+    } else if (period === '30') {
+      periodStart = new Date(now); periodStart.setDate(periodStart.getDate() - 30);
+    } else if (period === 'custom' && from && to) {
+      periodStart = new Date(from); periodStart.setHours(0, 0, 0, 0);
+      periodEnd = new Date(to); periodEnd.setHours(23, 59, 59, 999);
+    }
+
     const user = await User.findById(req.user._id)
-      .select('name avatar affiliateCode wallet totalEarnings totalWithdrawn packageTier commissionRate isAffiliate createdAt upline1 kyc managerName managerPhone managerId')
+      .select('name avatar affiliateCode wallet totalEarnings totalWithdrawn packageTier commissionRate isAffiliate createdAt upline1 kyc managerName managerPhone managerId industrialEarning industrialEarningSource isIndustrialPartner')
       .populate('upline1', 'name email packageTier')
       .populate('managerId', 'name email phone');
 
@@ -43,15 +61,21 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
       User.countDocuments({ upline3: req.user._id }),
     ]);
 
-    const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const weekStart = new Date(now); weekStart.setDate(now.getDate() - 7);
 
-    const [monthlyEarnings, weeklyEarnings, totalCommissions, pendingCommissions] = await Promise.all([
+    // Period-specific date range for filtered stats
+    const periodMatch: any = { earner: req.user._id };
+    if (periodStart) periodMatch.createdAt = { $gte: periodStart, ...(periodEnd ? { $lte: periodEnd } : {}) };
+
+    const [monthlyEarnings, weeklyEarnings, totalCommissions, pendingCommissions, periodEarnings] = await Promise.all([
       Commission.aggregate([{ $match: { earner: req.user._id, createdAt: { $gte: monthStart } } }, { $group: { _id: null, total: { $sum: '$commissionAmount' } } }]),
       Commission.aggregate([{ $match: { earner: req.user._id, createdAt: { $gte: weekStart } } }, { $group: { _id: null, total: { $sum: '$commissionAmount' } } }]),
       Commission.countDocuments({ earner: req.user._id }),
       Commission.countDocuments({ earner: req.user._id, status: 'pending' }),
+      periodStart
+        ? Commission.aggregate([{ $match: periodMatch }, { $group: { _id: null, total: { $sum: '$commissionAmount' }, count: { $sum: 1 } } }])
+        : Promise.resolve(null),
     ]);
 
     // Rank
@@ -115,12 +139,18 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
       stats: {
         wallet: user?.wallet || 0, totalEarnings: user?.totalEarnings || 0,
         totalWithdrawn: user?.totalWithdrawn || 0,
+        industrialEarning: (user as any)?.industrialEarning || 0,
+        industrialEarningSource: (user as any)?.industrialEarningSource || '',
+        isIndustrialPartner: (user as any)?.isIndustrialPartner || false,
         monthly: monthlyEarnings[0]?.total || 0,
         monthEarnings: monthlyEarnings[0]?.total || 0,
         weekly: weeklyEarnings[0]?.total || 0,
         rank: rank + 1, totalCommissions, pendingCommissions,
         referrals: { l1, l2, l3, total: l1 + l2 + l3 },
         l1Count: l1, l2Count: l2, l3Count: l3, totalReferrals: l1 + l2 + l3,
+        periodEarnings: periodEarnings ? (periodEarnings[0]?.total || 0) : null,
+        periodCount: periodEarnings ? (periodEarnings[0]?.count || 0) : null,
+        activePeriod: period || null,
       },
       trend,
     });
@@ -130,27 +160,45 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
 // ── GET /api/partner/earnings ─────────────────────────────────────────────────
 router.get('/earnings', protect, affiliateGuard, async (req: any, res) => {
   try {
-    const { period = '30' } = req.query;
-    const days = parseInt(period as string) || 30;
-    const since = new Date(); since.setDate(since.getDate() - days);
+    const { period, from, to } = req.query as any;
+
+    // Build date filter
+    let dateFilter: any = {};
+    const now = new Date();
+    if (period === 'today') {
+      const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+      dateFilter = { createdAt: { $gte: todayStart } };
+    } else if (period === '7') {
+      const d = new Date(now); d.setDate(d.getDate() - 7);
+      dateFilter = { createdAt: { $gte: d } };
+    } else if (period === '30') {
+      const d = new Date(now); d.setDate(d.getDate() - 30);
+      dateFilter = { createdAt: { $gte: d } };
+    } else if (period === 'custom' && from && to) {
+      const fromDate = new Date(from); fromDate.setHours(0, 0, 0, 0);
+      const toDate = new Date(to); toDate.setHours(23, 59, 59, 999);
+      dateFilter = { createdAt: { $gte: fromDate, $lte: toDate } };
+    }
+
+    const baseMatch = { earner: req.user._id, ...dateFilter };
 
     const [byLevel, byTier, recent, monthly] = await Promise.all([
       Commission.aggregate([
-        { $match: { earner: req.user._id } },
+        { $match: baseMatch },
         { $group: { _id: '$level', total: { $sum: '$commissionAmount' }, count: { $sum: 1 }, avgSale: { $avg: '$saleAmount' } } },
         { $sort: { _id: 1 } }
       ]),
       Commission.aggregate([
-        { $match: { earner: req.user._id } },
+        { $match: baseMatch },
         { $group: { _id: '$buyerPackageTier', total: { $sum: '$commissionAmount' }, count: { $sum: 1 } } },
         { $sort: { total: -1 } }
       ]),
-      Commission.find({ earner: req.user._id })
+      Commission.find(baseMatch)
         .populate('buyer', 'name packageTier')
         .sort('-createdAt').limit(20)
         .select('commissionAmount saleAmount level buyerPackageTier createdAt status'),
       Commission.aggregate([
-        { $match: { earner: req.user._id } },
+        { $match: baseMatch },
         { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, total: { $sum: '$commissionAmount' }, count: { $sum: 1 } } },
         { $sort: { '_id.year': -1, '_id.month': -1 } },
         { $limit: 12 }
@@ -200,14 +248,108 @@ router.get('/earnings', protect, affiliateGuard, async (req: any, res) => {
 // ── GET /api/partner/leaderboard ──────────────────────────────────────────────
 router.get('/leaderboard', protect, affiliateGuard, async (req: any, res) => {
   try {
-    const top = await User.find({ isAffiliate: true, totalEarnings: { $gt: 0 } })
-      .select('name avatar packageTier totalEarnings commissionRate createdAt')
-      .sort('-totalEarnings').limit(50);
+    const period = (req.query.period as string) || 'all';
 
-    const myRank = await User.countDocuments({ isAffiliate: true, totalEarnings: { $gt: req.user.totalEarnings || 0 } });
-    const myData = await User.findById(req.user._id).select('name avatar packageTier totalEarnings commissionRate');
+    // Compute start date based on period
+    let startDate: Date | null = null;
+    const now = new Date();
+    if (period === '24h') {
+      // reset to midnight today IST (UTC+5:30) = UTC 00:00 - 05:30 = prev day 18:30 UTC
+      const midnight = new Date(now);
+      midnight.setUTCHours(18, 30, 0, 0);
+      if (midnight > now) midnight.setUTCDate(midnight.getUTCDate() - 1);
+      startDate = midnight;
+    } else if (period === 'week') {
+      // start of current Mon
+      const d = new Date(now);
+      const day = d.getDay(); // 0=Sun
+      const diff = day === 0 ? 6 : day - 1;
+      d.setDate(d.getDate() - diff);
+      d.setHours(0, 0, 0, 0);
+      startDate = d;
+    } else if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (period === 'quarter') {
+      const q = Math.floor(now.getMonth() / 3);
+      startDate = new Date(now.getFullYear(), q * 3, 1);
+    } else if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    }
 
-    res.json({ success: true, leaderboard: top, myRank: myRank + 1, me: myData });
+    let leaderboard: any[];
+    let myEarnings: number;
+    let myRankPos: number;
+
+    if (!startDate) {
+      // All-time: include industrial earnings in display total
+      const top = await User.find({
+        isAffiliate: true,
+        $or: [{ totalEarnings: { $gt: 0 } }, { industrialEarning: { $gt: 0 } }]
+      })
+        .select('name avatar packageTier totalEarnings commissionRate totalReferrals createdAt industrialEarning isIndustrialPartner')
+        .limit(200).lean();
+      // Sort by combined (real + industrial) and take top 50
+      const sorted = top
+        .map((u: any) => ({ ...u, periodEarnings: (u.totalEarnings || 0) + (u.industrialEarning || 0) }))
+        .sort((a: any, b: any) => b.periodEarnings - a.periodEarnings)
+        .slice(0, 50);
+      leaderboard = sorted;
+      myEarnings = (req.user.totalEarnings || 0) + ((req.user as any).industrialEarning || 0);
+      myRankPos = leaderboard.findIndex((u: any) => String(u._id) === String(req.user._id)) + 1;
+      if (myRankPos === 0) myRankPos = leaderboard.length + 1;
+    } else {
+      // Period-based: aggregate Commission records
+      const agg = await Commission.aggregate([
+        { $match: { createdAt: { $gte: startDate }, status: { $in: ['paid', 'pending'] } } },
+        { $group: { _id: '$earner', periodEarnings: { $sum: '$commissionAmount' } } },
+        { $sort: { periodEarnings: -1 } },
+        { $limit: 50 },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'user',
+            pipeline: [{ $match: { isAffiliate: true } }, { $project: { name: 1, avatar: 1, packageTier: 1, commissionRate: 1, totalReferrals: 1, industrialEarning: 1, isIndustrialPartner: 1 } }]
+          }
+        },
+        { $unwind: { path: '$user', preserveNullAndEmptyArrays: false } },
+        {
+          $project: {
+            _id: '$user._id',
+            name: '$user.name',
+            avatar: '$user.avatar',
+            packageTier: '$user.packageTier',
+            commissionRate: '$user.commissionRate',
+            totalReferrals: '$user.totalReferrals',
+            industrialEarning: '$user.industrialEarning',
+            isIndustrialPartner: '$user.isIndustrialPartner',
+            periodEarnings: 1,
+          }
+        }
+      ]);
+      leaderboard = agg;
+
+      // My earnings in period
+      const myAgg = await Commission.aggregate([
+        { $match: { earner: req.user._id, createdAt: { $gte: startDate }, status: { $in: ['paid', 'pending'] } } },
+        { $group: { _id: null, total: { $sum: '$commissionAmount' } } }
+      ]);
+      myEarnings = myAgg[0]?.total || 0;
+      myRankPos = leaderboard.findIndex((u: any) => String(u._id) === String(req.user._id)) + 1;
+      if (myRankPos === 0) myRankPos = leaderboard.length + 1;
+    }
+
+    const myData = await User.findById(req.user._id).select('name avatar packageTier totalEarnings commissionRate totalReferrals industrialEarning isIndustrialPartner').lean();
+
+    res.json({
+      success: true,
+      leaderboard,
+      myRank: myRankPos,
+      myPeriodEarnings: myEarnings,
+      me: myData,
+      period,
+    });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -342,21 +484,37 @@ router.get('/referrals', protect, affiliateGuard, async (req: any, res) => {
 // ── GET /api/partner/crm ──────────────────────────────────────────────────────
 router.get('/crm', protect, affiliateGuard, async (req: any, res) => {
   try {
-    const { status, page = '1' } = req.query;
+    const { stage, page = '1' } = req.query;
     const pg = parseInt(page as string) || 1;
     const filter: any = { assignedTo: req.user._id };
-    if (status) filter.status = status;
+    if (stage) filter.stage = stage;
 
-    const [leads, total, stats] = await Promise.all([
+    const [leads, total, stageCounts] = await Promise.all([
       Lead.find(filter).sort('-createdAt').skip((pg - 1) * 20).limit(20),
       Lead.countDocuments(filter),
       Lead.aggregate([
         { $match: { assignedTo: req.user._id } },
-        { $group: { _id: '$status', count: { $sum: 1 } } }
+        { $group: { _id: '$stage', count: { $sum: 1 } } }
       ]),
     ]);
 
-    res.json({ success: true, leads, total, pages: Math.ceil(total / 20), stats });
+    const counts: Record<string, number> = {};
+    for (const s of stageCounts) counts[s._id] = s.count;
+
+    res.json({ success: true, leads, total, pages: Math.ceil(total / 20), stageCounts: counts });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── PATCH /api/partner/crm/lead/:id — update lead stage / notes ───────────────
+router.patch('/crm/lead/:id', protect, affiliateGuard, async (req: any, res) => {
+  try {
+    const { stage, note } = req.body;
+    const lead = await Lead.findOne({ _id: req.params.id, assignedTo: req.user._id });
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+    if (stage) lead.stage = stage;
+    if (note) lead.notes.push({ text: note, by: req.user._id, createdAt: new Date() });
+    await lead.save();
+    res.json({ success: true, lead });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -379,49 +537,60 @@ router.post('/crm/lead', async (req: any, res) => {
 // ── GET /api/partner/training ─────────────────────────────────────────────────
 router.get('/training', protect, affiliateGuard, async (req: any, res) => {
   try {
+    const PartnerTraining = (await import('../models/PartnerTraining')).default;
+    const { PartnerTrainingProgress } = await import('../models/PartnerTraining');
     const Popup = (await import('../models/Popup')).default;
-    const webinars = await Popup.find({ type: 'event', isActive: true }).sort('-priority -createdAt').limit(10);
 
-    const training = [
-      { day: 1, title: 'Welcome to TruLearnix Partner Program', desc: 'Overview of the platform, your dashboard, and how the MLM system works.', duration: '45 min', type: 'video', completed: false },
-      { day: 2, title: 'Understanding Commission Structure', desc: 'Deep dive into L1/L2/L3 commissions, tier rates, and maximizing earnings.', duration: '60 min', type: 'video', completed: false },
-      { day: 3, title: 'Building Your Referral Network', desc: 'Strategies for onboarding new partners and growing your team.', duration: '50 min', type: 'video', completed: false },
-      { day: 4, title: 'Social Media Marketing for Partners', desc: 'How to promote TruLearnix on Instagram, WhatsApp, and YouTube.', duration: '55 min', type: 'video', completed: false },
-      { day: 5, title: 'Lead Generation Techniques', desc: 'Using the Link Generator, CRM, and landing pages to capture quality leads.', duration: '40 min', type: 'video', completed: false },
-      { day: 6, title: 'Handling Objections & Closing Sales', desc: 'Sales scripts, common objections, and how to convert leads to partners.', duration: '65 min', type: 'video', completed: false },
-      { day: 7, title: 'WhatsApp & Email Follow-up Templates', desc: 'Ready-to-use templates for nurturing leads and re-engaging prospects.', duration: '35 min', type: 'resource', completed: false },
-      { day: 8, title: 'Compliance & Ethical Marketing', desc: 'Dos and don\'ts, legal requirements, and maintaining your reputation.', duration: '30 min', type: 'video', completed: false },
-      { day: 9, title: 'KYC & Payout Process', desc: 'How to complete your KYC, request withdrawals, and track payments.', duration: '25 min', type: 'video', completed: false },
-      { day: 10, title: 'Scaling to Elite & Supreme', desc: 'Advanced strategies for reaching top-tier commissions and leaderboard rankings.', duration: '70 min', type: 'video', completed: false },
-    ];
+    const [modules, completed, webinars] = await Promise.all([
+      PartnerTraining.find({ isPublished: true }).sort('order day').lean(),
+      PartnerTrainingProgress.find({ user: req.user._id }).select('module').lean(),
+      Popup.find({ type: 'event', isActive: true }).sort('-priority -createdAt').limit(10),
+    ]);
 
-    res.json({ success: true, training, webinars });
+    const completedIds = new Set(completed.map((c: any) => String(c.module)));
+    const training = modules.map((m: any) => ({ ...m, completed: completedIds.has(String(m._id)) }));
+
+    res.json({ success: true, training, webinars, totalModules: modules.length, completedCount: completed.length });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── POST /api/partner/training/:id/complete ───────────────────────────────────
+router.post('/training/:id/complete', protect, affiliateGuard, async (req: any, res) => {
+  try {
+    const { PartnerTrainingProgress } = await import('../models/PartnerTraining');
+    await PartnerTrainingProgress.updateOne(
+      { user: req.user._id, module: req.params.id },
+      { $setOnInsert: { user: req.user._id, module: req.params.id, completedAt: new Date() } },
+      { upsert: true }
+    );
+    res.json({ success: true });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
 // ── GET/POST /api/partner/kyc ─────────────────────────────────────────────────
 router.get('/kyc', protect, affiliateGuard, async (req: any, res) => {
   try {
-    const user = await User.findById(req.user._id).select('kyc name email phone');
-    res.json({ success: true, kyc: user?.kyc || { status: 'pending' }, user: { name: user?.name, email: user?.email, phone: user?.phone } });
+    const user = await User.findById(req.user._id).select('kyc name email phone avatar');
+    res.json({ success: true, kyc: user?.kyc || { status: 'pending' }, user: { name: user?.name, email: user?.email, phone: user?.phone, avatar: user?.avatar } });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
 router.post('/kyc', protect, affiliateGuard, async (req: any, res) => {
   try {
-    const { pan, panName, aadhar, aadharName, bankAccount, bankIfsc, bankName, bankHolderName } = req.body;
+    const { pan, panName, panPhoto, aadhar, aadharName, aadharPhoto, bankAccount, bankIfsc, bankName, bankHolderName, avatar } = req.body;
     if (!pan || !aadhar || !bankAccount || !bankIfsc) {
       return res.status(400).json({ success: false, message: 'PAN, Aadhar and bank details are required' });
     }
-
-    await User.findByIdAndUpdate(req.user._id, {
+    const update: any = {
       kyc: {
-        pan: pan.toUpperCase(), panName, aadhar, aadharName,
+        pan: pan.toUpperCase(), panName, panPhoto,
+        aadhar, aadharName, aadharPhoto,
         bankAccount, bankIfsc: bankIfsc.toUpperCase(), bankName, bankHolderName,
         status: 'submitted', submittedAt: new Date(),
       }
-    });
-
+    };
+    if (avatar) update.avatar = avatar;
+    await User.findByIdAndUpdate(req.user._id, update);
     res.json({ success: true, message: 'KYC submitted successfully! Verification takes 1-2 business days.' });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -435,7 +604,7 @@ router.get('/link', protect, affiliateGuard, async (req: any, res) => {
 
     const [packages, courses, platformSettings] = await Promise.all([
       Package.find({ isActive: true }).select('name tier price promoDiscountPercent').sort({ price: 1 }),
-      Course.find({ status: 'published' }).select('title slug thumbnail price').sort({ createdAt: -1 }),
+      Course.find({ status: 'published' }).select('title slug thumbnail price discountPrice salesRefDiscountPercent').sort({ createdAt: -1 }),
       PlatformSettings.findOne(),
     ]);
 
@@ -449,14 +618,22 @@ router.get('/link', protect, affiliateGuard, async (req: any, res) => {
       referralUrl: `${baseUrl}/packages?ref=${code}`,
     }));
 
-    const courseLinks = courses.map((course: any) => ({
-      id: course._id,
-      title: course.title,
-      slug: course.slug,
-      thumbnail: course.thumbnail,
-      price: course.price,
-      referralUrl: `${baseUrl}/courses/${course.slug}?ref=${code}`,
-    }));
+    const courseLinks = courses.map((course: any) => {
+      const basePrice = course.discountPrice || course.price;
+      const discPct = course.salesRefDiscountPercent || 0;
+      const refPrice = discPct > 0 ? Math.round(basePrice * (1 - discPct / 100)) : basePrice;
+      return {
+        id: course._id,
+        title: course.title,
+        slug: course.slug,
+        thumbnail: course.thumbnail,
+        price: course.price,
+        basePrice,
+        refPrice,
+        discountPercent: discPct,
+        referralUrl: `${baseUrl}/courses/${course.slug}?ref=${code}`,
+      };
+    });
 
     res.json({
       success: true,
@@ -482,22 +659,52 @@ router.get('/link', protect, affiliateGuard, async (req: any, res) => {
 // ── GET /api/partner/qualification ───────────────────────────────────────────
 router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
   try {
-    const user = await User.findById(req.user._id).select('totalEarnings packageTier');
+    const Qualification = (await import('../models/Qualification')).default as any;
+    const user = await User.findById(req.user._id).select('name avatar totalEarnings packageTier affiliateCode');
     const l1Count = await User.countDocuments({ upline1: req.user._id });
     const l1Paid = await User.countDocuments({ upline1: req.user._id, packageTier: { $ne: 'free' } });
 
-    const milestones = [
-      { id: 'first_sale', title: 'First Sale', desc: 'Make your first referral sale', reward: '₹500 Bonus', icon: '🎯', target: 1, current: l1Paid, unit: 'paid referrals', achieved: l1Paid >= 1 },
-      { id: 'five_sales', title: 'Power Starter', desc: '5 paid referrals in your L1', reward: 'Power Starter Badge', icon: '⚡', target: 5, current: l1Paid, unit: 'paid referrals', achieved: l1Paid >= 5 },
-      { id: 'ten_sales', title: 'Growth Champion', desc: '10 paid referrals', reward: 'Feature on Leaderboard', icon: '🏆', target: 10, current: l1Paid, unit: 'paid referrals', achieved: l1Paid >= 10 },
-      { id: 'earn_10k', title: '₹10,000 Earner', desc: 'Total earnings cross ₹10,000', reward: 'Elite Badge + Priority Support', icon: '💰', target: 10000, current: user?.totalEarnings || 0, unit: '₹ earned', achieved: (user?.totalEarnings || 0) >= 10000 },
-      { id: 'earn_50k', title: '₹50,000 Club', desc: 'Total earnings cross ₹50,000', reward: '₹2,000 Bonus + Certificate', icon: '🥇', target: 50000, current: user?.totalEarnings || 0, unit: '₹ earned', achieved: (user?.totalEarnings || 0) >= 50000 },
-      { id: 'earn_1l', title: 'Lakhpati Partner', desc: 'Total earnings cross ₹1,00,000', reward: 'Supreme Upgrade + Hall of Fame', icon: '👑', target: 100000, current: user?.totalEarnings || 0, unit: '₹ earned', achieved: (user?.totalEarnings || 0) >= 100000 },
-      { id: 'team_25', title: 'Team Builder', desc: 'Build a team of 25+ partners', reward: 'Team Builder Trophy', icon: '👥', target: 25, current: l1Count, unit: 'L1 partners', achieved: l1Count >= 25 },
-      { id: 'pro_tier', title: 'Pro Partner', desc: 'Upgrade to Pro tier', reward: 'Pro Exclusive Benefits', icon: '🚀', target: 1, current: ['pro','elite','supreme'].includes(user?.packageTier || '') ? 1 : 0, unit: 'tier upgrade', achieved: ['pro','elite','supreme'].includes(user?.packageTier || '') },
-    ];
+    const metricMap: Record<string, number> = {
+      l1Paid,
+      totalEarnings: user?.totalEarnings || 0,
+      l1Count,
+      tierUpgrade: ['pro','elite','supreme'].includes(user?.packageTier || '') ? 999999 : 0,
+    };
 
-    res.json({ success: true, milestones, summary: { l1Count, l1Paid, totalEarnings: user?.totalEarnings || 0, tier: user?.packageTier } });
+    // Load from DB; fall back to hardcoded defaults if none exist
+    let dbMilestones = await Qualification.find({ isActive: true }).sort({ order: 1 });
+
+    let milestones: any[];
+    if (dbMilestones.length > 0) {
+      milestones = dbMilestones.map((m: any) => {
+        const current = metricMap[m.metricType] ?? 0;
+        return {
+          id: m._id, title: m.title, description: m.description,
+          icon: m.icon, reward: m.reward, rewardType: m.rewardType,
+          target: m.target, current, unit: m.unit,
+          achieved: current >= m.target,
+          badgeGradient: m.badgeGradient, certificateEnabled: m.certificateEnabled,
+          order: m.order,
+        };
+      });
+    } else {
+      milestones = [
+        { id: 'first_sale', title: 'First Sale', description: 'Make your first referral sale', icon: '🎯', reward: '₹500 Bonus', rewardType: 'bonus', target: 1, current: l1Paid, unit: 'paid referrals', achieved: l1Paid >= 1, badgeGradient: 'from-sky-500 to-blue-600', certificateEnabled: true },
+        { id: 'five_sales', title: 'Power Starter', description: '5 paid referrals in your L1', icon: '⚡', reward: 'Power Starter Badge', rewardType: 'badge', target: 5, current: l1Paid, unit: 'paid referrals', achieved: l1Paid >= 5, badgeGradient: 'from-violet-500 to-purple-600', certificateEnabled: true },
+        { id: 'ten_sales', title: 'Growth Champion', description: '10 paid referrals in your network', icon: '🏆', reward: 'Feature on Leaderboard', rewardType: 'feature', target: 10, current: l1Paid, unit: 'paid referrals', achieved: l1Paid >= 10, badgeGradient: 'from-amber-500 to-orange-500', certificateEnabled: true },
+        { id: 'earn_10k', title: '₹10,000 Earner', description: 'Total earnings cross ₹10,000', icon: '💰', reward: 'Elite Badge + Priority Support', rewardType: 'badge', target: 10000, current: user?.totalEarnings || 0, unit: '₹ earned', achieved: (user?.totalEarnings || 0) >= 10000, badgeGradient: 'from-emerald-500 to-teal-600', certificateEnabled: true },
+        { id: 'earn_50k', title: '₹50,000 Club', description: 'Total earnings cross ₹50,000', icon: '🥇', reward: '₹2,000 Bonus + Certificate', rewardType: 'certificate', target: 50000, current: user?.totalEarnings || 0, unit: '₹ earned', achieved: (user?.totalEarnings || 0) >= 50000, badgeGradient: 'from-rose-500 to-pink-600', certificateEnabled: true },
+        { id: 'earn_1l', title: 'Lakhpati Partner', description: 'Total earnings cross ₹1,00,000', icon: '👑', reward: 'Supreme Upgrade + Hall of Fame', rewardType: 'upgrade', target: 100000, current: user?.totalEarnings || 0, unit: '₹ earned', achieved: (user?.totalEarnings || 0) >= 100000, badgeGradient: 'from-yellow-400 to-amber-500', certificateEnabled: true },
+        { id: 'team_25', title: 'Team Builder', description: 'Build a team of 25+ partners', icon: '👥', reward: 'Team Builder Trophy', rewardType: 'trophy', target: 25, current: l1Count, unit: 'L1 partners', achieved: l1Count >= 25, badgeGradient: 'from-cyan-500 to-blue-600', certificateEnabled: true },
+        { id: 'pro_tier', title: 'Pro Partner', description: 'Upgrade to Pro or higher tier', icon: '🚀', reward: 'Pro Exclusive Benefits', rewardType: 'upgrade', target: 1, current: ['pro','elite','supreme'].includes(user?.packageTier || '') ? 999999 : 0, unit: 'tier upgrade', achieved: ['pro','elite','supreme'].includes(user?.packageTier || ''), badgeGradient: 'from-indigo-500 to-violet-600', certificateEnabled: false },
+      ];
+    }
+
+    res.json({
+      success: true, milestones,
+      user: { name: user?.name, avatar: user?.avatar, affiliateCode: user?.affiliateCode },
+      summary: { l1Count, l1Paid, totalEarnings: user?.totalEarnings || 0, tier: user?.packageTier },
+    });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -536,23 +743,151 @@ router.get('/emi-commissions', protect, affiliateGuard, async (req: any, res) =>
 // ── GET /api/partner/achievements ────────────────────────────────────────────
 router.get('/achievements', protect, affiliateGuard, async (req: any, res) => {
   try {
-    const user = await User.findById(req.user._id).select('totalEarnings packageTier name avatar createdAt');
+    const Achievement = (await import('../models/Achievement')).default as any;
+    const UserAchievement = (await import('../models/UserAchievement')).default as any;
+
+    const user = await User.findById(req.user._id).select('totalEarnings packageTier name avatar createdAt affiliateCode');
     const l1Count = await User.countDocuments({ upline1: req.user._id });
     const l1Paid = await User.countDocuments({ upline1: req.user._id, packageTier: { $ne: 'free' } });
 
-    const achievements = [
-      { id: 'welcome', title: 'Partner Activated', desc: 'Successfully joined the Partner Program', icon: '🎉', color: '#6366f1', earned: true, earnedAt: user?.createdAt },
-      { id: 'first_referral', title: 'First Referral', desc: 'Referred your first person to the platform', icon: '🤝', color: '#22c55e', earned: l1Count >= 1, earnedAt: null },
-      { id: 'first_sale', title: 'First Commission', desc: 'Earned your first commission', icon: '💸', color: '#f59e0b', earned: (user?.totalEarnings || 0) > 0, earnedAt: null },
-      { id: 'power_5', title: 'Power of 5', desc: '5 paid referrals in your team', icon: '⚡', color: '#8b5cf6', earned: l1Paid >= 5, earnedAt: null },
-      { id: 'earn_10k', title: '₹10K Milestone', desc: 'Crossed ₹10,000 in total earnings', icon: '💰', color: '#ec4899', earned: (user?.totalEarnings || 0) >= 10000, earnedAt: null },
-      { id: 'team_10', title: 'Team Leader', desc: 'Built a team of 10+ L1 partners', icon: '👥', color: '#06b6d4', earned: l1Count >= 10, earnedAt: null },
-      { id: 'pro_badge', title: 'Pro Partner', desc: 'Upgraded to Pro or higher tier', icon: '🚀', color: '#7c3aed', earned: ['pro','elite','supreme'].includes(user?.packageTier || ''), earnedAt: null },
-      { id: 'earn_50k', title: '₹50K Club', desc: 'Crossed ₹50,000 in total earnings', icon: '🏆', color: '#f97316', earned: (user?.totalEarnings || 0) >= 50000, earnedAt: null },
-      { id: 'lakhpati', title: 'Lakhpati Partner', desc: 'Crossed ₹1,00,000 in total earnings', icon: '👑', color: '#fbbf24', earned: (user?.totalEarnings || 0) >= 100000, earnedAt: null },
-    ];
+    let allAchievements = await Achievement.find({ enabled: true }).sort({ order: 1 });
 
-    res.json({ success: true, achievements, user: { name: user?.name, avatar: user?.avatar, packageTier: user?.packageTier, totalEarnings: user?.totalEarnings } });
+    // Seed defaults if none exist
+    if (allAchievements.length === 0) {
+      await Achievement.insertMany([
+        { title: 'TruLearnix Partner', description: 'Welcome to the TruLearnix Partner Network!', badge: '🎉', triggerType: 'join', triggerValue: 0, requirement: 'Join TruLearnix', posterTheme: 0, order: 0 },
+        { title: 'First Commission', description: 'Earned your very first commission!', badge: '💸', triggerType: 'first_earn', triggerValue: 0, requirement: 'Earn first commission', posterTheme: 1, order: 1 },
+        { title: '₹10K Milestone', description: 'Crossed ₹10,000 in total earnings!', badge: '💰', triggerType: 'earn_amount', triggerValue: 10000, requirement: 'Earn ₹10,000', posterTheme: 2, order: 2 },
+        { title: '₹30K Club', description: 'Crossed ₹30,000 in total earnings!', badge: '🔥', triggerType: 'earn_amount', triggerValue: 30000, requirement: 'Earn ₹30,000', posterTheme: 3, order: 3 },
+        { title: 'Lakhpati Partner', description: 'Crossed ₹1,00,000 in total earnings!', badge: '👑', triggerType: 'earn_amount', triggerValue: 100000, requirement: 'Earn ₹1 Lakh', posterTheme: 4, order: 4 },
+        { title: 'Power of 5', description: '5 paid referrals in your direct team!', badge: '⚡', triggerType: 'paid_referrals', triggerValue: 5, requirement: '5 paid referrals', posterTheme: 5, order: 5 },
+        { title: 'Team Leader', description: 'Built a direct team of 10+ partners!', badge: '👥', triggerType: 'referrals', triggerValue: 10, requirement: '10 referrals', posterTheme: 0, order: 6 },
+        { title: 'Pro Partner', description: 'Upgraded to Pro or higher package!', badge: '🚀', triggerType: 'tier', triggerValue: 0, requirement: 'Upgrade to Pro+', posterTheme: 1, order: 7 },
+      ]);
+      allAchievements = await Achievement.find({ enabled: true }).sort({ order: 1 });
+    }
+
+    // Get existing user achievements
+    const userAchievements = await UserAchievement.find({ userId: req.user._id });
+    const earnedMap: Record<string, Date> = {};
+    userAchievements.forEach((ua: any) => { earnedMap[ua.achievementId.toString()] = ua.earnedAt; });
+
+    // Auto-unlock logic
+    const toUnlock: string[] = [];
+    for (const ach of allAchievements) {
+      if (earnedMap[ach._id.toString()]) continue;
+      let earned = false;
+      switch (ach.triggerType) {
+        case 'join': earned = true; break;
+        case 'first_earn': earned = (user?.totalEarnings || 0) > 0; break;
+        case 'earn_amount': earned = (user?.totalEarnings || 0) >= ach.triggerValue; break;
+        case 'referrals': earned = l1Count >= ach.triggerValue; break;
+        case 'paid_referrals': earned = l1Paid >= ach.triggerValue; break;
+        case 'tier': earned = ['pro','elite','supreme'].includes(user?.packageTier || ''); break;
+      }
+      if (earned) toUnlock.push(ach._id.toString());
+    }
+
+    if (toUnlock.length > 0) {
+      await Promise.all(toUnlock.map((achId: string) =>
+        UserAchievement.updateOne(
+          { userId: req.user._id, achievementId: achId },
+          { $setOnInsert: { userId: req.user._id, achievementId: achId, earnedAt: new Date() } },
+          { upsert: true }
+        )
+      ));
+      toUnlock.forEach((id: string) => { earnedMap[id] = new Date(); });
+    }
+
+    const achievements = allAchievements.map((ach: any) => ({
+      _id: ach._id,
+      title: ach.title,
+      description: ach.description,
+      badge: ach.badge,
+      triggerType: ach.triggerType,
+      requirement: ach.requirement,
+      posterTheme: ach.posterTheme,
+      order: ach.order,
+      earned: !!earnedMap[ach._id.toString()],
+      earnedAt: earnedMap[ach._id.toString()] || null,
+    }));
+
+    res.json({ success: true, achievements, user: { name: user?.name, avatar: user?.avatar, packageTier: user?.packageTier, totalEarnings: user?.totalEarnings, affiliateCode: (user as any)?.affiliateCode } });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── GET /api/partner/withdrawals ─────────────────────────────────────────────
+router.get('/withdrawals', protect, affiliateGuard, async (req: any, res) => {
+  try {
+    const withdrawals = await Withdrawal.find({ user: req.user._id })
+      .sort('-createdAt')
+      .select('amount method status hrStatus rejectionReason hrRejectionReason tdsAmount netAmount createdAt processedAt razorpayPayoutId');
+    // req.user already loaded by protect middleware — no extra DB call needed
+    res.json({
+      success: true,
+      withdrawals,
+      wallet: req.user.wallet || 0,
+      totalWithdrawn: req.user.totalWithdrawn || 0,
+      kycStatus: req.user.kyc?.status || 'pending',
+      bankAccount: req.user.kyc?.bankAccount || '',
+      // For slip generation
+      partnerName: req.user.name || '',
+      partnerPan: req.user.kyc?.pan || '',
+      partnerAddress: req.user.kyc?.address || '',
+      partnerBankAccount: req.user.kyc?.bankAccount || '',
+      partnerBankIfsc: req.user.kyc?.bankIfsc || '',
+      partnerBankHolder: req.user.kyc?.bankHolderName || req.user.name || '',
+      affiliateCode: req.user.affiliateCode || '',
+    });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── POST /api/partner/withdraw ────────────────────────────────────────────────
+router.post('/withdraw', protect, affiliateGuard, async (req: any, res) => {
+  try {
+    // req.user already loaded by protect middleware — no extra DB call needed
+    if (req.user.kyc?.status !== 'verified') {
+      return res.status(400).json({ success: false, message: 'KYC verification required before withdrawal. Please complete and get your KYC approved.' });
+    }
+
+    const { amount } = req.body;
+    const amt = Number(amount);
+    if (!amt || amt < 500) return res.status(400).json({ success: false, message: 'Minimum withdrawal amount is ₹500' });
+    if (amt > (req.user.wallet || 0)) return res.status(400).json({ success: false, message: 'Insufficient wallet balance' });
+
+    // Check no pending withdrawal already exists
+    const existing = await Withdrawal.findOne({ user: req.user._id, hrStatus: 'pending' });
+    if (existing) return res.status(400).json({ success: false, message: 'You already have a pending withdrawal request. Please wait for it to be processed.' });
+
+    // TDS: 2% on all withdrawals
+    const tdsRate = 2;
+    const tdsAmount = Math.round(amt * tdsRate / 100);
+    // RazorpayX gateway fee: IMPS ₹4.40 + 18% GST = ₹5.19
+    const gatewayFee = 4.40;
+    const gatewayFeeGst = Math.round(gatewayFee * 0.18 * 100) / 100;
+    const totalGatewayFee = Math.round((gatewayFee + gatewayFeeGst) * 100) / 100;
+    const netAmount = amt - tdsAmount - totalGatewayFee;
+
+    // Deduct from wallet immediately and hold
+    await User.findByIdAndUpdate(req.user._id, { $inc: { wallet: -amt, totalWithdrawn: amt } });
+
+    const withdrawal = await Withdrawal.create({
+      user: req.user._id,
+      amount: amt,
+      method: 'bank',
+      accountName: req.user.kyc?.bankHolderName,
+      accountNumber: req.user.kyc?.bankAccount,
+      ifscCode: req.user.kyc?.bankIfsc,
+      status: 'pending',
+      hrStatus: 'pending',
+      tdsRate,
+      tdsAmount,
+      gatewayFee: totalGatewayFee,
+      gatewayFeeGst,
+      netAmount,
+    });
+
+    res.json({ success: true, message: 'Withdrawal request submitted. HR will review and process within 3-5 business days.', withdrawal });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 

@@ -394,33 +394,35 @@ export default function PackagesPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-black text-white">Packages & Commission</h1>
-            <p className="text-gray-400 text-sm mt-1">Manage plans, commissions, and tax settings</p>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
+                  <Package className="w-5 h-5 text-white" />
+                </div>
+                Packages & Commission
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">Manage plans, commissions, and tax settings</p>
+            </div>
+            {activeTab === 'packages' && (
+              <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Create Package
+              </button>
+            )}
           </div>
-          {activeTab === 'packages' && (
-            <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Create Package
-            </button>
-          )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-slate-800/50 p-1 rounded-xl w-fit">
+        {/* ── Tabs ── */}
+        <div className="tab-bar w-fit">
           {TABS.map(tab => {
             const Icon = tab.icon
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
+                className={`flex items-center gap-2 ${activeTab === tab.id ? 'tab-active' : 'tab-inactive'}`}
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}

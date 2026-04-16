@@ -1,38 +1,48 @@
 import { Response } from 'express';
 import LiveClass from '../models/LiveClass';
 import Enrollment from '../models/Enrollment';
-import { createZoomMeeting, deleteZoomMeeting } from '../services/zoomService';
 import { AuthRequest } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 export const createClass = async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, courseId, batchId, scheduledAt, duration, platform } = req.body;
+    const { title, description, courseId, batchId, lessonId, scheduledAt, duration } = req.body;
 
-    let zoomData = {};
-    let roomId;
-
-    if (platform === 'zoom') {
-      const zoom = await createZoomMeeting(title, new Date(scheduledAt), duration || 60);
-      zoomData = { zoomMeetingId: zoom.meetingId, zoomJoinUrl: zoom.joinUrl, zoomStartUrl: zoom.startUrl, zoomPassword: zoom.password };
-    } else {
-      roomId = uuidv4();
-      (zoomData as any).agoraChannelName = 'tl-' + uuidv4().replace(/-/g, '').substring(0, 16);
-    }
+    const livekitRoomName = 'tl-' + uuidv4().replace(/-/g, '').substring(0, 16);
 
     const liveClass = await LiveClass.create({
       title, description,
       course: courseId || undefined,
       batch: batchId || undefined,
+      lessonId: lessonId || undefined,
       mentor: req.user._id,
       scheduledAt: new Date(scheduledAt),
       duration,
-      platform: platform || 'zoom',
-      roomId,
-      ...zoomData
+      platform: 'livekit',
+      livekitRoomName,
     });
 
     res.status(201).json({ success: true, liveClass });
+    // Notify enrolled students about new class
+    setImmediate(async () => {
+      try {
+        if (!liveClass.course) return;
+        const Enrollment = (await import('../models/Enrollment')).default;
+        const { sendPushToUsers } = await import('../services/pushService');
+        const enrollments = await Enrollment.find({ course: liveClass.course }).select('student').lean();
+        const studentIds = enrollments.map((e: any) => e.student);
+        if (studentIds.length) {
+          const dateStr = new Date(scheduledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
+          await sendPushToUsers(studentIds, {
+            title: '📅 New Class Scheduled',
+            body:  `${title} — ${dateStr}`,
+            url:   '/student/classes',
+            tag:   `class-scheduled-${liveClass._id}`,
+            sound: true,
+          });
+        }
+      } catch {}
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -79,16 +89,7 @@ export const joinClass = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const response: any = { success: true, platform: liveClass.platform };
-
-    if (liveClass.platform === 'zoom') {
-      response.joinUrl = req.user.role === 'mentor' ? liveClass.zoomStartUrl : liveClass.zoomJoinUrl;
-      response.password = liveClass.zoomPassword;
-    } else {
-      response.roomId = (liveClass as any).roomId;
-    }
-
-    res.json(response);
+    res.json({ success: true, platform: 'livekit' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -102,6 +103,24 @@ export const startClass = async (req: AuthRequest, res: Response) => {
     const liveClass = await LiveClass.findOneAndUpdate(filter, { status: 'live', startedAt: new Date() }, { new: true });
     if (!liveClass) return res.status(404).json({ success: false, message: 'Class not found' });
     res.json({ success: true, liveClass });
+    // Notify enrolled students in background
+    setImmediate(async () => {
+      try {
+        const Enrollment = (await import('../models/Enrollment')).default;
+        const { sendPushToUsers } = await import('../services/pushService');
+        const enrollments = await Enrollment.find({ course: liveClass.course }).select('student').lean();
+        const studentIds = enrollments.map((e: any) => e.student);
+        if (studentIds.length) {
+          await sendPushToUsers(studentIds, {
+            title: '🔴 Class is Live Now!',
+            body:  `${liveClass.title} has started. Join now!`,
+            url:   `/student/classes`,
+            tag:   `class-live-${liveClass._id}`,
+            sound: true,
+          });
+        }
+      } catch {}
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -124,11 +143,6 @@ export const cancelClass = async (req: AuthRequest, res: Response) => {
   try {
     const liveClass = await LiveClass.findOne({ _id: req.params.id, mentor: req.user._id });
     if (!liveClass) return res.status(404).json({ success: false, message: 'Class not found' });
-
-    if (liveClass.zoomMeetingId) {
-      await deleteZoomMeeting(liveClass.zoomMeetingId).catch(() => {});
-    }
-
     liveClass.status = 'cancelled';
     await liveClass.save();
     res.json({ success: true, message: 'Class cancelled' });
@@ -139,7 +153,6 @@ export const cancelClass = async (req: AuthRequest, res: Response) => {
 
 export const getPublicLiveClasses = async (_req: any, res: Response) => {
   try {
-    // Get live classes + upcoming in next 48 hours
     const now = new Date();
     const cutoff = new Date(now.getTime() + 48 * 60 * 60 * 1000);
     const classes = await LiveClass.find({

@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
   Search, Users, RefreshCw, UserCog, X, CheckCircle, Crown,
   TrendingUp, IndianRupee, BarChart2, ChevronRight, Loader2,
-  Phone, Star, Package, Activity, Award
+  Phone, Star, Package, Activity, Award, UserPlus
 } from 'lucide-react'
 
 const TIER_COLOR: Record<string, string> = {
@@ -34,6 +34,9 @@ export default function PartnersPage() {
   const [perfModal, setPerfModal]     = useState<any>(null)
   const [perfData, setPerfData]       = useState<any>(null)
   const [perfLoading, setPerfLoading] = useState(false)
+  const [createMgrModal, setCreateMgrModal] = useState(false)
+  const [mgrForm, setMgrForm]         = useState({ name: '', email: '', phone: '', password: '' })
+  const [creatingMgr, setCreatingMgr] = useState(false)
 
   useEffect(() => { fetchManagers() }, [])
   useEffect(() => { fetchPartners() }, [search, mgrFilter, page])
@@ -53,6 +56,19 @@ export default function PartnersPage() {
       setTotalPages(r.data.pages || 1)
     } catch { toast.error('Failed to load partners') }
     finally { setLoading(false) }
+  }
+
+  const handleCreateMgr = async () => {
+    if (!mgrForm.name || !mgrForm.email || !mgrForm.password) return toast.error('Name, email & password required')
+    setCreatingMgr(true)
+    try {
+      await adminAPI.createPartnerManager(mgrForm)
+      toast.success('Partner Manager created!')
+      setCreateMgrModal(false)
+      setMgrForm({ name: '', email: '', phone: '', password: '' })
+      fetchManagers()
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to create') }
+    finally { setCreatingMgr(false) }
   }
 
   const openAssign = (partner: any) => {
@@ -87,30 +103,121 @@ export default function PartnersPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Crown className="w-6 h-6 text-yellow-400" /> Partners & Managers
-            </h1>
-            <p className="text-gray-400 text-sm mt-0.5">Manage partners, assign managers, and track performance</p>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
+                  <Crown className="w-5 h-5 text-white" />
+                </div>
+                Partners & Managers
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">Manage partners, assign managers, and track performance</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setCreateMgrModal(true)} className="btn-primary flex items-center gap-2">
+                <UserPlus className="w-4 h-4" /> Create Partner Manager
+              </button>
+              <button onClick={() => { fetchPartners(); fetchManagers() }}
+                className="p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl border border-white/10 transition-all">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <button onClick={() => { fetchPartners(); fetchManagers() }} className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl">
-            <RefreshCw className="w-4 h-4" />
+        </div>
+
+        {/* ── Tabs ── */}
+        <div className="tab-bar w-fit">
+          <button onClick={() => setTab('partners')} className={`flex items-center gap-2 ${tab === 'partners' ? 'tab-active' : 'tab-inactive'}`}>
+            <Users className="w-4 h-4" /> Partners
+          </button>
+          <button onClick={() => setTab('managers')} className={`flex items-center gap-2 ${tab === 'managers' ? 'tab-active' : 'tab-inactive'}`}>
+            <UserCog className="w-4 h-4" /> Manager Performance
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-slate-800/60 rounded-xl p-1 w-fit border border-white/5">
-          <button onClick={() => setTab('partners')}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${tab === 'partners' ? 'bg-violet-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
-            <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Partners</span>
-          </button>
-          <button onClick={() => setTab('managers')}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${tab === 'managers' ? 'bg-violet-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
-            <span className="flex items-center gap-2"><UserCog className="w-4 h-4" /> Manager Performance</span>
-          </button>
-        </div>
+        {/* ── Analytics KPI Cards ── */}
+        {(() => {
+          const totalEarnings = partners.reduce((s, p) => s + (p.totalEarnings || 0), 0)
+          const activePartners = partners.filter(p => p.isActive).length
+          const unassigned = partners.filter(p => !p.managerId).length
+          const tierCounts: Record<string, number> = {}
+          partners.forEach(p => { tierCounts[p.packageTier || 'free'] = (tierCounts[p.packageTier || 'free'] || 0) + 1 })
+          const topTier = Object.entries(tierCounts).sort((a, b) => b[1] - a[1])[0]
+          return (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="kpi-violet rounded-2xl p-4 border flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-5 h-5 text-violet-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Total Partners</p>
+                  <p className="text-2xl font-bold text-white">{partners.length}</p>
+                  <p className="text-xs text-green-400 mt-0.5">{activePartners} active</p>
+                </div>
+              </div>
+              <div className="kpi-emerald rounded-2xl p-4 border flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                  <IndianRupee className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Total Commissions</p>
+                  <p className="text-2xl font-bold text-emerald-400">₹{(totalEarnings / 1000).toFixed(1)}k</p>
+                  <p className="text-xs text-gray-500 mt-0.5">cumulative earnings</p>
+                </div>
+              </div>
+              <div className="kpi-blue rounded-2xl p-4 border flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <UserCog className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Managers</p>
+                  <p className="text-2xl font-bold text-white">{managers.length}</p>
+                  <p className="text-xs text-orange-400 mt-0.5">{unassigned} unassigned</p>
+                </div>
+              </div>
+              <div className="kpi-amber rounded-2xl p-4 border flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                  <Star className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Top Tier</p>
+                  <p className="text-2xl font-bold text-amber-400 capitalize">{topTier?.[0] || '—'}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{topTier?.[1] || 0} partners</p>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* ── Tier Distribution ── */}
+        {partners.length > 0 && (() => {
+          const tiers = ['free','starter','pro','elite','supreme']
+          const tierCounts: Record<string, number> = {}
+          partners.forEach(p => { tierCounts[p.packageTier || 'free'] = (tierCounts[p.packageTier || 'free'] || 0) + 1 })
+          return (
+            <div className="bg-slate-800 rounded-2xl p-4 border border-white/5">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Tier Distribution
+              </p>
+              <div className="flex items-end gap-2 h-16">
+                {tiers.map(t => {
+                  const count = tierCounts[t] || 0
+                  const pct = partners.length > 0 ? (count / partners.length) * 100 : 0
+                  const colors: Record<string,string> = { free:'bg-gray-500', starter:'bg-blue-500', pro:'bg-indigo-500', elite:'bg-violet-500', supreme:'bg-yellow-500' }
+                  return (
+                    <div key={t} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-xs text-gray-400">{count}</span>
+                      <div className={`w-full rounded-t-lg ${colors[t]} opacity-80`} style={{ height: `${Math.max(pct * 0.48, count > 0 ? 4 : 0)}px` }} />
+                      <span className="text-[9px] text-gray-500 capitalize">{t}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ─── PARTNERS TAB ─── */}
         {tab === 'partners' && (
@@ -436,6 +543,44 @@ export default function PartnersPage() {
               ) : (
                 <p className="text-gray-400 text-center py-8">No data available</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Create Partner Manager Modal ── */}
+      {createMgrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+          <div className="bg-[#0f1120] border border-white/10 rounded-2xl p-6 w-full max-w-md space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-yellow-400" /> Create Partner Manager
+              </h3>
+              <button onClick={() => setCreateMgrModal(false)} className="text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3">
+              {[
+                { key: 'name', label: 'Full Name *', placeholder: 'e.g. Priya Sharma', type: 'text' },
+                { key: 'email', label: 'Email *', placeholder: 'priya@example.com', type: 'email' },
+                { key: 'phone', label: 'Phone', placeholder: '+91 98765 43210', type: 'text' },
+                { key: 'password', label: 'Password *', placeholder: 'Min 6 characters', type: 'password' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1">{f.label}</label>
+                  <input type={f.type} value={(mgrForm as any)[f.key]}
+                    onChange={e => setMgrForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-yellow-500/50" />
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500">Manager will be able to log in to the admin panel and manage assigned partners.</p>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setCreateMgrModal(false)} className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:text-white">Cancel</button>
+              <button onClick={handleCreateMgr} disabled={creatingMgr}
+                className="flex-1 py-2.5 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                {creatingMgr ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                Create Manager
+              </button>
             </div>
           </div>
         </div>

@@ -1,28 +1,40 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { Star, Quote } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-const testimonials = [
-  { name: 'Rahul Sharma', role: 'Full Stack Dev @ TCS', avatar: 'RS', review: 'TruLearnix live classes changed everything. Got placed at TCS within 2 months of completing the course!', rating: 5, earned: '', color: 'from-violet-500 to-indigo-500' },
-  { name: 'Priya Singh', role: 'Data Scientist', avatar: 'PS', review: 'The AI certificate is literally accepted everywhere. 40% salary hike after completing Data Science course.', rating: 5, earned: '40% hike', color: 'from-pink-500 to-rose-500' },
-  { name: 'Amit Kumar', role: 'UI/UX Designer', avatar: 'AK', review: "Best platform for design. And the Earn Program is insane — I made ₹15,000 just by helping 5 friends join!", rating: 5, earned: '₹15K earned', color: 'from-blue-500 to-cyan-500' },
-  { name: 'Sneha Patel', role: 'Digital Marketer', avatar: 'SP', review: 'Live classes with actual Q&A sessions make all the difference. Not just recorded videos like others.', rating: 5, earned: '₹25K earned', color: 'from-green-500 to-emerald-500' },
-  { name: 'Vikash Gupta', role: 'React Native Dev', avatar: 'VG', review: 'The mock interviews and live projects helped me build an actual portfolio. Now working remotely!', rating: 5, earned: '', color: 'from-amber-500 to-orange-500' },
-  { name: 'Neha Joshi', role: 'Cloud Engineer @ AWS', avatar: 'NJ', review: 'Got AWS certified through TruLearnix. The structured path and hands-on labs are world-class.', rating: 5, earned: 'Got certified', color: 'from-teal-500 to-cyan-500' },
-  { name: 'Rohan Verma', role: 'Freelancer', avatar: 'RV', review: 'From ₹0 to ₹50K/month freelancing after completing the Web Dev bootcamp. Life-changing platform!', rating: 5, earned: '₹50K/month', color: 'from-purple-500 to-violet-500' },
-  { name: 'Divya Nair', role: 'Product Manager', avatar: 'DN', review: 'The mentorship sessions are incredibly personalized. My mentor actually knows my name and progress!', rating: 5, earned: '', color: 'from-red-500 to-pink-500' },
+const GRADIENT_COLORS = [
+  'from-violet-500 to-indigo-500',
+  'from-pink-500 to-rose-500',
+  'from-blue-500 to-cyan-500',
+  'from-green-500 to-emerald-500',
+  'from-amber-500 to-orange-500',
+  'from-teal-500 to-cyan-500',
+  'from-purple-500 to-violet-500',
+  'from-red-500 to-pink-500',
 ]
 
-function TestCard({ t }: { t: typeof testimonials[0] }) {
+const DEFAULT_TESTIMONIALS = [
+  { name: 'Rahul Sharma', role: 'Full Stack Dev @ TCS', avatar: 'RS', review: 'TruLearnix live classes changed everything. Got placed at TCS within 2 months of completing the course!', rating: 5, earned: '', color: 'from-violet-500 to-indigo-500', avatarUrl: '', videoUrl: '' },
+  { name: 'Priya Singh', role: 'Data Scientist', avatar: 'PS', review: 'The AI certificate is literally accepted everywhere. 40% salary hike after completing Data Science course.', rating: 5, earned: '40% hike', color: 'from-pink-500 to-rose-500', avatarUrl: '', videoUrl: '' },
+  { name: 'Amit Kumar', role: 'UI/UX Designer', avatar: 'AK', review: "Best platform for design. And the Earn Program is insane — I made ₹15,000 just by helping 5 friends join!", rating: 5, earned: '₹15K earned', color: 'from-blue-500 to-cyan-500', avatarUrl: '', videoUrl: '' },
+  { name: 'Sneha Patel', role: 'Digital Marketer', avatar: 'SP', review: 'Live classes with actual Q&A sessions make all the difference. Not just recorded videos like others.', rating: 5, earned: '₹25K earned', color: 'from-green-500 to-emerald-500', avatarUrl: '', videoUrl: '' },
+  { name: 'Vikash Gupta', role: 'React Native Dev', avatar: 'VG', review: 'The mock interviews and live projects helped me build an actual portfolio. Now working remotely!', rating: 5, earned: '', color: 'from-amber-500 to-orange-500', avatarUrl: '', videoUrl: '' },
+  { name: 'Neha Joshi', role: 'Cloud Engineer @ AWS', avatar: 'NJ', review: 'Got AWS certified through TruLearnix. The structured path and hands-on labs are world-class.', rating: 5, earned: 'Got certified', color: 'from-teal-500 to-cyan-500', avatarUrl: '', videoUrl: '' },
+  { name: 'Rohan Verma', role: 'Freelancer', avatar: 'RV', review: 'From ₹0 to ₹50K/month freelancing after completing the Web Dev bootcamp. Life-changing platform!', rating: 5, earned: '₹50K/month', color: 'from-purple-500 to-violet-500', avatarUrl: '', videoUrl: '' },
+  { name: 'Divya Nair', role: 'Product Manager', avatar: 'DN', review: 'The mentorship sessions are incredibly personalized. My mentor actually knows my name and progress!', rating: 5, earned: '', color: 'from-red-500 to-pink-500', avatarUrl: '', videoUrl: '' },
+]
+
+type Testimonial = typeof DEFAULT_TESTIMONIALS[0] & { quote?: string }
+
+function TestCard({ t }: { t: Testimonial }) {
   return (
     <div className="flex-shrink-0 w-[320px] mx-3 rounded-2xl p-5 relative"
       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      {/* Quote icon */}
       <Quote className="absolute top-4 right-4 w-5 h-5 text-violet-500/25" />
 
-      {/* Stars + earned badge */}
       <div className="flex items-center gap-1 mb-3">
-        {[...Array(t.rating)].map((_, j) => (
+        {[...Array(t.rating || 5)].map((_, j) => (
           <Star key={j} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
         ))}
         {t.earned && (
@@ -32,12 +44,15 @@ function TestCard({ t }: { t: typeof testimonials[0] }) {
         )}
       </div>
 
-      <p className="text-gray-300 text-sm leading-relaxed mb-4">"{t.review}"</p>
+      <p className="text-gray-300 text-sm leading-relaxed mb-4">&ldquo;{t.review || t.quote}&rdquo;</p>
 
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-black text-xs flex-shrink-0`}>
-          {t.avatar}
-        </div>
+        {t.avatarUrl
+          ? <img src={t.avatarUrl} alt={t.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+          : <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.color || 'from-violet-500 to-indigo-500'} flex items-center justify-center text-white font-black text-xs flex-shrink-0`}>
+              {t.avatar || t.name?.[0] || '?'}
+            </div>
+        }
         <div>
           <p className="font-bold text-white text-sm">{t.name}</p>
           <p className="text-xs text-gray-500">{t.role}</p>
@@ -48,10 +63,30 @@ function TestCard({ t }: { t: typeof testimonials[0] }) {
 }
 
 export default function TestimonialsSection() {
+  const [testimonials, setTestimonials] = useState(DEFAULT_TESTIMONIALS as Testimonial[])
+
+  useEffect(() => {
+    fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/testimonials')
+      .then(r => r.json())
+      .then(res => {
+        const items = res.data?.items
+        if (!items?.length) return
+        setTestimonials(items.map((t: any, i: number) => ({
+          ...t,
+          review: t.quote || t.review || '',
+          avatar: t.name?.[0] || '?',
+          rating: 5,
+          earned: t.result || t.earned || '',
+          color: GRADIENT_COLORS[i % GRADIENT_COLORS.length],
+        })))
+      })
+      .catch(() => {})
+  }, [])
+
   const doubled = [...testimonials, ...testimonials]
+
   return (
     <section className="py-10 md:py-16 relative" style={{ overflow:'hidden', maxWidth:'100vw' }}>
-      {/* Background glow */}
       <div className="absolute inset-x-0 top-1/2 h-px pointer-events-none"
         style={{ background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.2), transparent)' }} />
 
@@ -73,7 +108,6 @@ export default function TestimonialsSection() {
 
       {/* Row 1 — forward scroll */}
       <div className="relative mb-4 overflow-hidden">
-        {/* Fade masks */}
         <div className="absolute left-0 top-0 bottom-0 w-24 z-10 pointer-events-none"
           style={{ background: 'linear-gradient(90deg, #050709, transparent)' }} />
         <div className="absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none"

@@ -74,6 +74,22 @@ body {
 .input::placeholder { color: rgba(255,255,255,0.3); }
 .input option { background: #0a1628; }
 
+/* Dark select/dropdown overrides */
+select {
+  color-scheme: dark;
+  background-color: #0a1628;
+  color: #f1f5f9;
+}
+select option {
+  background-color: #0a1628;
+  color: #f1f5f9;
+}
+select option:hover,
+select option:checked {
+  background-color: #0d9488;
+  color: #fff;
+}
+
 .gradient-text {
   background: linear-gradient(135deg, #2dd4bf, #22d3ee, #818cf8);
   -webkit-background-clip: text;

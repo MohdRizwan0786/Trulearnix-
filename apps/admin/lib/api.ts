@@ -37,15 +37,20 @@ export const adminAPI = {
   dashboard: () => api.get('/admin/dashboard'),
   // Analytics
   analyticsDashboard: () => api.get('/analytics/dashboard'),
-  analyticsRevenue: (period?: string) => api.get('/analytics/revenue', { params: { period } }),
-  analyticsUsers: (period?: string) => api.get('/analytics/users', { params: { period } }),
+  analyticsFunnel: () => api.get('/analytics/funnel'),
+  analyticsOverview: (params: any) => api.get('/analytics/overview', { params }),
+  analyticsRevenue: (period?: string, from?: string, to?: string) => api.get('/analytics/revenue', { params: { period, from, to } }),
+  analyticsUsers: (period?: string, from?: string, to?: string) => api.get('/analytics/users', { params: { period, from, to } }),
   unitEconomics: () => api.get('/analytics/unit-economics'),
   // Users
+  createUser: (data: any) => api.post('/admin/users/create', data),
   users: (params?: any) => api.get('/admin/users', { params }),
   getUser: (id: string) => api.get(`/admin/users/${id}`),
+  resetUserPassword: (id: string, password: string) => api.patch(`/admin/users/${id}/reset-password`, { password }),
   toggleUser: (id: string) => api.patch(`/admin/users/${id}/toggle`),
   updateUserRole: (id: string, role: string) => api.patch(`/admin/users/${id}/role`, { role }),
   updateUserPackage: (id: string, packageTier: string) => api.patch(`/admin/users/${id}/package`, { packageTier }),
+  setIndustrialEarning: (id: string, data: any) => api.patch(`/admin/users/${id}/industrial-earning`, data),
   // Courses — admin sees all statuses
   allCourses: (params?: any) => api.get('/admin/courses/all', { params }),
   getCourse: (id: string) => api.get(`/admin/courses/${id}`),
@@ -57,6 +62,7 @@ export const adminAPI = {
   // Batches
   batches: (courseId: string) => api.get('/admin/batches', { params: { courseId } }),
   batchStudents: (batchId: string) => api.get(`/admin/batches/${batchId}/students`),
+  batchPerformance: (batchId: string) => api.get(`/admin/batches/${batchId}/performance`),
   createBatch: (data: any) => api.post('/admin/batches', data),
   closeBatch: (id: string) => api.patch(`/admin/batches/${id}/close`),
   reopenBatch: (id: string, data?: any) => api.patch(`/admin/batches/${id}/reopen`, data),
@@ -78,11 +84,16 @@ export const adminAPI = {
   // Withdrawals
   withdrawals: (params?: any) => api.get('/admin/withdrawals', { params }),
   processWithdrawal: (id: string, data: any) => api.patch(`/admin/withdrawals/${id}`, data),
+  hrApproveWithdrawal: (id: string) => api.patch(`/admin/withdrawals/${id}/hr-approve`),
+  hrRejectWithdrawal: (id: string, reason: string) => api.patch(`/admin/withdrawals/${id}/hr-reject`, { reason }),
+  completeWithdrawal: (id: string, transactionRef?: string) => api.patch(`/admin/withdrawals/${id}/complete`, { transactionRef }),
   // CRM
   leads: (params?: any) => api.get('/crm/leads', { params }),
   getLead: (id: string) => api.get(`/crm/leads/${id}`),
+  createLead: (data: any) => api.post('/crm/leads', data),
   updateLead: (id: string, data: any) => api.patch(`/crm/leads/${id}`, data),
   deleteLead: (id: string) => api.delete(`/crm/leads/${id}`),
+  importLeads: (data: any) => api.post('/crm/leads/import', data),
   crmStats: () => api.get('/crm/stats'),
   // Blog
   allBlogs: (params?: any) => api.get('/blog/admin/all', { params }),
@@ -103,10 +114,42 @@ export const adminAPI = {
   cancelClass: (id: string) => api.delete(`/classes/${id}`),
   getAttendance: (id: string) => api.get(`/classes/${id}/attendance`),
   getRecordings: (params?: any) => api.get('/classes/admin/recordings', { params }),
-  agoraToken: (id: string) => api.get(`/classes/${id}/agora-token`),
+  livekitToken: (id: string) => api.get(`/classes/${id}/livekit-token`),
   getRoomControl: (id: string) => api.get(`/classes/${id}/room-control`),
   setRoomControl: (id: string, data: any) => api.post(`/classes/${id}/room-control`, data),
+  // Webinars & Workshops
+  allWebinars: (params?: any) => api.get('/webinars', { params }),
+  createWebinar: (data: any) => api.post('/webinars', data),
+  getWebinar: (id: string) => api.get(`/webinars/${id}`),
+  updateWebinar: (id: string, data: any) => api.patch(`/webinars/${id}`, data),
+  startWebinar: (id: string) => api.patch(`/webinars/${id}/start`),
+  startWebinarRecording: (id: string) => api.patch(`/webinars/${id}/recording/start`),
+  endWebinar: (id: string) => api.patch(`/webinars/${id}/end`),
+  cancelWebinar: (id: string) => api.delete(`/webinars/${id}`),
+  webinarLivekitToken: (id: string) => api.get(`/webinars/${id}/livekit-token`),
+  getWebinarRoomControl: (id: string) => api.get(`/webinars/${id}/room-control`),
+  setWebinarRoomControl: (id: string, data: any) => api.post(`/webinars/${id}/room-control`, data),
+  getWebinarReport: (id: string) => api.get(`/webinars/${id}/report`),
   courseBatches: (courseId: string) => api.get(`/admin/batches?course=${courseId}`),
+  // Coupons
+  // KYC Management
+  kycList: (params?: any) => api.get('/admin/kyc', { params }),
+  kycAction: (userId: string, data: any) => api.patch(`/admin/kyc/${userId}`, data),
+  // Partner Training
+  partnerTraining: () => api.get('/admin/partner-training'),
+  createTrainingModule: (data: any) => api.post('/admin/partner-training', data),
+  updateTrainingModule: (id: string, data: any) => api.patch(`/admin/partner-training/${id}`, data),
+  deleteTrainingModule: (id: string) => api.delete(`/admin/partner-training/${id}`),
+  // Qualifications
+  qualifications: () => api.get('/admin/qualifications'),
+  createQualification: (data: any) => api.post('/admin/qualifications', data),
+  updateQualification: (id: string, data: any) => api.patch(`/admin/qualifications/${id}`, data),
+  deleteQualification: (id: string) => api.delete(`/admin/qualifications/${id}`),
+  // Achievements
+  achievements: () => api.get('/admin/achievements'),
+  createAchievement: (data: any) => api.post('/admin/achievements', data),
+  updateAchievement: (id: string, data: any) => api.patch(`/admin/achievements/${id}`, data),
+  deleteAchievement: (id: string) => api.delete(`/admin/achievements/${id}`),
   // Coupons
   coupons: () => api.get('/coupons'),
   createCoupon: (data: any) => api.post('/coupons', data),
@@ -114,6 +157,7 @@ export const adminAPI = {
   deleteCoupon: (id: string) => api.delete(`/coupons/${id}`),
   // Tasks (Kanban)
   tasks: () => api.get('/tasks'),
+  taskTeam: () => api.get('/tasks/team'),
   createTask: (data: any) => api.post('/tasks', data),
   updateTask: (id: string, data: any) => api.patch(`/tasks/${id}`, data),
   deleteTask: (id: string) => api.delete(`/tasks/${id}`),
@@ -194,10 +238,24 @@ export const adminAPI = {
   // Employees
   employees: (params?: any) => api.get('/admin/employees', { params }),
   createEmployee: (data: any) => api.post('/admin/employees', data),
+  // Salespersons
+  createSalesperson: (data: any) => api.post('/admin/salespersons', data),
+  // Partner Managers
+  createPartnerManager: (data: any) => api.post('/admin/partner-managers', data),
   updateEmployee: (id: string, data: any) => api.patch(`/admin/employees/${id}`, data),
   deleteEmployee: (id: string) => api.delete(`/admin/employees/${id}`),
   // Learners
   learners: (params?: any) => api.get('/admin/learners', { params }),
+  learnerBrand: (id: string) => api.get(`/admin/learners/${id}/brand`),
+  // Jobs
+  jobs: (params?: any) => api.get('/admin/jobs', { params }),
+  updateJobStatus: (id: string, status: string) => api.patch(`/admin/jobs/${id}/status`, { status }),
+  deleteJob: (id: string) => api.delete(`/admin/jobs/${id}`),
+  // Announcements
+  announcements: (params?: any) => api.get('/announcements', { params }),
+  createAnnouncement: (data: any) => api.post('/announcements', data),
+  updateAnnouncement: (id: string, data: any) => api.patch(`/announcements/${id}`, data),
+  deleteAnnouncement: (id: string) => api.delete(`/announcements/${id}`),
   // Partners
   partners: (params?: any) => api.get('/admin/partners', { params }),
   setPromoDiscount: (id: string, percent: number) => api.patch(`/admin/partners/${id}/promo-discount`, { promoDiscountPercent: percent }),
@@ -239,6 +297,50 @@ export const adminAPI = {
   emiMarkPaid: (installmentId: string) => api.patch(`/admin/emi/${installmentId}/mark-paid`),
   emiCollectWallet: (installmentId: string) => api.post(`/admin/emi/${installmentId}/collect-wallet`),
   emiToggleAccess: (packagePurchaseId: string, lock: boolean) => api.patch(`/admin/emi/${packagePurchaseId}/toggle-access`, { lock }),
+  // Report Cards
+  reportCards: (status?: string) => api.get('/admin/report-cards', { params: { status } }),
+  approveReportCard: (id: string) => api.patch(`/admin/report-cards/${id}/approve`),
+  rejectReportCard: (id: string, data: any) => api.patch(`/admin/report-cards/${id}/reject`, data),
+  // Mentor Salaries
+  mentorSalaries: (params?: any) => api.get('/admin/mentor-salaries', { params }),
+  createMentorSalary: (data: any) => api.post('/admin/mentor-salaries', data),
+  approveMentorSalary: (id: string) => api.patch(`/admin/mentor-salaries/${id}/approve`),
+  markMentorSalaryPaid: (id: string) => api.patch(`/admin/mentor-salaries/${id}/mark-paid`),
+  deleteMentorSalary: (id: string) => api.delete(`/admin/mentor-salaries/${id}`),
+  mentorsList: () => api.get('/admin/mentors-list'),
+  // Employee Salaries
+  employeeSalaries: (params?: any) => api.get('/admin/employee-salaries', { params }),
+  createEmployeeSalary: (data: any) => api.post('/admin/employee-salaries', data),
+  approveEmployeeSalary: (id: string) => api.patch(`/admin/employee-salaries/${id}/approve`),
+  markEmployeeSalaryPaid: (id: string) => api.patch(`/admin/employee-salaries/${id}/mark-paid`),
+  deleteEmployeeSalary: (id: string) => api.delete(`/admin/employee-salaries/${id}`),
+  employeesForSalary: () => api.get('/admin/employees-for-salary'),
+  updateEmployeeKyc: (id: string, data: any) => api.patch(`/admin/employees/${id}/kyc`, data),
+  // Attendance
+  attendance: (params?: any) => api.get('/admin/attendance', { params }),
+  attendanceSummary: (params?: any) => api.get('/admin/attendance/summary', { params }),
+  markAttendance: (data: any) => api.post('/admin/attendance/mark', data),
+  bulkMarkAttendance: (data: any) => api.post('/admin/attendance/bulk-mark', data),
+  calculateSalary: (params: any) => api.get('/admin/attendance/calculate-salary', { params }),
+  // Holidays
+  holidays: (params?: any) => api.get('/admin/holidays', { params }),
+  createHoliday: (data: any) => api.post('/admin/holidays', data),
+  deleteHoliday: (id: string) => api.delete(`/admin/holidays/${id}`),
+  // Meetings
+  meetings: () => api.get('/meetings'),
+  meetingAnalytics: () => api.get('/meetings/analytics'),
+  createMeeting: (data: any) => api.post('/meetings', data),
+  updateMeeting: (id: string, data: any) => api.patch(`/meetings/${id}`, data),
+  startMeeting: (id: string) => api.patch(`/meetings/${id}/start`),
+  endMeeting: (id: string) => api.patch(`/meetings/${id}/end`),
+  deleteMeeting: (id: string) => api.delete(`/meetings/${id}`),
+  meetingLivekitToken: (id: string) => api.get(`/meetings/${id}/livekit-token`),
+  // Security
+  securityDashboard: () => api.get('/admin/security/dashboard'),
+  securityLogs: (params?: any) => api.get('/admin/security/logs', { params }),
+  securityBlocked: () => api.get('/admin/security/blocked'),
+  securityBlock: (data: any) => api.post('/admin/security/block', data),
+  securityUnblock: (ip: string) => api.delete(`/admin/security/block/${encodeURIComponent(ip)}`),
 };
 
 export default api;

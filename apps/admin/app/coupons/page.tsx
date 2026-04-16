@@ -80,14 +80,22 @@ export default function CouponsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Coupons</h1>
-            <p className="text-gray-400 text-sm mt-1">{coupons.length} coupons total</p>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-600 flex items-center justify-center shadow-lg">
+                  <Tag className="w-5 h-5 text-white" />
+                </div>
+                Coupon Management
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">{coupons.length} coupons — drive conversions with discounts</p>
+            </div>
+            <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
+              <Plus className="w-4 h-4" /> New Coupon
+            </button>
           </div>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" /> New Coupon
-          </button>
         </div>
 
         {showForm && (

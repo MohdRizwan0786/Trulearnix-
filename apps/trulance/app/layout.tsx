@@ -4,7 +4,7 @@ import Providers from './providers'
 import Navbar from '@/components/Navbar'
 
 export const metadata: Metadata = {
-  title: 'TruLance — Hire & Get Hired | TruLearnix Freelance Platform',
+  title: 'TruLancer — Hire & Get Hired | TruLearnix Freelance Platform',
   description: "India's skill-first freelance marketplace. Hire verified TruLearnix students or find your next project.",
 }
 

@@ -26,7 +26,8 @@ export default function LoginPage() {
         toast.error('Login failed: no token received')
         return
       }
-      if (!['superadmin', 'admin', 'manager'].includes(user?.role)) {
+      const allowedRoles = ['superadmin', 'admin', 'manager', 'mentor', 'salesperson']
+      if (!allowedRoles.includes(user?.role)) {
         toast.error('Access denied. Admin privileges required.')
         return
       }
@@ -37,7 +38,8 @@ export default function LoginPage() {
       localStorage.setItem('adminDept', user?.department || '')
       localStorage.setItem('adminPermissions', JSON.stringify(user?.permissions || []))
       toast.success(`Welcome back, ${user?.name}!`)
-      router.push('/dashboard')
+      const isLimitedRole = ['mentor', 'salesperson'].includes(user?.role)
+      router.push(isLimitedRole ? '/kanban' : '/dashboard')
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Login failed')
     } finally {

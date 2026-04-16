@@ -76,6 +76,9 @@ export interface IUser extends Document {
   managerName?: string;
   managerPhone?: string;
   managerId?: mongoose.Types.ObjectId;
+  industrialEarning: number;
+  industrialEarningSource?: string;
+  isIndustrialPartner: boolean;
   sponsorCode?: string;
   age?: number;
   country?: string;
@@ -143,11 +146,11 @@ const UserSchema = new Schema<IUser>({
   promoDiscountPercent: { type: Number, default: 0, min: 0, max: 100 },
   favoriteCourses: [{ type: Schema.Types.ObjectId, ref: 'Course' }],
   kyc: {
-    pan: String, panName: String, panVerified: { type: Boolean, default: false },
-    aadhar: String, aadharName: String, aadharVerified: { type: Boolean, default: false },
+    pan: String, panName: String, panVerified: { type: Boolean, default: false }, panPhoto: String,
+    aadhar: String, aadharName: String, aadharVerified: { type: Boolean, default: false }, aadharPhoto: String,
     bankAccount: String, bankIfsc: String, bankName: String, bankHolderName: String,
     status: { type: String, enum: ['pending','submitted','verified','rejected'], default: 'pending' },
-    rejectionReason: String, submittedAt: Date, verifiedAt: Date,
+    rejectionReason: String, submittedAt: Date, verifiedAt: Date, reviewedBy: String,
   },
   department: { type: String, enum: ['hr', 'sales', 'marketing', 'content', 'finance', 'operations', 'support', 'tech', 'general'] },
   employeeId: { type: String, sparse: true },
@@ -156,6 +159,9 @@ const UserSchema = new Schema<IUser>({
   managerName: String,
   managerPhone: String,
   managerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  industrialEarning: { type: Number, default: 0 },
+  industrialEarningSource: { type: String, default: '' },
+  isIndustrialPartner: { type: Boolean, default: false },
   sponsorCode: String,
   age: { type: Number },
   country: { type: String, default: 'India' },

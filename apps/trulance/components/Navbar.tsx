@@ -34,7 +34,7 @@ export default function Navbar() {
               <Zap className="w-4 h-4 text-white" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-black text-white text-[15px] tracking-tight">TruLance</span>
+              <span className="font-black text-white text-[15px] tracking-tight">TruLancer</span>
               <span className="text-[9px] text-teal-400 font-bold uppercase tracking-widest">by TruLearnix</span>
             </div>
           </Link>

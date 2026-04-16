@@ -3,13 +3,18 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { partnerAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
-import { Users, TrendingUp, Crown, Star, Loader2, Copy, Check, ChevronDown, ChevronUp, Zap } from 'lucide-react'
+import {
+  Users, TrendingUp, Crown, Star, Copy, Check,
+  ChevronDown, ChevronUp, Zap, Share2, Network,
+  GitBranch, Layers, DollarSign, UserCheck
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 
+/* ── Tier config ── */
 const TIER_GRAD: Record<string, string> = {
   free: 'from-gray-500 to-gray-600',
   starter: 'from-blue-500 to-blue-600',
-  pro: 'from-purple-500 to-purple-600',
+  pro: 'from-purple-500 to-violet-600',
   elite: 'from-amber-500 to-orange-500',
   supreme: 'from-rose-500 to-pink-600',
 }
@@ -20,11 +25,54 @@ const TIER_BADGE: Record<string, string> = {
   elite: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   supreme: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
 }
+const TIER_EMOJI: Record<string, string> = {
+  free: '🌱', starter: '⚡', pro: '🚀', elite: '💎', supreme: '👑',
+}
 
+/* ── Level config ── */
 const LEVELS = [
-  { key: 'l1', n: 1, label: 'Level 1', sub: 'Your direct referrals', color: '#8b5cf6', light: 'violet', grad: 'from-violet-600 to-violet-500', ring: 'ring-violet-500/40', glow: 'shadow-violet-500/30', bg: 'bg-violet-500/10 border-violet-500/20', header: 'from-violet-900/80 to-violet-800/40', dot: 'bg-violet-500' },
-  { key: 'l2', n: 2, label: 'Level 2', sub: 'Referrals of Level 1', color: '#3b82f6', light: 'blue', grad: 'from-blue-600 to-blue-500', ring: 'ring-blue-500/40', glow: 'shadow-blue-500/30', bg: 'bg-blue-500/10 border-blue-500/20', header: 'from-blue-900/80 to-blue-800/40', dot: 'bg-blue-500' },
-  { key: 'l3', n: 3, label: 'Level 3', sub: 'Referrals of Level 2', color: '#06b6d4', light: 'cyan', grad: 'from-cyan-600 to-cyan-500', ring: 'ring-cyan-500/40', glow: 'shadow-cyan-500/30', bg: 'bg-cyan-500/10 border-cyan-500/20', header: 'from-cyan-900/80 to-cyan-800/40', dot: 'bg-cyan-500' },
+  {
+    key: 'l1', n: 1, label: 'Level 1', sub: 'Your direct referrals',
+    color: '#8b5cf6', hexLight: 'violet',
+    grad: 'from-violet-600 to-violet-500',
+    gradFull: 'from-violet-600/30 to-violet-500/10',
+    ring: 'ring-violet-500/40',
+    glow: 'shadow-violet-500/30',
+    bg: 'bg-violet-500/8 border-violet-500/20',
+    header: 'from-violet-900/60 to-violet-800/20',
+    dot: 'bg-violet-500',
+    dotGlow: 'shadow-violet-500',
+    statColor: 'text-violet-400',
+    connectorColor: 'from-violet-500/50 to-violet-400/20',
+  },
+  {
+    key: 'l2', n: 2, label: 'Level 2', sub: 'Referrals of your Level 1',
+    color: '#3b82f6', hexLight: 'blue',
+    grad: 'from-blue-600 to-blue-500',
+    gradFull: 'from-blue-600/30 to-blue-500/10',
+    ring: 'ring-blue-500/40',
+    glow: 'shadow-blue-500/30',
+    bg: 'bg-blue-500/8 border-blue-500/20',
+    header: 'from-blue-900/60 to-blue-800/20',
+    dot: 'bg-blue-500',
+    dotGlow: 'shadow-blue-500',
+    statColor: 'text-blue-400',
+    connectorColor: 'from-blue-500/50 to-blue-400/20',
+  },
+  {
+    key: 'l3', n: 3, label: 'Level 3', sub: 'Referrals of your Level 2',
+    color: '#06b6d4', hexLight: 'cyan',
+    grad: 'from-cyan-600 to-cyan-500',
+    gradFull: 'from-cyan-600/30 to-cyan-500/10',
+    ring: 'ring-cyan-500/40',
+    glow: 'shadow-cyan-500/30',
+    bg: 'bg-cyan-500/8 border-cyan-500/20',
+    header: 'from-cyan-900/60 to-cyan-800/20',
+    dot: 'bg-cyan-500',
+    dotGlow: 'shadow-cyan-500',
+    statColor: 'text-cyan-400',
+    connectorColor: 'from-cyan-500/50 to-cyan-400/20',
+  },
 ]
 
 function fmt(n: number) {
@@ -36,84 +84,141 @@ function fmtFull(n: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
 }
 
-function MemberPill({ m }: { m: any }) {
+/* ── Skeleton ── */
+function MTypeSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="h-48 animate-pulse rounded-2xl bg-dark-800" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[...Array(4)].map((_, i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-dark-800" />)}
+      </div>
+      <div className="h-28 animate-pulse rounded-2xl bg-dark-800" />
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="space-y-2">
+          <div className="h-6 w-1 animate-pulse bg-dark-700 mx-auto" />
+          <div className="h-16 animate-pulse rounded-2xl bg-dark-800" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ── Member Card ── */
+function MemberCard({ m }: { m: any }) {
   const grad = TIER_GRAD[m.packageTier] || TIER_GRAD.free
   const badge = TIER_BADGE[m.packageTier] || TIER_BADGE.free
+  const emoji = TIER_EMOJI[m.packageTier] || TIER_EMOJI.free
   return (
-    <div className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl px-3 py-2.5 transition-all group cursor-default">
-      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${grad} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+    <div className="flex items-center gap-2.5 bg-white/4 hover:bg-white/8 border border-white/8 hover:border-white/15 rounded-xl px-3 py-2.5 transition-all cursor-default group">
+      {/* Avatar */}
+      <div className={`relative w-9 h-9 rounded-full bg-gradient-to-br ${grad} flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ring-1 ring-white/10`}>
         {m.name?.[0]?.toUpperCase()}
+        {m.isAffiliate && (
+          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-violet-500 border border-dark-800 flex items-center justify-center">
+            <Star className="w-2 h-2 text-white" />
+          </div>
+        )}
       </div>
+
+      {/* Info */}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1">
-          <p className="text-white text-xs font-semibold truncate">{m.name}</p>
-          {m.isAffiliate && <Star className="w-2.5 h-2.5 text-violet-400 flex-shrink-0" />}
-        </div>
-        <span className={`text-xs px-1.5 py-0 rounded-full border capitalize ${badge}`}>{m.packageTier || 'free'}</span>
+        <p className="text-white/90 text-xs font-semibold truncate leading-tight group-hover:text-white transition-colors">
+          {m.name}
+        </p>
+        <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full border capitalize mt-0.5 ${badge}`}>
+          {emoji} {m.packageTier || 'free'}
+        </span>
       </div>
+
+      {/* Earnings */}
       {m.totalEarnings > 0 && (
-        <p className="text-green-400 text-xs font-bold flex-shrink-0">{fmt(m.totalEarnings)}</p>
+        <div className="flex-shrink-0 text-right">
+          <p className="text-green-400 text-xs font-bold">{fmt(m.totalEarnings)}</p>
+          <p className="text-dark-500 text-[9px]">earned</p>
+        </div>
       )}
     </div>
   )
 }
 
-function LevelNode({ lv, members, earnings, idx }: { lv: typeof LEVELS[0]; members: any[]; earnings: number; idx: number }) {
+/* ── Level Node ── */
+function LevelNode({
+  lv, members, earnings, idx
+}: {
+  lv: typeof LEVELS[0]; members: any[]; earnings: number; idx: number
+}) {
   const [open, setOpen] = useState(idx === 0)
   const paid = members.filter(m => m.packageTier && m.packageTier !== 'free').length
+  const totalMembers = members.length
+
+  const stats = [
+    { label: 'Members', value: totalMembers, color: lv.statColor },
+    { label: 'Paid', value: paid, color: 'text-green-400' },
+    { label: 'Earned', value: fmt(earnings), color: 'text-emerald-400' },
+  ]
 
   return (
     <div className="relative flex flex-col items-center w-full">
-      {/* Connector line from above */}
+      {/* Connector line + dot */}
       <div className="flex flex-col items-center">
-        <div className="w-px h-8 bg-gradient-to-b from-white/20 to-white/5" />
-        <div className={`w-3 h-3 rounded-full ${lv.dot} ring-4 ${lv.ring} shadow-lg ${lv.glow}`} />
-        <div className="w-px h-6 bg-gradient-to-b from-white/10 to-transparent" />
+        <div className={`w-px h-10 bg-gradient-to-b ${lv.connectorColor}`} />
+        <div className="relative flex items-center justify-center">
+          <div className={`absolute w-6 h-6 rounded-full ${lv.dot} opacity-20 animate-ping`} style={{ animationDuration: '3s' }} />
+          <div className={`relative w-4 h-4 rounded-full ${lv.dot} ring-4 ${lv.ring} shadow-lg`} style={{ boxShadow: `0 0 12px ${lv.color}60` }} />
+        </div>
+        <div className={`w-px h-6 bg-gradient-to-b ${lv.connectorColor} opacity-50`} />
       </div>
 
       {/* Level card */}
-      <div className={`w-full rounded-2xl border ${lv.bg} overflow-hidden shadow-lg ${lv.glow}`} style={{ boxShadow: `0 0 30px ${lv.color}18` }}>
-        {/* Header */}
+      <div
+        className={`w-full rounded-2xl border ${lv.bg} overflow-hidden`}
+        style={{ boxShadow: `0 0 40px ${lv.color}12, 0 4px 20px rgba(0,0,0,0.3)` }}
+      >
+        {/* Card Header */}
         <button
-          className={`w-full bg-gradient-to-r ${lv.header} px-5 py-4 flex items-center justify-between`}
+          className={`w-full bg-gradient-to-r ${lv.header} px-4 sm:px-5 py-4 flex items-center justify-between gap-3 border-b border-white/5 transition-all hover:bg-white/5`}
           onClick={() => setOpen(v => !v)}
         >
-          <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${lv.grad} flex items-center justify-center shadow-lg`}>
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Level badge */}
+            <div className={`flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br ${lv.grad} flex items-center justify-center shadow-lg`}
+              style={{ boxShadow: `0 4px 12px ${lv.color}50` }}>
               <span className="text-white font-black text-sm">L{lv.n}</span>
             </div>
-            <div className="text-left">
-              <p className="text-white font-bold">{lv.label}</p>
-              <p className="text-white/50 text-xs">{lv.sub}</p>
+            <div className="text-left min-w-0">
+              <p className="text-white font-bold text-sm leading-tight">{lv.label}</p>
+              <p className="text-white/40 text-[11px] truncate">{lv.sub}</p>
             </div>
           </div>
-          <div className="flex items-center gap-5">
-            <div className="hidden sm:flex items-center gap-5">
-              <div className="text-center">
-                <p className="text-white font-bold text-lg leading-none">{members.length}</p>
-                <p className="text-white/40 text-xs mt-0.5">members</p>
+
+          {/* Desktop stats */}
+          <div className="hidden sm:flex items-center gap-5 flex-shrink-0">
+            {stats.map(s => (
+              <div key={s.label} className="text-center">
+                <p className={`${s.color} font-black text-base leading-none`}>{s.value}</p>
+                <p className="text-white/30 text-[10px] mt-0.5">{s.label}</p>
               </div>
-              <div className="text-center">
-                <p className="text-white font-bold text-lg leading-none">{paid}</p>
-                <p className="text-white/40 text-xs mt-0.5">paid</p>
-              </div>
-              <div className="text-center">
-                <p className="text-green-400 font-bold text-lg leading-none">{fmt(earnings)}</p>
-                <p className="text-white/40 text-xs mt-0.5">earned</p>
-              </div>
-            </div>
-            <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
-              {open ? <ChevronUp className="w-4 h-4 text-white/60" /> : <ChevronDown className="w-4 h-4 text-white/60" />}
-            </div>
+            ))}
+          </div>
+
+          {/* Toggle */}
+          <div className={`flex-shrink-0 w-7 h-7 rounded-lg bg-white/8 hover:bg-white/15 border border-white/8 flex items-center justify-center transition-all`}>
+            {open
+              ? <ChevronUp className="w-3.5 h-3.5 text-white/50" />
+              : <ChevronDown className="w-3.5 h-3.5 text-white/50" />
+            }
           </div>
         </button>
 
         {/* Mobile stats */}
         {open && (
-          <div className="sm:hidden px-5 py-3 flex justify-around border-b border-white/5">
-            <div className="text-center"><p className="text-white font-bold">{members.length}</p><p className="text-white/40 text-xs">Members</p></div>
-            <div className="text-center"><p className="text-white font-bold">{paid}</p><p className="text-white/40 text-xs">Paid</p></div>
-            <div className="text-center"><p className="text-green-400 font-bold">{fmt(earnings)}</p><p className="text-white/40 text-xs">Earned</p></div>
+          <div className="sm:hidden px-4 py-3 flex justify-around border-b border-white/5 bg-white/3">
+            {stats.map(s => (
+              <div key={s.label} className="text-center">
+                <p className={`${s.color} font-black text-base leading-none`}>{s.value}</p>
+                <p className="text-white/30 text-xs mt-0.5">{s.label}</p>
+              </div>
+            ))}
           </div>
         )}
 
@@ -121,14 +226,18 @@ function LevelNode({ lv, members, earnings, idx }: { lv: typeof LEVELS[0]; membe
         {open && (
           <div className="p-4">
             {members.length === 0 ? (
-              <div className="text-center py-10">
-                <Users className="w-10 h-10 text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No {lv.label} members yet</p>
-                <p className="text-white/20 text-xs mt-1">Share your code to grow</p>
+              <div className="text-center py-12 flex flex-col items-center gap-3">
+                <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${lv.gradFull} border ${lv.bg} flex items-center justify-center`}>
+                  <Users className="w-6 h-6 text-white/20" />
+                </div>
+                <div>
+                  <p className="text-white/30 text-sm font-semibold">No {lv.label} members yet</p>
+                  <p className="text-white/15 text-xs mt-1">Share your partner code to grow</p>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {members.map((m: any) => <MemberPill key={m._id} m={m} />)}
+                {members.map((m: any) => <MemberCard key={m._id} m={m} />)}
               </div>
             )}
           </div>
@@ -141,6 +250,7 @@ function LevelNode({ lv, members, earnings, idx }: { lv: typeof LEVELS[0]; membe
 export default function MTypePage() {
   const { user } = useAuthStore()
   const [copied, setCopied] = useState(false)
+
   const { data, isLoading } = useQuery({
     queryKey: ['partner-m-type'],
     queryFn: () => partnerAPI.mType().then(r => r.data),
@@ -152,96 +262,234 @@ export default function MTypePage() {
   const teamEarnings: any[] = data?.teamEarnings || []
   const getEarnings = (n: number) => teamEarnings.find((e: any) => e._id === n)?.total || 0
   const totalEarnings = getEarnings(1) + getEarnings(2) + getEarnings(3)
+  const totalTeam = l1.length + l2.length + l3.length
 
   const copyCode = () => {
     navigator.clipboard.writeText(user?.affiliateCode || '')
     setCopied(true)
-    toast.success('Code copied!')
+    toast.success('Partner code copied!')
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const shareCode = () => {
+    const text = `Join TruLearnix with my code: ${user?.affiliateCode} 🚀`
+    if (navigator.share) {
+      navigator.share({ text, title: 'TruLearnix Partner Code' }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(text)
+      toast.success('Share text copied!')
+    }
+  }
+
   if (isLoading) return (
-    <div className="flex items-center justify-center py-32">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative">
-          <div className="w-16 h-16 rounded-full bg-violet-500/20 animate-ping absolute inset-0" />
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center relative">
-            <Loader2 className="w-7 h-7 text-white animate-spin" />
-          </div>
-        </div>
-        <p className="text-dark-400 text-sm">Loading your network...</p>
-      </div>
+    <div className="pb-24 sm:pb-8">
+      <MTypeSkeleton />
     </div>
   )
 
+  const heroStats = [
+    {
+      label: 'Total Team',
+      value: totalTeam,
+      icon: Users,
+      color: 'text-violet-400',
+      bg: 'from-violet-600/20 to-violet-500/5',
+      border: 'border-violet-500/20',
+      glow: 'shadow-violet-500/20',
+    },
+    {
+      label: 'Total Earned',
+      value: fmtFull(totalEarnings),
+      icon: DollarSign,
+      color: 'text-emerald-400',
+      bg: 'from-emerald-600/20 to-emerald-500/5',
+      border: 'border-emerald-500/20',
+      glow: 'shadow-emerald-500/20',
+    },
+    {
+      label: 'L1 Direct',
+      value: l1.length,
+      icon: Zap,
+      color: 'text-amber-400',
+      bg: 'from-amber-600/20 to-amber-500/5',
+      border: 'border-amber-500/20',
+      glow: 'shadow-amber-500/20',
+    },
+    {
+      label: 'Depth',
+      value: l3.length > 0 ? 'L1–L3' : l2.length > 0 ? 'L1–L2' : 'L1',
+      icon: Layers,
+      color: 'text-cyan-400',
+      bg: 'from-cyan-600/20 to-cyan-500/5',
+      border: 'border-cyan-500/20',
+      glow: 'shadow-cyan-500/20',
+    },
+  ]
+
   return (
-    <div className="space-y-6">
-      {/* Page title */}
-      <div>
-        <h1 className="text-white text-2xl font-bold">M-Type Network</h1>
-        <p className="text-dark-400 text-sm mt-0.5">Your 3-level referral network flow</p>
+    <div className="space-y-4 pb-24 sm:pb-8">
+
+      {/* ── Hero Section ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#130828] via-[#1e0a45] to-[#0a1530] border border-violet-500/20 p-5 sm:p-6">
+        {/* Background decorations */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-violet-600/10 blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-indigo-600/8 blur-3xl" />
+          <div className="absolute top-1/2 right-1/4 w-24 h-24 rounded-full bg-purple-500/8 blur-2xl" />
+          <Network className="absolute top-3 right-4 w-28 h-28 text-violet-500/5" />
+        </div>
+
+        <div className="relative">
+          {/* Label */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <div className="flex items-center gap-1.5 bg-violet-500/15 border border-violet-500/25 px-2.5 py-1 rounded-full">
+              <GitBranch className="w-3 h-3 text-violet-400" />
+              <span className="text-violet-300 text-[11px] font-semibold">M-Type Network</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-white/5 border border-white/8 px-2.5 py-1 rounded-full">
+              <UserCheck className="w-3 h-3 text-green-400" />
+              <span className="text-white/70 text-[11px] font-medium">{totalTeam} total members</span>
+            </div>
+          </div>
+
+          <h1 className="text-white text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+            Your{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400">
+              Referral Tree
+            </span>
+          </h1>
+          <p className="text-violet-300/50 text-sm mt-1.5">
+            3-level deep partner network visualization
+          </p>
+        </div>
       </div>
 
-      {/* Top stats */}
+      {/* ── Hero Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: 'Total Team', value: l1.length + l2.length + l3.length, icon: Users, color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20' },
-          { label: 'Total Earned', value: fmtFull(totalEarnings), icon: TrendingUp, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-          { label: 'L1 Direct', value: l1.length, icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-          { label: 'L2 + L3', value: l2.length + l3.length, icon: Users, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className={`rounded-xl border ${bg} p-4 flex items-center gap-3`}>
-            <Icon className={`w-5 h-5 ${color} flex-shrink-0`} />
-            <div>
-              <p className={`${color} font-bold text-lg leading-none`}>{value}</p>
-              <p className="text-white/40 text-xs mt-1">{label}</p>
+        {heroStats.map(({ label, value, icon: Icon, color, bg, border, glow }) => (
+          <div
+            key={label}
+            className={`relative overflow-hidden rounded-2xl border ${border} bg-gradient-to-br ${bg} p-4 shadow-lg ${glow}`}
+          >
+            <div className="pointer-events-none absolute top-0 right-0 w-16 h-16 rounded-full bg-white/3 blur-xl -translate-y-4 translate-x-4" />
+            <div className="relative">
+              <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${bg} border ${border} flex items-center justify-center mb-3`}>
+                <Icon className={`w-4 h-4 ${color}`} />
+              </div>
+              <p className={`${color} font-black text-xl leading-none truncate`}>{value}</p>
+              <p className="text-white/40 text-xs mt-1.5 font-medium">{label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Flow tree */}
+      {/* ── Affiliate Code Card ── */}
+      <div className="relative overflow-hidden rounded-2xl border border-violet-500/25 bg-dark-800">
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-600/8 to-purple-600/5" />
+        <div className="relative p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-lg bg-violet-500/15 border border-violet-500/20 flex items-center justify-center">
+              <Star className="w-3.5 h-3.5 text-violet-400" />
+            </div>
+            <p className="text-white/70 text-xs font-semibold uppercase tracking-wider">Your Partner Code</p>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Code display */}
+            <div className="flex-1 min-w-0 flex items-center gap-3 bg-dark-900/80 border border-violet-500/20 rounded-xl px-4 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-dark-400 font-medium uppercase tracking-wider mb-0.5">Code</p>
+                <p className="text-white font-black text-lg sm:text-xl font-mono tracking-widest truncate">
+                  {user?.affiliateCode || '——'}
+                </p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={copyCode}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl border font-semibold text-sm transition-all active:scale-95 ${
+                  copied
+                    ? 'bg-green-500/15 border-green-500/30 text-green-400'
+                    : 'bg-violet-500/15 border-violet-500/30 text-violet-300 hover:bg-violet-500/25'
+                }`}
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
+              </button>
+              <button
+                onClick={shareCode}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-semibold text-sm transition-all active:scale-95 shadow-lg shadow-violet-500/30"
+              >
+                <Share2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Share</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tree Visualization ── */}
       <div className="flex flex-col items-center w-full">
 
-        {/* ROOT — You */}
-        <div className="relative w-full max-w-md">
+        {/* ROOT — You node */}
+        <div className="relative w-full">
           {/* Outer glow */}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-600/20 to-purple-600/20 blur-xl" />
-          <div className="relative rounded-2xl border border-violet-500/40 bg-gradient-to-br from-violet-950 to-purple-950 p-5"
-            style={{ boxShadow: '0 0 40px #7c3aed30, 0 0 80px #7c3aed10' }}>
-            <div className="flex items-center gap-4">
-              {/* Avatar with rings */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-600/15 to-purple-600/15 blur-xl scale-105" />
+
+          <div
+            className="relative rounded-2xl border border-violet-500/35 bg-gradient-to-br from-[#1a0640] via-[#220852] to-[#150740] p-5 overflow-hidden"
+            style={{ boxShadow: '0 0 50px #7c3aed25, 0 0 100px #7c3aed08' }}
+          >
+            {/* Background blobs */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-violet-500/10 blur-2xl" />
+              <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-purple-500/8 blur-2xl" />
+            </div>
+
+            <div className="relative flex items-center gap-4">
+              {/* Avatar with glow rings */}
               <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 blur-md opacity-50 scale-110" />
-                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xl font-black ring-2 ring-violet-400/50">
-                  {user?.name?.[0]?.toUpperCase()}
+                <div className="absolute inset-0 rounded-full bg-violet-500/30 blur-lg scale-125" />
+                <div className="absolute inset-0 rounded-full ring-1 ring-violet-400/20 scale-150" />
+                <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-2xl font-black ring-2 ring-violet-400/50 shadow-xl">
+                  {user?.name?.[0]?.toUpperCase() || '?'}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center ring-2 ring-dark-900">
-                  <Crown className="w-3 h-3 text-white" />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center ring-2 ring-dark-900 shadow-lg">
+                  <Crown className="w-3.5 h-3.5 text-white" />
                 </div>
               </div>
+
+              {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-white font-black text-lg leading-none">{user?.name}</p>
-                <p className="text-violet-300/70 text-xs mt-1 capitalize">{user?.packageTier} · Root Node</p>
-                <button
-                  onClick={copyCode}
-                  className="mt-2 flex items-center gap-1.5 text-xs bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300 px-2.5 py-1 rounded-lg transition-colors"
-                >
-                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  <span className="font-mono font-semibold">{user?.affiliateCode}</span>
-                </button>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-green-400 font-black text-lg">{fmt(totalEarnings)}</p>
-                <p className="text-white/30 text-xs mt-0.5">earned</p>
-                <p className="text-violet-300 font-bold mt-1">{l1.length + l2.length + l3.length}</p>
-                <p className="text-white/30 text-xs">team</p>
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <p className="text-white font-black text-lg leading-none">{user?.name}</p>
+                  <span className="text-[10px] bg-violet-500/20 border border-violet-500/30 text-violet-400 px-2 py-0.5 rounded-full font-bold">ROOT</span>
+                </div>
+                <p className="text-violet-300/60 text-xs capitalize mb-2">
+                  {user?.packageTier || 'Free'} Plan · Network Root
+                </p>
+                {/* Quick stats */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-3 h-3 text-violet-400" />
+                    <span className="text-violet-300 text-xs font-bold">{totalTeam}</span>
+                    <span className="text-dark-400 text-xs">team</span>
+                  </div>
+                  <div className="w-px h-3 bg-dark-600" />
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-green-400" />
+                    <span className="text-green-400 text-xs font-bold">{fmt(totalEarnings)}</span>
+                    <span className="text-dark-400 text-xs">earned</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Levels */}
+        {/* Level nodes */}
         {LEVELS.map((lv, i) => (
           <LevelNode
             key={lv.key}
@@ -253,9 +501,10 @@ export default function MTypePage() {
         ))}
 
         {/* Bottom cap */}
-        <div className="flex flex-col items-center mt-2">
-          <div className="w-px h-6 bg-gradient-to-b from-white/10 to-transparent" />
-          <div className="w-2 h-2 rounded-full bg-white/20" />
+        <div className="flex flex-col items-center mt-3 opacity-30">
+          <div className="w-px h-8 bg-gradient-to-b from-cyan-500/40 to-transparent" />
+          <div className="w-2 h-2 rounded-full bg-cyan-500/40" />
+          <p className="text-dark-600 text-[10px] mt-2 font-medium">End of network</p>
         </div>
       </div>
     </div>

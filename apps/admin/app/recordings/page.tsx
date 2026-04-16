@@ -92,11 +92,15 @@ export default function RecordingsPage() {
                             </div>
                             <div>
                               <p className="text-white font-semibold text-sm leading-tight max-w-[200px] truncate">{rec.title}</p>
-                              {rec.course?.title && (
+                              {rec._recordingType === 'webinar' ? (
+                                <p className="text-amber-400/70 text-xs mt-0.5 flex items-center gap-1">
+                                  <Video className="w-3 h-3 flex-shrink-0" /> {rec.type === 'workshop' ? 'Workshop' : 'Webinar'}
+                                </p>
+                              ) : rec.course?.title ? (
                                 <p className="text-violet-400/70 text-xs mt-0.5 flex items-center gap-1 truncate max-w-[200px]">
                                   <BookOpen className="w-3 h-3 flex-shrink-0" /> {rec.course.title}
                                 </p>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         </td>

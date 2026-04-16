@@ -83,11 +83,58 @@ export const getMentorCourses = async (req: AuthRequest, res: Response) => {
 
 export const getEnrolledCourseContent = async (req: AuthRequest, res: Response) => {
   try {
-    const enrollment = await Enrollment.findOne({ student: req.user._id, course: req.params.id });
+    const enrollment = await Enrollment.findOne({ student: req.user._id, course: req.params.id })
+      .populate('batch', 'batchNumber label status');
     if (!enrollment) return res.status(403).json({ success: false, message: 'Not enrolled in this course' });
 
-    const course = await Course.findById(req.params.id).populate('mentor', 'name avatar');
-    res.json({ success: true, course, enrollment });
+    const LiveClass = require('../models/LiveClass').default;
+    const StudyMaterial = require('../models/StudyMaterial').default;
+    const Assignment = require('../models/Assignment').default;
+    const Quiz = require('../models/Quiz').default;
+
+    const [course, sessions, materials, assignments, quizzes] = await Promise.all([
+      Course.findById(req.params.id).populate('mentor', 'name avatar'),
+      LiveClass.find({ course: req.params.id, status: 'ended', recordingUrl: { $exists: true, $ne: null } })
+        .select('title scheduledAt duration recordingUrl summary mentorNotes batch lessonId attendanceRecords')
+        .populate('batch', 'batchNumber label')
+        .sort('-scheduledAt')
+        .lean(),
+      StudyMaterial.find({ courseId: req.params.id }).sort('-createdAt').lean(),
+      Assignment.find({ course: req.params.id, isPublished: true }).sort('createdAt').lean(),
+      Quiz.find({ course: req.params.id, isPublished: true }).select('-questions.correctOption -questions.explanation').sort('createdAt').lean(),
+    ]);
+
+    const enrichedSessions = (sessions as any[]).map((s: any) => {
+      const record = (s.attendanceRecords || []).find((r: any) => r.user.toString() === req.user._id.toString());
+      const { attendanceRecords, ...rest } = s;
+      return { ...rest, wasPresent: record?.isPresent || false };
+    });
+
+    const enrichedAssignments = (assignments as any[]).map((a: any) => {
+      const sub = (a.submissions || []).find((s: any) => s.student.toString() === req.user._id.toString());
+      const { submissions, ...rest } = a;
+      return { ...rest, mySubmission: sub || null };
+    });
+
+    const completedLessons = (enrollment.progress || []).map((p: any) => p.lessonId.toString());
+    const myQuizResults = (enrollment.quizResults || []);
+
+    const enrichedQuizzes = (quizzes as any[]).map((q: any) => {
+      const attempt = myQuizResults.find((r: any) => r.quizId.toString() === q._id.toString());
+      return { ...q, myAttempt: attempt || null };
+    });
+
+    res.json({
+      success: true,
+      course,
+      enrollment: { progressPercent: enrollment.progressPercent },
+      batch: enrollment.batch || null,
+      completedLessons,
+      sessions: enrichedSessions,
+      materials,
+      assignments: enrichedAssignments,
+      quizzes: enrichedQuizzes,
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

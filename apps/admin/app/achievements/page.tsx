@@ -1,101 +1,243 @@
 'use client'
 import AdminLayout from '@/components/AdminLayout'
 import { useState } from 'react'
-import { Trophy, Download, Star, Award, Zap, Share2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { adminAPI } from '@/lib/api'
+import { Trophy, Plus, Pencil, Trash2, X, Save, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react'
 
-const TEMPLATES = [
-  { id: 1, name: 'Course Completion', emoji: '🎓', bg: 'from-violet-600 to-indigo-600' },
-  { id: 2, name: 'Top Earner', emoji: '💰', bg: 'from-yellow-500 to-orange-500' },
-  { id: 3, name: 'Star Affiliate', emoji: '⭐', bg: 'from-blue-500 to-cyan-500' },
-  { id: 4, name: 'Class Champion', emoji: '🏆', bg: 'from-green-500 to-emerald-500' },
-  { id: 5, name: 'First Sale', emoji: '🎯', bg: 'from-pink-500 to-rose-500' },
-  { id: 6, name: 'Community Leader', emoji: '👑', bg: 'from-purple-500 to-violet-500' },
+const TRIGGER_TYPES = [
+  { value: 'join',          label: 'On Join (Welcome)',       hint: 'Unlocked when partner joins' },
+  { value: 'first_earn',    label: 'First Earning',           hint: 'When partner earns any commission' },
+  { value: 'earn_amount',   label: 'Earning Milestone (₹)',   hint: 'When totalEarnings >= value' },
+  { value: 'referrals',     label: 'Total Referrals',         hint: 'When direct referrals >= value' },
+  { value: 'paid_referrals',label: 'Paid Referrals',          hint: 'When paid referrals >= value' },
+  { value: 'tier',          label: 'Package Upgrade (Pro+)',  hint: 'When partner upgrades to Pro/Elite/Supreme' },
 ]
 
-export default function AchievementsPage() {
-  const [selected, setSelected] = useState(TEMPLATES[0])
-  const [form, setForm] = useState({ name: '', achievement: '', date: new Date().toLocaleDateString('en-IN'), subtitle: 'TureLearnix Platform' })
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+const POSTER_THEMES = [
+  { value: 0, label: 'Violet / Purple',   preview: 'linear-gradient(135deg,#7c3aed,#4f46e5)' },
+  { value: 1, label: 'Cyan / Blue',       preview: 'linear-gradient(135deg,#06b6d4,#2563eb)' },
+  { value: 2, label: 'Amber / Orange',    preview: 'linear-gradient(135deg,#f59e0b,#ea580c)' },
+  { value: 3, label: 'Emerald / Teal',    preview: 'linear-gradient(135deg,#10b981,#0d9488)' },
+  { value: 4, label: 'Rose / Pink',       preview: 'linear-gradient(135deg,#f43f5e,#ec4899)' },
+  { value: 5, label: 'Sky / Indigo',      preview: 'linear-gradient(135deg,#0ea5e9,#4f46e5)' },
+]
 
-  const handlePrint = () => {
-    const printDiv = document.getElementById('poster-preview')
-    if (!printDiv) return
-    const win = window.open('', '_blank')
-    win?.document.write(`<html><head><title>Achievement Poster</title><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#0f172a;font-family:system-ui,sans-serif;}</style></head><body>${printDiv.innerHTML}</body></html>`)
-    win?.document.close()
-    win?.focus()
-    setTimeout(() => { win?.print(); win?.close() }, 500)
+const EMPTY_FORM = { title: '', description: '', badge: '🏆', triggerType: 'join', triggerValue: 0, requirement: '', posterTheme: 0, order: 0, enabled: true }
+
+export default function AchievementsPage() {
+  const qc = useQueryClient()
+  const [modal, setModal] = useState<null | 'create' | 'edit'>(null)
+  const [form, setForm] = useState<any>(EMPTY_FORM)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  const { data, isLoading } = useQuery({ queryKey: ['admin-achievements'], queryFn: () => adminAPI.achievements().then(r => r.data) })
+  const achievements: any[] = data?.achievements || []
+
+  const createMut = useMutation({ mutationFn: (d: any) => adminAPI.createAchievement(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-achievements'] }); setModal(null) } })
+  const updateMut = useMutation({ mutationFn: ({ id, d }: any) => adminAPI.updateAchievement(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-achievements'] }); setModal(null) } })
+  const deleteMut = useMutation({ mutationFn: (id: string) => adminAPI.deleteAchievement(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-achievements'] }) })
+  const toggleMut = useMutation({ mutationFn: ({ id, enabled }: any) => adminAPI.updateAchievement(id, { enabled }), onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-achievements'] }) })
+
+  const openCreate = () => { setForm(EMPTY_FORM); setEditId(null); setModal('create') }
+  const openEdit = (a: any) => { setForm({ title: a.title, description: a.description, badge: a.badge, triggerType: a.triggerType, triggerValue: a.triggerValue, requirement: a.requirement, posterTheme: a.posterTheme, order: a.order, enabled: a.enabled }); setEditId(a._id); setModal('edit') }
+  const save = () => {
+    const payload = { ...form, triggerValue: Number(form.triggerValue), posterTheme: Number(form.posterTheme), order: Number(form.order) }
+    if (modal === 'create') createMut.mutate(payload)
+    else if (editId) updateMut.mutate({ id: editId, d: payload })
   }
+
+  const needsValue = ['earn_amount','referrals','paid_referrals'].includes(form.triggerType)
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3"><Trophy className="w-8 h-8 text-yellow-400" /> Achievement Poster Generator</h1>
-          <p className="text-gray-400 mt-1">Create and share achievement certificates for students</p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2"><Trophy className="w-6 h-6 text-amber-400" /> Partner Achievements</h1>
+            <p className="text-gray-400 text-sm mt-0.5">Manage achievements and poster themes for partners</p>
+          </div>
+          <button onClick={openCreate} className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold">
+            <Plus className="w-4 h-4" /> New Achievement
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Controls */}
-          <div className="space-y-5">
-            <div className="card">
-              <h2 className="text-lg font-bold text-white mb-4">Select Template</h2>
+        {/* List */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[...Array(6)].map((_,i) => <div key={i} className="h-28 bg-gray-800/50 rounded-2xl animate-pulse" />)}
+          </div>
+        ) : achievements.length === 0 ? (
+          <div className="text-center py-16 bg-gray-800/30 rounded-2xl border border-gray-700/50">
+            <Sparkles className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+            <p className="text-white font-semibold">No achievements yet</p>
+            <p className="text-gray-500 text-sm mt-1">Create your first achievement to get started</p>
+            <button onClick={openCreate} className="mt-4 btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Create Achievement
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {achievements.map((a: any) => {
+              const theme = POSTER_THEMES[a.posterTheme % 6]
+              return (
+                <div key={a._id} className={`relative rounded-2xl border p-4 transition-all ${a.enabled ? 'bg-gray-800/60 border-gray-700/60' : 'bg-gray-900/40 border-gray-800 opacity-60'}`}>
+                  <div className="flex items-start gap-3">
+                    {/* Badge preview */}
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-2xl" style={{ background: theme.preview }}>
+                      {a.badge}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-white font-bold text-sm">{a.title}</p>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${a.enabled ? 'bg-green-500/15 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                          {a.enabled ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
+                      <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">{a.description}</p>
+                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                        <span className="text-[11px] text-gray-500 bg-gray-700/50 px-2 py-0.5 rounded-lg">
+                          {TRIGGER_TYPES.find(t => t.value === a.triggerType)?.label}
+                          {needsValue && a.triggerValue > 0 ? ` ≥ ${a.triggerValue.toLocaleString()}` : ''}
+                        </span>
+                        <span className="text-[11px] rounded-full px-2 py-0.5 text-white font-semibold" style={{ background: theme.preview }}>
+                          {theme.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => toggleMut.mutate({ id: a._id, enabled: !a.enabled })}
+                        className="p-1.5 rounded-lg hover:bg-gray-700 transition-colors text-gray-400 hover:text-white">
+                        {a.enabled ? <ToggleRight className="w-4 h-4 text-green-400" /> : <ToggleLeft className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-gray-700 transition-colors text-gray-400 hover:text-violet-400">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => { if (deleting === a._id) { deleteMut.mutate(a._id); setDeleting(null) } else setDeleting(a._id) }}
+                        className={`p-1.5 rounded-lg transition-colors ${deleting === a._id ? 'bg-red-500/20 text-red-400' : 'hover:bg-gray-700 text-gray-500 hover:text-red-400'}`}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  {deleting === a._id && (
+                    <div className="mt-2.5 flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+                      <span className="flex-1">Click delete again to confirm</span>
+                      <button onClick={() => setDeleting(null)} className="text-gray-500 hover:text-white"><X className="w-3 h-3" /></button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Create / Edit Modal ── */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <h2 className="text-white font-bold">{modal === 'create' ? 'New Achievement' : 'Edit Achievement'}</h2>
+              <button onClick={() => setModal(null)} className="text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Badge + Title */}
+              <div className="flex gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Badge</label>
+                  <input value={form.badge} onChange={e => setForm((f: any) => ({...f, badge: e.target.value}))}
+                    className="input w-16 text-center text-2xl" placeholder="🏆" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-400 mb-1">Title *</label>
+                  <input value={form.title} onChange={e => setForm((f: any) => ({...f, title: e.target.value}))}
+                    className="input w-full" placeholder="e.g. Lakhpati Partner" />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Description</label>
+                <input value={form.description} onChange={e => setForm((f: any) => ({...f, description: e.target.value}))}
+                  className="input w-full" placeholder="e.g. Crossed ₹1,00,000 in earnings!" />
+              </div>
+
+              {/* Trigger Type */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Trigger (when to unlock)</label>
+                <select value={form.triggerType} onChange={e => setForm((f: any) => ({...f, triggerType: e.target.value}))} className="input w-full">
+                  {TRIGGER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+                <p className="text-[11px] text-gray-600 mt-1">{TRIGGER_TYPES.find(t => t.value === form.triggerType)?.hint}</p>
+              </div>
+
+              {/* Trigger Value */}
+              {needsValue && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">
+                    {form.triggerType === 'earn_amount' ? 'Amount (₹)' : 'Count'}
+                  </label>
+                  <input type="number" value={form.triggerValue} onChange={e => setForm((f: any) => ({...f, triggerValue: e.target.value}))}
+                    className="input w-full" placeholder={form.triggerType === 'earn_amount' ? '100000' : '10'} min="1" />
+                </div>
+              )}
+
+              {/* Requirement text */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Requirement Label (shown on locked card)</label>
+                <input value={form.requirement} onChange={e => setForm((f: any) => ({...f, requirement: e.target.value}))}
+                  className="input w-full" placeholder="e.g. Earn ₹1 Lakh" />
+              </div>
+
+              {/* Poster Theme */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-2">Poster Color Theme</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {POSTER_THEMES.map(t => (
+                    <button key={t.value} onClick={() => setForm((f: any) => ({...f, posterTheme: t.value}))}
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${form.posterTheme === t.value ? 'border-white/30 bg-white/10' : 'border-white/8 hover:border-white/15'}`}>
+                      <div className="w-6 h-6 rounded-lg flex-shrink-0" style={{ background: t.preview }} />
+                      <span className="text-[11px] text-gray-300 text-left leading-tight">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Order */}
               <div className="grid grid-cols-2 gap-3">
-                {TEMPLATES.map(t => (
-                  <button key={t.id} onClick={() => setSelected(t)}
-                    className={`p-3 rounded-xl border-2 transition-all text-left ${selected.id === t.id ? 'border-violet-500 bg-violet-500/10' : 'border-white/10 hover:border-white/20'}`}>
-                    <div className={`w-full h-12 rounded-lg bg-gradient-to-r ${t.bg} flex items-center justify-center text-2xl mb-2`}>{t.emoji}</div>
-                    <p className="text-xs text-white font-medium">{t.name}</p>
-                  </button>
-                ))}
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Display Order</label>
+                  <input type="number" value={form.order} onChange={e => setForm((f: any) => ({...f, order: e.target.value}))}
+                    className="input w-full" min="0" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Status</label>
+                  <select value={form.enabled ? 'true' : 'false'} onChange={e => setForm((f: any) => ({...f, enabled: e.target.value === 'true'}))} className="input w-full">
+                    <option value="true">Active</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div className="card space-y-4">
-              <h2 className="text-lg font-bold text-white">Poster Details</h2>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Student Name</label>
-                <input value={form.name} onChange={e => set('name', e.target.value)} className="input" placeholder="Enter student name" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Achievement</label>
-                <input value={form.achievement} onChange={e => set('achievement', e.target.value)} className="input" placeholder="e.g. Completed Digital Marketing Course" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Subtitle</label>
-                <input value={form.subtitle} onChange={e => set('subtitle', e.target.value)} className="input" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Date</label>
-                <input value={form.date} onChange={e => set('date', e.target.value)} className="input" />
-              </div>
-              <button onClick={handlePrint} className="btn-primary w-full flex items-center justify-center gap-2">
-                <Download className="w-4 h-4" /> Download / Print Poster
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-gray-800 flex gap-3">
+              <button onClick={() => setModal(null)} className="flex-1 py-2.5 rounded-xl bg-gray-800 text-gray-400 hover:bg-gray-700 text-sm font-semibold transition-all">Cancel</button>
+              <button onClick={save} disabled={!form.title || createMut.isPending || updateMut.isPending}
+                className="flex-1 py-2.5 rounded-xl btn-primary text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
+                <Save className="w-4 h-4" /> {createMut.isPending || updateMut.isPending ? 'Saving...' : 'Save Achievement'}
               </button>
             </div>
           </div>
-
-          {/* Preview */}
-          <div className="card flex items-center justify-center min-h-64">
-            <div id="poster-preview" className={`w-full max-w-sm aspect-square rounded-2xl bg-gradient-to-br ${selected.bg} p-8 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
-              <div className="absolute inset-0 opacity-10">
-                {[...Array(20)].map((_, i) => <div key={i} className="absolute w-2 h-2 bg-white rounded-full" style={{ top: `${Math.random()*100}%`, left: `${Math.random()*100}%` }} />)}
-              </div>
-              <div className="text-6xl mb-4 relative z-10">{selected.emoji}</div>
-              <p className="text-white/80 text-sm font-medium mb-2 relative z-10">CERTIFICATE OF ACHIEVEMENT</p>
-              <h2 className="text-2xl font-black text-white mb-3 relative z-10">{form.name || 'Student Name'}</h2>
-              <p className="text-white/90 text-sm font-medium mb-4 relative z-10">{form.achievement || 'Achievement Description'}</p>
-              <div className="w-16 h-0.5 bg-white/40 mb-4 relative z-10" />
-              <p className="text-white/80 text-xs relative z-10">{form.subtitle}</p>
-              <p className="text-white/60 text-xs mt-1 relative z-10">{form.date}</p>
-              <div className="absolute bottom-4 right-4 flex items-center gap-1">
-                <Zap className="w-4 h-4 text-white/60" />
-                <span className="text-white/60 text-xs font-bold">TureLearnix</span>
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
+      )}
     </AdminLayout>
   )
 }

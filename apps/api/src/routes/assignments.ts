@@ -29,7 +29,10 @@ router.post('/:id/submit', protect, authorize('student'), uploadToS3.single('fil
     const enrollment = await Enrollment.findOne({ student: req.user._id, course: assignment.course });
     if (!enrollment) return res.status(403).json({ success: false, message: 'Not enrolled' });
 
-    const fileUrl = (req.file as any)?.location;
+    // Support both S3 (location) and local disk storage (filename)
+    const fileUrl = (req.file as any)?.location
+      || (req.file?.filename ? `https://api.peptly.in/uploads/${req.file.filename}` : undefined);
+    if (!fileUrl) return res.status(400).json({ success: false, message: 'File upload failed' });
     const existing = assignment.submissions.findIndex(s => s.student.toString() === req.user._id.toString());
     const submission = { student: req.user._id, fileUrl, fileName: req.file?.originalname || '', submittedAt: new Date(), status: 'pending' as const };
 

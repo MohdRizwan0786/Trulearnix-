@@ -98,8 +98,8 @@ export default function CourseDetailPage({ params }: { params: { slug: string } 
   const handleEnroll = async () => {
     const affiliate = refCode || (typeof window !== 'undefined' ? localStorage.getItem('affiliateRef') || '' : '')
     if (!isAuthenticated()) {
-      const price = course?.discountPrice || course?.price || 0
-      if (price > 0) {
+      const baseP = course?.discountPrice || course?.price || 0
+      if (baseP > 0) {
         // Paid course → direct to checkout (guest form is shown there)
         return router.push(`/checkout?type=course&id=${course._id}${affiliate ? `&promo=${affiliate}` : ''}`)
       } else {
@@ -172,10 +172,15 @@ export default function CourseDetailPage({ params }: { params: { slug: string } 
   const totalLessons = course.modules?.reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) || 0
   const totalDuration = course.modules?.reduce((s: number, m: any) =>
     s + (m.lessons?.reduce((ls: number, l: any) => ls + (l.duration || 0), 0) || 0), 0) || 0
-  const price = course.discountPrice || course.price || 0
   const heroGrad = CATEGORY_GRAD[course.category] || CATEGORY_GRAD.default
   const discount = course.discountPrice && course.price
     ? Math.round((1 - course.discountPrice / course.price) * 100) : 0
+
+  // Sales referral discount
+  const salesDiscPct = refCode && course.salesRefDiscountPercent > 0 ? course.salesRefDiscountPercent : 0
+  const basePrice = course.discountPrice || course.price || 0
+  const refPrice = salesDiscPct > 0 ? Math.round(basePrice * (1 - salesDiscPct / 100)) : basePrice
+  const price = salesDiscPct > 0 ? refPrice : basePrice
 
   const EnrollButton = ({ full = true }: { full?: boolean }) => (
     <button onClick={handleEnroll} disabled={enrolling}
@@ -283,19 +288,33 @@ export default function CourseDetailPage({ params }: { params: { slug: string } 
                 </div>
               )}
               <div className="p-6">
+                {/* Sales Referral Discount Banner */}
+                {salesDiscPct > 0 && (
+                  <div className="mb-4 px-4 py-3 rounded-xl text-sm font-bold text-green-300 flex items-center gap-2"
+                    style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.25)' }}>
+                    🎉 {salesDiscPct}% Special Discount Applied!
+                  </div>
+                )}
                 {/* Price */}
                 <div className="flex items-baseline gap-3 mb-5">
                   <span className="text-4xl font-black text-white">
                     {price === 0 ? 'Free' : `₹${price.toLocaleString()}`}
                   </span>
-                  {course.discountPrice && course.price > course.discountPrice && (
+                  {salesDiscPct > 0 ? (
+                    <>
+                      <span className="text-gray-500 line-through text-lg">₹{basePrice.toLocaleString()}</span>
+                      <span className="text-xs font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>
+                        {salesDiscPct}% OFF
+                      </span>
+                    </>
+                  ) : course.discountPrice && course.price > course.discountPrice ? (
                     <>
                       <span className="text-gray-500 line-through text-lg">₹{course.price.toLocaleString()}</span>
                       <span className="text-xs font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>
                         {discount}% OFF
                       </span>
                     </>
-                  )}
+                  ) : null}
                 </div>
 
                 <EnrollButton />
@@ -460,9 +479,11 @@ export default function CourseDetailPage({ params }: { params: { slug: string } 
             <p className="text-white font-black text-lg leading-none">
               {price === 0 ? 'Free' : `₹${price.toLocaleString()}`}
             </p>
-            {course.discountPrice && course.price > course.discountPrice && (
+            {salesDiscPct > 0 ? (
+              <p className="text-gray-500 text-xs line-through">₹{basePrice.toLocaleString()}</p>
+            ) : course.discountPrice && course.price > course.discountPrice ? (
               <p className="text-gray-500 text-xs line-through">₹{course.price.toLocaleString()}</p>
-            )}
+            ) : null}
           </div>
           <button onClick={handleEnroll} disabled={enrolling}
             className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-white text-sm transition-all active:scale-[0.97]"

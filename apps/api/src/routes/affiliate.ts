@@ -142,11 +142,14 @@ router.get('/leaderboard', async (_req, res) => {
     const monthStart = new Date();
     monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
-    const [top, monthlyAgg, referralAgg] = await Promise.all([
-      User.find({ isAffiliate: true, isActive: true })
-        .select('name packageTier totalEarnings streak xpPoints level')
-        .sort('-totalEarnings')
-        .limit(20),
+    const [top, monthlyAgg, refCounts] = await Promise.all([
+      // Include both affiliate users AND industrial partners
+      User.find({
+        $or: [{ isAffiliate: true }, { isIndustrialPartner: true }],
+        isActive: true,
+      })
+        .select('name packageTier totalEarnings industrialEarning isIndustrialPartner industrialEarningSource streak xpPoints level')
+        .limit(200),
 
       Commission.aggregate([
         { $match: { createdAt: { $gte: monthStart }, status: { $in: ['approved', 'paid'] } } },
@@ -154,9 +157,8 @@ router.get('/leaderboard', async (_req, res) => {
       ]),
 
       User.aggregate([
-        { $match: { isAffiliate: true, isActive: true } },
-        { $project: { l1Count: { $ifNull: ['$upline1', null] } } },
-        // count how many users each person is upline1 of
+        { $match: { upline1: { $exists: true } } },
+        { $group: { _id: '$upline1', count: { $sum: 1 } } },
       ]),
     ]);
 
@@ -164,15 +166,18 @@ router.get('/leaderboard', async (_req, res) => {
     const monthlyMap: Record<string, number> = {};
     monthlyAgg.forEach((m: any) => { monthlyMap[m._id.toString()] = m.monthlyEarnings; });
 
-    // Direct referrals count per user
-    const refCounts = await User.aggregate([
-      { $match: { upline1: { $exists: true } } },
-      { $group: { _id: '$upline1', count: { $sum: 1 } } },
-    ]);
+    // Referral counts map
     const refMap: Record<string, number> = {};
     refCounts.forEach((r: any) => { refMap[r._id.toString()] = r.count; });
 
-    const leaderboard = top.map((u: any, i: number) => {
+    // Sort by combined earnings (affiliate + industrial) descending
+    const sorted = top.sort((a: any, b: any) => {
+      const aTotal = (a.totalEarnings || 0) + (a.industrialEarning || 0);
+      const bTotal = (b.totalEarnings || 0) + (b.industrialEarning || 0);
+      return bTotal - aTotal;
+    }).slice(0, 50);
+
+    const leaderboard = sorted.map((u: any, i: number) => {
       const id = u._id.toString();
       const nameParts = u.name.trim().split(' ');
       const maskedName = nameParts.length > 1
@@ -182,12 +187,18 @@ router.get('/leaderboard', async (_req, res) => {
       const tier = ['elite', 'supreme'].includes(u.packageTier) ? 'Elite'
         : u.packageTier === 'pro' ? 'Pro' : 'Starter';
 
+      const combinedEarnings = (u.totalEarnings || 0) + (u.industrialEarning || 0);
+
       return {
         rank: i + 1,
         name: maskedName,
         packageTier: u.packageTier,
         tier,
-        totalEarnings: u.totalEarnings || 0,
+        totalEarnings: combinedEarnings,
+        affiliateEarnings: u.totalEarnings || 0,
+        industrialEarning: u.industrialEarning || 0,
+        isIndustrialPartner: u.isIndustrialPartner || false,
+        industrialEarningSource: u.industrialEarningSource || '',
         monthlyEarnings: monthlyMap[id] || 0,
         streak: u.streak || 0,
         xpPoints: u.xpPoints || 0,

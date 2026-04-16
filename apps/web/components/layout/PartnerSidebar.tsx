@@ -8,22 +8,24 @@ import {
   LayoutDashboard, TrendingUp, Trophy, Network, Users,
   GraduationCap, ShieldCheck, Link2, UserCheck, Star,
   Award, ChevronRight, LogOut, Menu, X, Globe, BookOpen,
-  Flame, Coins, Bell, ChevronDown, CreditCard
+  Flame, Coins, Bell, ChevronDown, CreditCard, ArrowDownToLine, LifeBuoy
 } from 'lucide-react'
 
 const navItems = [
-  { href: '/partner/dashboard', icon: LayoutDashboard, label: 'Dashboard', desc: 'Overview & Stats' },
-  { href: '/partner/earnings', icon: TrendingUp, label: 'Earnings', desc: 'Income & Analytics' },
-  { href: '/partner/emi', icon: CreditCard, label: 'EMI Commissions', desc: 'Installment Earnings' },
-  { href: '/partner/leaderboard', icon: Trophy, label: 'Leaderboard', desc: 'Top Performers' },
-  { href: '/partner/m-type', icon: Network, label: 'M-Type Tree', desc: 'Your Network' },
-  { href: '/partner/crm', icon: Users, label: 'CRM', desc: 'Lead Management' },
-  { href: '/partner/training', icon: GraduationCap, label: 'Training', desc: '10-Day Program' },
-  { href: '/partner/kyc', icon: ShieldCheck, label: 'KYC', desc: 'Verification' },
-  { href: '/partner/link-generator', icon: Link2, label: 'Link Generator', desc: 'Affiliate Links' },
-  { href: '/partner/referrals', icon: UserCheck, label: 'Referrals', desc: 'Your Network' },
-  { href: '/partner/qualification', icon: Star, label: 'Qualification', desc: 'Milestones' },
-  { href: '/partner/achievements', icon: Award, label: 'Achievements', desc: 'Badges & Posters' },
+  { href: '/partner/dashboard',      icon: LayoutDashboard, label: 'Dashboard',        desc: 'Overview & Stats' },
+  { href: '/partner/earnings',       icon: TrendingUp,      label: 'Earnings',          desc: 'Income & Analytics' },
+  { href: '/partner/emi',            icon: CreditCard,      label: 'EMI Commissions',   desc: 'Installment Earnings' },
+  { href: '/partner/withdraw',       icon: ArrowDownToLine, label: 'Withdraw',           desc: 'Request Payout' },
+  { href: '/partner/leaderboard',    icon: Trophy,          label: 'Leaderboard',        desc: 'Top Performers' },
+  { href: '/partner/m-type',         icon: Network,         label: 'M-Type Tree',        desc: 'Your Network' },
+  { href: '/partner/crm',            icon: Users,           label: 'CRM',                desc: 'Lead Management' },
+  { href: '/partner/training',       icon: GraduationCap,   label: 'Training',           desc: '10-Day Program' },
+  { href: '/partner/kyc',            icon: ShieldCheck,     label: 'KYC',                desc: 'Verification' },
+  { href: '/partner/link-generator', icon: Link2,           label: 'Link Generator',     desc: 'Partner Links' },
+  { href: '/partner/referrals',      icon: UserCheck,       label: 'Referrals',          desc: 'Your Network' },
+  { href: '/partner/qualification',  icon: Star,            label: 'Qualification',      desc: 'Milestones' },
+  { href: '/partner/achievements',   icon: Award,           label: 'Achievements',       desc: 'Badges & Posters' },
+  { href: '/partner/support',        icon: LifeBuoy,        label: 'Support',            desc: 'Raise a Ticket' },
 ]
 
 const mobileNav = [

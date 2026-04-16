@@ -5,7 +5,7 @@ import { adminAPI } from '@/lib/api'
 import {
   FileText, Download, FileSpreadsheet, Filter, Calendar,
   TrendingUp, Users, IndianRupee, Percent, Award, Building2,
-  BookOpen, Video, ChevronRight, Loader2, AlertCircle, CheckCircle2, XCircle,
+  BookOpen, Video, ChevronRight, Loader2, AlertCircle, CheckCircle2, XCircle, BarChart2,
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -82,8 +82,8 @@ async function downloadPDF(title: string, subtitle: string, headers: string[], r
 
 const REPORTS = [
   { id: 'gst',         icon: Percent,      label: 'GST Report',         desc: 'Monthly GST collected, input credit & net payable', color: 'text-emerald-400', bg: 'bg-emerald-500/10', hasDateRange: false, hasYear: true },
-  { id: 'tds',         icon: FileText,      label: 'TDS Report',         desc: 'TDS deducted (2%) on affiliate commissions', color: 'text-amber-400',   bg: 'bg-amber-500/10',  hasDateRange: false, hasYear: true },
-  { id: 'commission',  icon: IndianRupee,   label: 'Commission Report',  desc: 'Affiliate commissions by earner & status', color: 'text-violet-400',  bg: 'bg-violet-500/10', hasDateRange: true,  hasYear: false },
+  { id: 'tds',         icon: FileText,      label: 'TDS Report',         desc: 'TDS deducted (2%) on partner commissions', color: 'text-amber-400',   bg: 'bg-amber-500/10',  hasDateRange: false, hasYear: true },
+  { id: 'commission',  icon: IndianRupee,   label: 'Commission Report',  desc: 'Partner commissions by earner & status', color: 'text-violet-400',  bg: 'bg-violet-500/10', hasDateRange: true,  hasYear: false },
   { id: 'sales',       icon: TrendingUp,    label: 'Sales Report',       desc: 'Package sales, gross/net revenue, GST', color: 'text-blue-400',    bg: 'bg-blue-500/10',   hasDateRange: true,  hasYear: false },
   { id: 'pnl',         icon: Award,         label: 'P&L Report',         desc: 'Monthly profit & loss with all expense heads', color: 'text-cyan-400',    bg: 'bg-cyan-500/10',   hasDateRange: false, hasYear: true },
   { id: 'performance', icon: BookOpen,      label: 'Performance Report', desc: 'Mentor commissions, course enrollments, class attendance', color: 'text-pink-400',    bg: 'bg-pink-500/10',   hasDateRange: true,  hasYear: false },
@@ -172,7 +172,7 @@ function TDSReport({ year }: { year: number }) {
     { label: 'Total Commission', value: fmt(summary.totalCommission) },
     { label: 'Total TDS (2%)', value: fmt(summary.totalTds) },
     { label: 'Net Payable', value: fmt(summary.netPayable) },
-    { label: 'Affiliates', value: String(summary.affiliateCount) },
+    { label: 'Partners', value: String(summary.affiliateCount) },
   ]
 
   return (
@@ -181,7 +181,7 @@ function TDSReport({ year }: { year: number }) {
         {summaryBoxes.map(s => <StatBox key={s.label} label={s.label} value={s.value} />)}
       </div>
       <DownloadBar
-        onPDF={() => downloadPDF(`TDS Report ${year}`, `FY ${year} — TDS on Affiliate Commissions`, headers, rows, summaryBoxes)}
+        onPDF={() => downloadPDF(`TDS Report ${year}`, `FY ${year} — TDS on Partner Commissions`, headers, rows, summaryBoxes)}
         onCSV={() => downloadCSV(`tds-report-${year}.csv`, headers, rows)}
       />
       <div className="overflow-x-auto">
@@ -410,7 +410,7 @@ function PerformanceReport({ from, to }: { from: string; to: string }) {
         }}
       />
 
-      <Section title="Top Affiliates / Mentors by Commission">
+      <Section title="Top Partners / Mentors by Commission">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-white/10 text-gray-400 text-xs uppercase">
             {mentorHeaders.map(h => <th key={h} className="py-2 px-3 text-left font-medium">{h}</th>)}
@@ -662,10 +662,15 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Reports</h1>
-        <p className="text-gray-400 mt-1">Generate, preview and download business reports in PDF & CSV</p>
+      {/* ── Page Header ── */}
+      <div className="page-header">
+        <h1 className="text-2xl font-black text-white flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-lg">
+            <BarChart2 className="w-5 h-5 text-white" />
+          </div>
+          Business Reports
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Generate, preview and download reports in PDF & CSV</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">

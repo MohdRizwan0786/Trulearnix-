@@ -11,26 +11,37 @@ import {
 import { useAuthStore } from '@/lib/store'
 import { authAPI } from '@/lib/api'
 import { useRouter } from 'next/navigation'
+import NotificationBell from '@/components/ui/NotificationBell'
 
-const navLinks = [
-  { href: '/',            label: 'Home',         icon: Home     },
-  { href: '/courses',     label: 'Courses',      icon: BookOpen },
-  { href: '/live-classes',label: 'Live Classes', icon: Video,   badge: 'LIVE' },
-  { href: '/packages',    label: 'Packages',     icon: Package },
+const DEFAULT_NAV_LINKS = [
+  { href: '/',             label: 'Home',         icon: Home     },
+  { href: '/courses',      label: 'Courses',      icon: BookOpen },
+  { href: '/live-classes', label: 'Live Classes',  icon: Video,   badge: 'LIVE' },
+  { href: '/packages',     label: 'Packages',      icon: Package },
 ]
 
-const sidebarExtras = [
+const DEFAULT_SIDEBAR_EXTRAS = [
   { href: '/about',          label: 'About Us',       icon: Users,         desc: 'Our story & mission'       },
   { href: '/certifications', label: 'Certifications', icon: Award,         desc: 'AI-powered certificates'   },
   { href: '/affiliate',      label: 'Earn Money',     icon: Zap,           desc: 'Partner Program'           },
   { href: '/mentor',         label: 'Become Mentor',  icon: GraduationCap, desc: 'Teach & earn 70% revenue' },
 ]
 
-const sidebarStats = [
-  { val:'50K+',  label:'Students',    color:'text-violet-400' },
-  { val:'4.9★',  label:'Rating',      color:'text-amber-400'  },
-  { val:'₹2Cr+', label:'Paid Out',    color:'text-green-400'  },
+const DEFAULT_SIDEBAR_STATS = [
+  { val: '50K+', label: 'Students',  color: 'text-violet-400' },
+  { val: '4.9★', label: 'Rating',   color: 'text-amber-400'  },
+  { val: '₹2Cr+', label: 'Paid Out', color: 'text-green-400'  },
 ]
+
+const ICON_MAP: Record<string, any> = {
+  Home, BookOpen, Video, Package, Users, Award, Zap, GraduationCap,
+  Star, TrendingUp, Sparkles,
+}
+
+function resolveIcon(iconName?: string) {
+  if (!iconName) return null
+  return ICON_MAP[iconName] || null
+}
 
 export default function Navbar() {
   const [open, setOpen]       = useState(false)
@@ -38,6 +49,44 @@ export default function Navbar() {
   const { user, logout }      = useAuthStore()
   const router                = useRouter()
   const pathname              = usePathname()
+
+  // CMS state
+  const [logoUrl, setLogoUrl]               = useState('')
+  const [navLinks, setNavLinks]             = useState(DEFAULT_NAV_LINKS as any[])
+  const [ctaText, setCtaText]               = useState('Start Free →')
+  const [sidebarStats, setSidebarStats]     = useState(DEFAULT_SIDEBAR_STATS as any[])
+  const [sidebarExtras, setSidebarExtras]   = useState(DEFAULT_SIDEBAR_EXTRAS as any[])
+
+  useEffect(() => {
+    fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/navbar')
+      .then(r => r.json())
+      .then(res => {
+        const d = res.data
+        if (!d) return
+        if (d.logoUrl)       setLogoUrl(d.logoUrl)
+        if (d.ctaText)       setCtaText(d.ctaText)
+        if (d.navLinks?.length) {
+          // Merge CMS links with icon info from defaults
+          setNavLinks(d.navLinks.map((l: any) => {
+            const match = DEFAULT_NAV_LINKS.find(n => n.href === l.href)
+            return { ...l, icon: match?.icon || Home, badge: match?.badge }
+          }))
+        }
+        if (d.sidebarStats?.length) {
+          setSidebarStats(d.sidebarStats.map((s: any, i: number) => ({
+            ...s,
+            color: DEFAULT_SIDEBAR_STATS[i]?.color || 'text-violet-400',
+          })))
+        }
+        if (d.sidebarExtras?.length) {
+          setSidebarExtras(d.sidebarExtras.map((e: any) => {
+            const match = DEFAULT_SIDEBAR_EXTRAS.find(x => x.href === e.href)
+            return { ...e, icon: match?.icon || Users }
+          }))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20)
@@ -69,12 +118,15 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link href="/" className="flex items-center group">
-              <Image src="/logo.png" alt="TruLearnix" width={177} height={44} className="object-contain" style={{ height: 44, width: 'auto' }} priority />
+              {logoUrl
+                ? <img src={logoUrl} alt="TruLearnix" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
+                : <Image src="/logo.png" alt="TruLearnix" width={177} height={44} className="object-contain" style={{ height: 44, width: 'auto' }} priority />
+              }
             </Link>
 
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-1">
-              {navLinks.map(link => (
+              {navLinks.map((link: any) => (
                 <Link key={link.href} href={link.href}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                     pathname === link.href
@@ -95,6 +147,7 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-3">
               {user ? (
                 <>
+                  <NotificationBell />
                   <Link href={dashboardPath} className="flex items-center gap-2 text-sm text-gray-300 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5 transition-all">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-xs"
                       style={{ background:'linear-gradient(135deg,#7c3aed,#6366f1)' }}>{user.name[0]}</div>
@@ -107,7 +160,7 @@ export default function Navbar() {
               ) : (
                 <>
                   <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors px-3 py-2">Login</Link>
-                  <Link href="/register" className="btn-primary text-sm py-2 px-5">Start Free →</Link>
+                  <Link href="/register" className="btn-primary text-sm py-2 px-5">{ctaText}</Link>
                 </>
               )}
             </div>
@@ -131,7 +184,10 @@ export default function Navbar() {
         {/* Sidebar header */}
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
           <Link href="/" onClick={() => setOpen(false)} className="flex items-center">
-            <Image src="/logo.png" alt="TruLearnix" width={145} height={36} className="object-contain" style={{ height: 36, width: 'auto' }} />
+            {logoUrl
+              ? <img src={logoUrl} alt="TruLearnix" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+              : <Image src="/logo.png" alt="TruLearnix" width={145} height={36} className="object-contain" style={{ height: 36, width: 'auto' }} />
+            }
           </Link>
           <button onClick={() => setOpen(false)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-white transition-all"
@@ -139,6 +195,9 @@ export default function Navbar() {
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Scrollable content area */}
+        <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain' }} className="scrollbar-hide">
 
         {/* User card OR guest greeting */}
         {user ? (
@@ -178,9 +237,9 @@ export default function Navbar() {
 
         {/* Quick stats */}
         <div className="mx-4 mt-3 grid grid-cols-3 gap-2">
-          {sidebarStats.map((s, i) => (
+          {sidebarStats.map((s: any, i: number) => (
             <div key={i} className="text-center py-2.5 rounded-xl" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)' }}>
-              <p className={`font-black text-sm ${s.color}`}>{s.val}</p>
+              <p className={`font-black text-sm ${s.color || 'text-violet-400'}`}>{s.val}</p>
               <p className="text-gray-600 text-[10px]">{s.label}</p>
             </div>
           ))}
@@ -189,15 +248,13 @@ export default function Navbar() {
         {/* Navigation links */}
         <div className="px-4 mt-5 space-y-1">
           <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest px-3 mb-2">Navigation</p>
-          {navLinks.map(link => {
-            const Icon = link.icon
+          {navLinks.map((link: any) => {
+            const Icon = link.icon || Home
             const active = pathname === link.href
             return (
               <Link key={link.href} href={link.href} onClick={() => setOpen(false)}
                 className={`flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all ${
-                  active
-                    ? 'text-violet-400'
-                    : 'text-gray-300 hover:text-white hover:bg-white/5'
+                  active ? 'text-violet-400' : 'text-gray-300 hover:text-white hover:bg-white/5'
                 }`}
                 style={active ? { background:'rgba(124,58,237,0.12)', border:'1px solid rgba(124,58,237,0.2)' } : { background:'transparent' }}
               >
@@ -222,8 +279,8 @@ export default function Navbar() {
         {/* More links */}
         <div className="px-4 mt-4 space-y-1">
           <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest px-3 mb-2">Explore More</p>
-          {sidebarExtras.map(link => {
-            const Icon = link.icon
+          {sidebarExtras.map((link: any) => {
+            const Icon = link.icon || Users
             return (
               <Link key={link.href} href={link.href} onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-400 hover:text-white hover:bg-white/5 transition-all group"
@@ -244,7 +301,7 @@ export default function Navbar() {
         </div>
 
         {/* Live class promo */}
-        <div className="mx-4 mt-4">
+        <div className="mx-4 mt-4 mb-4">
           <div className="rounded-2xl p-4 relative overflow-hidden"
             style={{ background:'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(124,58,237,0.10))', border:'1px solid rgba(239,68,68,0.2)' }}>
             <div className="flex items-center gap-2 mb-2">
@@ -260,11 +317,10 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Flex spacer to push bottom actions down */}
-        <div style={{ flex: 1, minHeight: '24px' }} />
+        </div>{/* end scrollable area */}
 
-        {/* Bottom actions — no absolute, flows naturally */}
-        <div className="mx-4 mb-6 mt-4">
+        {/* Bottom actions — always visible */}
+        <div className="mx-4 mb-6 mt-2" style={{ flexShrink: 0 }}>
           <div className="pt-4" style={{ borderTop:'1px solid rgba(255,255,255,0.07)' }}>
             {user ? (
               <div className="space-y-2">

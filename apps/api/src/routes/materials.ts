@@ -8,9 +8,10 @@ const router = Router();
 // Get materials
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { courseId, type, search } = req.query as any;
+    const { courseId, type, search, batchId } = req.query as any;
     const filter: any = {};
     if (courseId) filter.courseId = courseId;
+    if (batchId) filter.batchId = batchId;
     if (type) filter.type = type;
     if (search) filter.title = { $regex: search, $options: 'i' };
     const user = (req as any).user;

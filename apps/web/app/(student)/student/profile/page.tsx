@@ -1,26 +1,32 @@
 'use client'
 import { useState, useRef } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { userAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
-import { Camera, Save, Loader2, Star, Trophy, Zap, Copy, Check, Link2, Phone, UserCheck, Crown, Shield } from 'lucide-react'
+import {
+  Camera, Loader2, Star, Trophy, Zap, Copy, Check, Link2,
+  Phone, UserCheck, Crown, Shield, Mail, Calendar, Hash,
+  Wallet, TrendingUp, Users, BadgeCheck, ExternalLink,
+  Twitter, Linkedin, Instagram, Youtube, Edit3, Save, X
+} from 'lucide-react'
 import Link from 'next/link'
 import Cookies from 'js-cookie'
 
-const TIER_COLORS: Record<string, string> = {
-  free: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  starter: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
-  pro: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  elite: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
-  supreme: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+const TIER_META: Record<string, { label: string; color: string; bg: string; border: string; glow: string }> = {
+  free:    { label: 'Free',    color: '#9ca3af', bg: 'rgba(156,163,175,0.1)', border: 'rgba(156,163,175,0.2)', glow: 'rgba(156,163,175,0.15)' },
+  starter: { label: 'Starter', color: '#d1d5db', bg: 'rgba(209,213,219,0.1)', border: 'rgba(209,213,219,0.2)', glow: 'rgba(209,213,219,0.15)' },
+  pro:     { label: 'Pro',     color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.3)',  glow: 'rgba(59,130,246,0.2)' },
+  elite:   { label: 'Elite',   color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)', glow: 'rgba(139,92,246,0.2)' },
+  supreme: { label: 'Supreme', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)',  glow: 'rgba(245,158,11,0.2)' },
 }
 
 export default function ProfilePage() {
   const { user: authUser, updateUser } = useAuthStore()
   const qc = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -29,24 +35,10 @@ export default function ProfilePage() {
     queryFn: () => userAPI.me().then(r => r.data.user),
   })
 
-  const [form, setForm] = useState({
-    name: '', phone: '', bio: '',
-    socialLinks: { twitter: '', linkedin: '', instagram: '', youtube: '' },
-  })
-
+  const [form, setForm] = useState({ bio: '', socialLinks: { twitter: '', linkedin: '', instagram: '', youtube: '' } })
   const [initialized, setInitialized] = useState(false)
   if (user && !initialized) {
-    setForm({
-      name: user.name || '',
-      phone: user.phone || '',
-      bio: user.bio || '',
-      socialLinks: {
-        twitter: user.socialLinks?.twitter || '',
-        linkedin: user.socialLinks?.linkedin || '',
-        instagram: user.socialLinks?.instagram || '',
-        youtube: user.socialLinks?.youtube || '',
-      },
-    })
+    setForm({ bio: user.bio || '', socialLinks: { twitter: user.socialLinks?.twitter || '', linkedin: user.socialLinks?.linkedin || '', instagram: user.socialLinks?.instagram || '', youtube: user.socialLinks?.youtube || '' } })
     setInitialized(true)
   }
 
@@ -56,7 +48,8 @@ export default function ProfilePage() {
       const res = await userAPI.update(form)
       updateUser(res.data.user)
       qc.invalidateQueries({ queryKey: ['user-me'] })
-      setMsg({ type: 'success', text: 'Profile updated successfully!' })
+      setMsg({ type: 'success', text: 'Profile updated!' })
+      setEditMode(false)
     } catch (e: any) {
       setMsg({ type: 'error', text: e.response?.data?.message || 'Update failed' })
     } finally {
@@ -74,282 +67,363 @@ export default function ProfilePage() {
       const formData = new FormData()
       formData.append('avatar', file)
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/avatar`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
       })
       const data = await res.json()
-      if (data.success) {
-        qc.invalidateQueries({ queryKey: ['user-me'] })
-        setMsg({ type: 'success', text: 'Avatar updated!' })
-      }
-    } catch {
-      setMsg({ type: 'error', text: 'Avatar upload failed' })
-    } finally {
-      setUploading(false)
-      setTimeout(() => setMsg(null), 3000)
-    }
+      if (data.success) { qc.invalidateQueries({ queryKey: ['user-me'] }); setMsg({ type: 'success', text: 'Photo updated!' }) }
+    } catch { setMsg({ type: 'error', text: 'Upload failed' }) }
+    finally { setUploading(false); setTimeout(() => setMsg(null), 3000) }
   }
 
-  const copyAffiliateCode = () => {
-    if (user?.affiliateCode) {
-      navigator.clipboard.writeText(user.affiliateCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
+  const copy = (text: string) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+
+  const tier = TIER_META[user?.packageTier || 'free']
+  const isPartner = user?.isAffiliate
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-8 h-8 animate-spin text-primary-400" />
+      <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
     </div>
   )
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-3xl font-bold text-white">My Profile</h1>
-        <p className="text-gray-400 mt-1">Manage your account information</p>
-      </div>
+    <div className="space-y-5 pb-12 max-w-2xl">
 
+      {/* ── Toast ── */}
       {msg && (
-        <div className={`rounded-xl px-4 py-3 text-sm font-medium ${msg.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
-          {msg.text}
+        <div className={`fixed top-4 right-4 z-50 rounded-xl px-4 py-3 text-sm font-medium shadow-xl flex items-center gap-2 ${msg.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+          {msg.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />} {msg.text}
         </div>
       )}
 
-      {/* Avatar + Stats */}
-      <div className="card flex flex-col sm:flex-row items-center gap-6">
-        <div className="relative">
-          <div className="w-24 h-24 rounded-full bg-primary-500/20 flex items-center justify-center overflow-hidden">
-            {user?.avatar
-              ? <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
-              : <span className="text-4xl font-bold text-primary-400">{user?.name?.[0]?.toUpperCase()}</span>
-            }
-          </div>
-          <button onClick={() => fileRef.current?.click()}
-            className="absolute bottom-0 right-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center hover:bg-primary-600 transition-colors">
-            {uploading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Camera className="w-4 h-4 text-white" />}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-        </div>
+      {/* ── Hero Card ── */}
+      <div className="relative overflow-hidden rounded-3xl" style={{ background: 'linear-gradient(135deg, rgba(91,33,182,0.5) 0%, rgba(49,46,129,0.4) 50%, rgba(12,74,110,0.35) 100%)', border: '1px solid rgba(139,92,246,0.3)' }}>
+        {/* BG glows */}
+        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(139,92,246,0.2)' }} />
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(14,165,233,0.15)' }} />
 
-        <div className="flex-1 text-center sm:text-left">
-          <h2 className="text-xl font-bold text-white">{user?.name}</h2>
-          <p className="text-gray-400 text-sm">{user?.email}</p>
-          <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
-            <span className={`px-3 py-1 rounded-full text-xs font-bold border capitalize ${TIER_COLORS[user?.packageTier || 'free']}`}>
-              {user?.packageTier || 'Free'} Tier
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-gray-300 border border-white/10 flex items-center gap-1">
-              <Zap className="w-3 h-3 text-yellow-400" /> {user?.xpPoints || 0} XP
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-gray-300 border border-white/10 flex items-center gap-1">
-              <Star className="w-3 h-3 text-blue-400" /> Level {user?.level || 1}
-            </span>
-          </div>
-        </div>
-
-        {user?.badges && user.badges.length > 0 && (
-          <div className="flex gap-2">
-            {user.badges.slice(0, 3).map((badge: string) => (
-              <div key={badge} className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center" title={badge}>
-                <Trophy className="w-5 h-5 text-yellow-400" />
+        <div className="relative p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row items-center gap-5">
+            {/* Avatar */}
+            <div className="relative flex-shrink-0">
+              <div className="w-24 h-24 rounded-2xl overflow-hidden" style={{ boxShadow: `0 0 0 3px rgba(139,92,246,0.5), 0 8px 32px rgba(139,92,246,0.3)` }}>
+                {user?.avatar
+                  ? <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center text-4xl font-black text-white" style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)' }}>{user?.name?.[0]?.toUpperCase()}</div>
+                }
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <button onClick={() => fileRef.current?.click()}
+                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:scale-110"
+                style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', boxShadow: '0 4px 12px rgba(124,58,237,0.4)' }}>
+                {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Camera className="w-3.5 h-3.5 text-white" />}
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+            </div>
 
-      {/* Affiliate Code */}
-      {user?.isAffiliate && user?.affiliateCode && (
-        <div className="card border border-primary-500/30 bg-primary-500/5">
-          <p className="text-xs text-gray-400 mb-1">Your Invite Code</p>
-          <div className="flex items-center gap-3">
-            <code className="text-primary-400 font-bold text-lg">{user.affiliateCode}</code>
-            <button onClick={copyAffiliateCode} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-white/5 px-3 py-1.5 rounded-lg">
-              {copied ? <><Check className="w-3.5 h-3.5 text-green-400" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+            {/* Info */}
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className="text-white text-2xl font-black leading-tight">{user?.name}</h1>
+              <p className="text-sm mt-0.5" style={{ color: 'rgba(196,181,253,0.7)' }}>{user?.email}</p>
+
+              {/* Badges row */}
+              <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold" style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.border}` }}>
+                  <Crown className="w-3 h-3" /> {tier.label} Tier
+                </span>
+                {isPartner && (
+                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}>
+                    <BadgeCheck className="w-3 h-3" /> Partner
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium" style={{ background: 'rgba(255,255,255,0.07)', color: '#fbbf24', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <Zap className="w-3 h-3" /> {user?.xpPoints || 0} XP
+                </span>
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium" style={{ background: 'rgba(255,255,255,0.07)', color: '#60a5fa', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <Star className="w-3 h-3" /> Lvl {user?.level || 1}
+                </span>
+              </div>
+            </div>
+
+            {/* Edit toggle */}
+            <button onClick={() => setEditMode(e => !e)}
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
+              style={editMode ? { background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' } : { background: 'rgba(139,92,246,0.15)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.3)' }}>
+              {editMode ? <><X className="w-3.5 h-3.5" /> Cancel</> : <><Edit3 className="w-3.5 h-3.5" /> Edit Profile</>}
             </button>
           </div>
-        </div>
-      )}
 
-      {/* Edit Form */}
-      <div className="card space-y-5">
-        <h3 className="text-lg font-bold text-white">Personal Information</h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Full Name</label>
-            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="input" placeholder="Your full name" />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Phone</label>
-            <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-              className="input" placeholder="+91 98765 43210" />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-400 mb-1">Bio</label>
-          <textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
-            className="input min-h-[100px] resize-none" placeholder="Tell us about yourself..." />
-        </div>
-
-        <div>
-          <h4 className="text-sm font-semibold text-gray-300 mb-3">Social Links</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {(['twitter', 'linkedin', 'instagram', 'youtube'] as const).map(platform => (
-              <div key={platform}>
-                <label className="block text-xs text-gray-500 mb-1 capitalize">{platform}</label>
-                <input
-                  value={form.socialLinks[platform]}
-                  onChange={e => setForm(f => ({ ...f, socialLinks: { ...f.socialLinks, [platform]: e.target.value } }))}
-                  className="input text-sm" placeholder={`${platform}.com/yourhandle`} />
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-3 mt-5">
+            {[
+              { label: 'Member Since', value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '—', icon: Calendar, color: '#a78bfa' },
+              { label: isPartner ? 'Total Earnings' : 'XP Points', value: isPartner ? `₹${(user?.totalEarnings || 0).toLocaleString()}` : `${user?.xpPoints || 0}`, icon: isPartner ? TrendingUp : Zap, color: '#34d399' },
+              { label: isPartner ? 'Wallet' : 'Level', value: isPartner ? `₹${(user?.wallet || 0).toLocaleString()}` : `Level ${user?.level || 1}`, icon: isPartner ? Wallet : Star, color: '#fbbf24' },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="rounded-2xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <Icon className="w-4 h-4 mx-auto mb-1" style={{ color }} />
+                <p className="font-bold text-white text-sm">{value}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
               </div>
             ))}
           </div>
         </div>
-
-        <button onClick={handleSave} disabled={saving}
-          className="btn-primary flex items-center gap-2">
-          {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save Changes</>}
-        </button>
       </div>
 
-      {/* Account Info (readonly) */}
-      <div className="card space-y-3">
-        <h3 className="text-lg font-bold text-white">Account Info</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-gray-500">Email</p>
-            <p className="text-white">{user?.email}</p>
-          </div>
-          <div>
-            <p className="text-gray-500">Role</p>
-            <p className="text-white capitalize">{user?.role}</p>
-          </div>
-          <div>
-            <p className="text-gray-500">Member Since</p>
-            <p className="text-white">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN') : '—'}</p>
-          </div>
-          <div>
-            <p className="text-gray-500">Login Count</p>
-            <p className="text-white">{user?.loginCount || 0} times</p>
-          </div>
+      {/* ── Account Info (readonly) ── */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(15,15,25,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <h2 className="text-white font-bold flex items-center gap-2 text-sm">
+            <Shield className="w-4 h-4 text-violet-400" /> Account Details
+          </h2>
+        </div>
+        <div className="p-5 grid grid-cols-2 gap-4">
+          {[
+            { label: 'Full Name', value: user?.name, icon: Users, note: 'Contact support to change' },
+            { label: 'Phone Number', value: user?.phone || 'Not added', icon: Phone, note: 'Contact support to change' },
+            { label: 'Email Address', value: user?.email, icon: Mail },
+            { label: 'Role', value: user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '—', icon: BadgeCheck },
+          ].map(({ label, value, icon: Icon, note }) => (
+            <div key={label}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Icon className="w-3 h-3 text-gray-500" />
+                <p className="text-[11px] text-gray-500">{label}</p>
+              </div>
+              <p className="text-white text-sm font-medium">{value}</p>
+              {note && <p className="text-[10px] text-gray-600 mt-0.5">{note}</p>}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Affiliate & Partner Details */}
-      <div className="card space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2"><Link2 className="w-4 h-4 text-violet-400" />Affiliate Details</h3>
-          <Link href="/partner/dashboard" className="text-xs text-violet-400 hover:text-violet-300 bg-violet-900/20 border border-violet-700/30 px-3 py-1.5 rounded-lg transition-all">
-            Partner Panel →
-          </Link>
+      {/* ── Bio & Social (editable) ── */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(15,15,25,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <h2 className="text-white font-bold flex items-center gap-2 text-sm">
+            <Edit3 className="w-4 h-4 text-cyan-400" /> Bio & Social Links
+          </h2>
+          {!editMode && <span className="text-[11px] text-gray-600">Click "Edit Profile" to update</span>}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+        <div className="p-5 space-y-4">
+          {/* Bio */}
           <div>
-            <p className="text-gray-500 text-xs">Affiliate Code</p>
-            <div className="flex items-center gap-2 mt-1">
-              <code className="text-violet-400 font-bold font-mono">{user?.affiliateCode || '—'}</code>
-              {user?.affiliateCode && (
-                <button onClick={copyAffiliateCode} className="text-gray-500 hover:text-white transition-colors">
-                  {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              )}
+            <p className="text-[11px] text-gray-500 mb-1.5">Bio</p>
+            {editMode
+              ? <textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} className="input w-full min-h-[80px] resize-none text-sm" placeholder="Tell us about yourself..." />
+              : <p className="text-gray-300 text-sm leading-relaxed">{user?.bio || <span className="text-gray-600 italic">No bio added yet</span>}</p>
+            }
+          </div>
+
+          {/* Social links */}
+          <div>
+            <p className="text-[11px] text-gray-500 mb-2">Social Links</p>
+            {editMode ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {([
+                  { key: 'twitter', label: 'Twitter / X', icon: Twitter, color: '#1d9bf0' },
+                  { key: 'linkedin', label: 'LinkedIn', icon: Linkedin, color: '#0a66c2' },
+                  { key: 'instagram', label: 'Instagram', icon: Instagram, color: '#e1306c' },
+                  { key: 'youtube', label: 'YouTube', icon: Youtube, color: '#ff0000' },
+                ] as const).map(({ key, label, icon: Icon, color }) => (
+                  <div key={key} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <Icon className="w-4 h-4 flex-shrink-0" style={{ color }} />
+                    <input value={form.socialLinks[key]} onChange={e => setForm(f => ({ ...f, socialLinks: { ...f.socialLinks, [key]: e.target.value } }))}
+                      className="bg-transparent text-sm text-white placeholder-gray-600 outline-none flex-1 min-w-0" placeholder={`${label} URL`} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'twitter', icon: Twitter, color: '#1d9bf0' },
+                  { key: 'linkedin', icon: Linkedin, color: '#0a66c2' },
+                  { key: 'instagram', icon: Instagram, color: '#e1306c' },
+                  { key: 'youtube', icon: Youtube, color: '#ff0000' },
+                ].filter(({ key }) => user?.socialLinks?.[key]).map(({ key, icon: Icon, color }) => (
+                  <a key={key} href={user.socialLinks[key]} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: '#e5e7eb', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <Icon className="w-3.5 h-3.5" style={{ color }} />
+                    <ExternalLink className="w-3 h-3 opacity-50" />
+                  </a>
+                ))}
+                {!user?.socialLinks?.twitter && !user?.socialLinks?.linkedin && !user?.socialLinks?.instagram && !user?.socialLinks?.youtube && (
+                  <p className="text-gray-600 text-sm italic">No social links added</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {editMode && (
+            <button onClick={handleSave} disabled={saving}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90 active:scale-95"
+              style={{ background: 'linear-gradient(90deg,#7c3aed,#4f46e5)', boxShadow: '0 4px 15px rgba(124,58,237,0.3)' }}>
+              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save Changes</>}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Affiliate Code Card (if partner) ── */}
+      {isPartner && user?.affiliateCode && (
+        <div className="rounded-2xl p-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(91,33,182,0.3) 0%, rgba(49,46,129,0.2) 100%)', border: '1px solid rgba(139,92,246,0.4)' }}>
+          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(139,92,246,0.2)' }} />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-violet-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"><Hash className="w-3 h-3" /> Your Partner Code</p>
+              <Link href="/partner/dashboard" className="flex items-center gap-1 text-[11px] text-violet-400 hover:text-violet-300 transition-colors">
+                Partner Panel <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <code className="text-2xl font-black tracking-widest" style={{ color: '#c4b5fd' }}>{user.affiliateCode}</code>
+              <button onClick={() => copy(user.affiliateCode)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+                style={{ background: 'rgba(139,92,246,0.2)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.3)' }}>
+                {copied ? <><Check className="w-3.5 h-3.5 text-green-400" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              {[
+                { label: 'Commission', value: `${user?.commissionRate || 0}%`, color: '#34d399' },
+                { label: 'Earnings', value: `₹${(user?.totalEarnings || 0).toLocaleString()}`, color: '#fbbf24' },
+                { label: 'Wallet', value: `₹${(user?.wallet || 0).toLocaleString()}`, color: '#60a5fa' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <p className="font-bold text-sm" style={{ color }}>{value}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
+                </div>
+              ))}
             </div>
           </div>
-          <div>
-            <p className="text-gray-500 text-xs">Package Tier</p>
-            <p className="text-white font-semibold capitalize mt-1">{user?.packageTier || 'free'}</p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs">Commission Rate</p>
-            <p className="text-green-400 font-bold mt-1">{user?.commissionRate || 0}% (L1)</p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs">Total Earnings</p>
-            <p className="text-white font-semibold mt-1">₹{(user?.totalEarnings || 0).toLocaleString()}</p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs">Wallet Balance</p>
-            <p className="text-white font-semibold mt-1">₹{(user?.wallet || 0).toLocaleString()}</p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs">Partner Status</p>
-            <p className={`font-semibold mt-1 ${user?.isAffiliate ? 'text-green-400' : 'text-gray-500'}`}>
-              {user?.isAffiliate ? 'Active Partner' : 'Not Active'}
-            </p>
-          </div>
         </div>
-        {user?.packagePurchasedAt && (
-          <p className="text-xs text-gray-500">Package purchased: {new Date(user.packagePurchasedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-        )}
+      )}
+
+      {/* ── Manager & Sponsor ── */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(15,15,25,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <h2 className="text-white font-bold flex items-center gap-2 text-sm">
+            <UserCheck className="w-4 h-4 text-blue-400" /> Manager & Sponsor
+          </h2>
+        </div>
+        <div className="p-5 grid sm:grid-cols-2 gap-4">
+
+          {/* Manager Card */}
+          {(() => {
+            const mgr = user?.managerInfo || (user?.managerName ? { name: user.managerName, phone: user.managerPhone, avatar: null } : null)
+            return (
+              <div className="rounded-2xl p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(59,130,246,0.08) 100%)', border: '1px solid rgba(14,165,233,0.25)' }}>
+                <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-xl pointer-events-none" style={{ background: 'rgba(14,165,233,0.2)' }} />
+                <p className="text-[11px] font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5" style={{ color: 'rgba(125,211,252,0.7)' }}>
+                  <Users className="w-3 h-3" /> Your Manager
+                </p>
+                {mgr ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden" style={{ boxShadow: '0 6px 16px rgba(14,165,233,0.35)' }}>
+                      {mgr.avatar
+                        ? <img src={mgr.avatar} alt="manager" className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center text-lg font-black text-white" style={{ background: 'linear-gradient(135deg,#0ea5e9,#2563eb)' }}>{mgr.name?.[0]?.toUpperCase()}</div>
+                      }
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-sm">{mgr.name}</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: 'rgba(125,211,252,0.6)' }}>Team Manager</p>
+                      {mgr.phone && (
+                        <a href={`tel:${mgr.phone}`} className="flex items-center gap-1.5 text-xs mt-1 transition-colors hover:opacity-80" style={{ color: '#7dd3fc' }}>
+                          <Phone className="w-3 h-3" /> {mgr.phone}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(14,165,233,0.1)', border: '1px dashed rgba(14,165,233,0.3)' }}>
+                      <Users className="w-5 h-5" style={{ color: 'rgba(14,165,233,0.4)' }} />
+                    </div>
+                    <p className="text-sm" style={{ color: 'rgba(156,163,175,0.5)' }}>No manager assigned yet</p>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+          {/* Sponsor Card */}
+          {(() => {
+            const sp = user?.sponsorInfo || null
+            return (
+              <div className="rounded-2xl p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(124,58,237,0.08) 100%)', border: '1px solid rgba(139,92,246,0.25)' }}>
+                <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-xl pointer-events-none" style={{ background: 'rgba(139,92,246,0.2)' }} />
+                <p className="text-[11px] font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5" style={{ color: 'rgba(196,181,253,0.7)' }}>
+                  <Crown className="w-3 h-3" /> Referred By (Sponsor)
+                </p>
+                {sp ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden" style={{ boxShadow: '0 6px 16px rgba(139,92,246,0.35)' }}>
+                      {sp.avatar
+                        ? <img src={sp.avatar} alt="sponsor" className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center text-lg font-black text-white" style={{ background: 'linear-gradient(135deg,#8b5cf6,#7c3aed)' }}>{sp.name?.[0]?.toUpperCase()}</div>
+                      }
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-sm">{sp.name}</p>
+                      {sp.affiliateCode && (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <code className="text-xs font-mono font-bold" style={{ color: '#c4b5fd' }}>{sp.affiliateCode}</code>
+                          <button onClick={() => copy(sp.affiliateCode)} className="transition-colors hover:opacity-70">
+                            {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3 text-gray-500" />}
+                          </button>
+                        </div>
+                      )}
+                      {sp.phone && (
+                        <a href={`tel:${sp.phone}`} className="flex items-center gap-1.5 text-xs mt-1 transition-colors hover:opacity-80" style={{ color: '#c4b5fd' }}>
+                          <Phone className="w-3 h-3" /> {sp.phone}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.1)', border: '1px dashed rgba(139,92,246,0.3)' }}>
+                      <Crown className="w-5 h-5" style={{ color: 'rgba(139,92,246,0.4)' }} />
+                    </div>
+                    <p className="text-sm" style={{ color: 'rgba(156,163,175,0.5)' }}>Not referred by anyone</p>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+        </div>
       </div>
 
-      {/* Manager & Sponsor Details */}
-      <div className="card space-y-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2"><UserCheck className="w-4 h-4 text-blue-400" />Manager & Sponsor</h3>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {/* Manager */}
-          <div className="bg-dark-700 rounded-xl p-4">
-            <p className="text-gray-500 text-xs uppercase tracking-wider mb-3">Your Manager</p>
-            {user?.managerName ? (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-bold">
-                  {user.managerName[0]?.toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-white font-semibold">{user.managerName}</p>
-                  {user.managerPhone && (
-                    <a href={`tel:${user.managerPhone}`} className="flex items-center gap-1 text-blue-400 text-sm hover:text-blue-300 mt-0.5">
-                      <Phone className="w-3 h-3" />{user.managerPhone}
-                    </a>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-600 text-sm">No manager assigned yet</p>
-            )}
-          </div>
-
-          {/* Sponsor */}
-          <div className="bg-dark-700 rounded-xl p-4">
-            <p className="text-gray-500 text-xs uppercase tracking-wider mb-3">Referred By (Sponsor)</p>
-            {user?.sponsorCode ? (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                  <Crown className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-white font-semibold">Sponsor Code</p>
-                  <code className="text-violet-400 font-mono text-sm">{user.sponsorCode}</code>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-600 text-sm">Not referred by anyone</p>
-            )}
-          </div>
-        </div>
-
-        {/* KYC Status */}
-        <div className="flex items-center justify-between p-3 bg-dark-700 rounded-xl">
-          <div className="flex items-center gap-2">
-            <Shield className={`w-4 h-4 ${user?.kyc?.status === 'verified' ? 'text-green-400' : user?.kyc?.status === 'submitted' ? 'text-yellow-400' : 'text-gray-500'}`} />
-            <span className="text-white text-sm">KYC Status</span>
+      {/* ── KYC Status ── */}
+      {isPartner && (
+        <div className="rounded-2xl p-4 flex items-center justify-between" style={{ background: 'rgba(15,15,25,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{
+              background: user?.kyc?.status === 'verified' ? 'rgba(16,185,129,0.15)' : user?.kyc?.status === 'submitted' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${user?.kyc?.status === 'verified' ? 'rgba(16,185,129,0.3)' : user?.kyc?.status === 'submitted' ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.1)'}`,
+            }}>
+              <Shield className="w-4 h-4" style={{ color: user?.kyc?.status === 'verified' ? '#34d399' : user?.kyc?.status === 'submitted' ? '#fbbf24' : '#6b7280' }} />
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm">KYC Verification</p>
+              <p className="text-xs text-gray-500">Identity & bank verification</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-xs px-2 py-1 rounded-full capitalize font-medium ${user?.kyc?.status === 'verified' ? 'bg-green-900/30 text-green-400' : user?.kyc?.status === 'submitted' ? 'bg-yellow-900/30 text-yellow-400' : user?.kyc?.status === 'rejected' ? 'bg-red-900/30 text-red-400' : 'bg-dark-600 text-gray-500'}`}>
-              {user?.kyc?.status || 'pending'}
+            <span className="text-xs px-2.5 py-1 rounded-lg font-semibold capitalize" style={{
+              background: user?.kyc?.status === 'verified' ? 'rgba(16,185,129,0.15)' : user?.kyc?.status === 'submitted' ? 'rgba(245,158,11,0.15)' : user?.kyc?.status === 'rejected' ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
+              color: user?.kyc?.status === 'verified' ? '#34d399' : user?.kyc?.status === 'submitted' ? '#fbbf24' : user?.kyc?.status === 'rejected' ? '#f87171' : '#6b7280',
+              border: `1px solid ${user?.kyc?.status === 'verified' ? 'rgba(16,185,129,0.3)' : user?.kyc?.status === 'submitted' ? 'rgba(245,158,11,0.3)' : user?.kyc?.status === 'rejected' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}`,
+            }}>
+              {user?.kyc?.status || 'Pending'}
             </span>
-            <Link href="/partner/kyc" className="text-xs text-violet-400 hover:text-violet-300">
+            <Link href="/partner/kyc" className="text-xs font-semibold transition-colors hover:opacity-80" style={{ color: '#a78bfa' }}>
               {user?.kyc?.status === 'verified' ? 'View' : 'Complete →'}
             </Link>
           </div>
         </div>
-      </div>
+      )}
+
     </div>
   )
 }

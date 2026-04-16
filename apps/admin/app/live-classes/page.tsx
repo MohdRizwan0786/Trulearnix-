@@ -22,7 +22,7 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://api.peptly.in').re
 
 const emptyForm = {
   title: '', description: '', courseId: '', batchId: '', scheduledAt: '',
-  duration: 60, platform: 'agora',
+  duration: 60, platform: 'livekit',
 }
 
 export default function LiveClassesPage() {
@@ -70,7 +70,7 @@ export default function LiveClassesPage() {
     if (!form.title || !form.scheduledAt) return toast.error('Title and date required')
     setSaving(true)
     try {
-      await adminAPI.createClass({ ...form, duration: Number(form.duration), platform: 'agora', batchId: form.batchId || undefined })
+      await adminAPI.createClass({ ...form, duration: Number(form.duration), platform: 'livekit', batchId: form.batchId || undefined })
       toast.success('Class scheduled!')
       setShowCreate(false)
       setForm({ ...emptyForm })
@@ -101,7 +101,7 @@ export default function LiveClassesPage() {
   }
 
   const handleCancel = async (cls: any) => {
-    if (!confirm(`Cancel class "${cls.title}"? This will also delete the Zoom meeting.`)) return
+    if (!confirm(`Cancel class "${cls.title}"?`)) return
     setActionId(cls._id)
     try {
       await adminAPI.cancelClass(cls._id)
@@ -116,51 +116,58 @@ export default function LiveClassesPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Live Classes</h1>
-            <p className="text-gray-400 text-sm mt-0.5">{data?.classes?.length || 0} total classes</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => refetch()} className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors" title="Refresh">
-              <RefreshCw className="w-4 h-4" />
-            </button>
-            <button onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-violet-500/25">
-              <Plus className="w-4 h-4" /> Schedule Class
-            </button>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-700 flex items-center justify-center shadow-lg">
+                  <span className="w-3 h-3 bg-white rounded-full animate-pulse" />
+                </div>
+                Live Classes
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">{data?.classes?.length || 0} total classes managed</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => refetch()}
+                className="p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl border border-white/10 transition-all">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Schedule Class
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Stats */}
+        {/* ── Stats ── */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-red-600/20 to-red-800/10 border border-red-500/20 rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <span className="w-3 h-3 bg-red-400 rounded-full animate-pulse" />
+          <div className="kpi-rose">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <span className="w-3 h-3 bg-white rounded-full animate-pulse" />
+              </div>
             </div>
-            <div>
-              <p className="text-3xl font-bold text-red-400">{liveCount}</p>
-              <p className="text-gray-400 text-xs">Live Now</p>
-            </div>
+            <p className="text-3xl font-black text-white">{liveCount}</p>
+            <p className="text-white/70 text-xs mt-1">Live Now</p>
           </div>
-          <div className="bg-slate-800/60 border border-white/5 rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <Calendar className="w-5 h-5 text-blue-400" />
+          <div className="kpi-blue">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
             </div>
-            <div>
-              <p className="text-3xl font-bold text-blue-400">{scheduledCount}</p>
-              <p className="text-gray-400 text-xs">Scheduled</p>
-            </div>
+            <p className="text-3xl font-black text-white">{scheduledCount}</p>
+            <p className="text-white/70 text-xs mt-1">Scheduled</p>
           </div>
-          <div className="bg-slate-800/60 border border-white/5 rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <div className="kpi-emerald">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </div>
             </div>
-            <div>
-              <p className="text-3xl font-bold text-emerald-400">{endedCount}</p>
-              <p className="text-gray-400 text-xs">Completed</p>
-            </div>
+            <p className="text-3xl font-black text-white">{endedCount}</p>
+            <p className="text-white/70 text-xs mt-1">Completed</p>
           </div>
         </div>
 
@@ -370,7 +377,7 @@ export default function LiveClassesPage() {
                 </div>
                 <div>
                   <h2 className="text-white font-bold">Schedule Live Class</h2>
-                  <p className="text-gray-400 text-xs mt-0.5">Zoom meeting will be auto-created</p>
+                  <p className="text-gray-400 text-xs mt-0.5">LiveKit room will be auto-created</p>
                 </div>
               </div>
               <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-white p-1.5 hover:bg-white/10 rounded-lg transition-colors">
@@ -435,7 +442,7 @@ export default function LiveClassesPage() {
               <div className="flex items-start gap-2.5 bg-violet-500/10 border border-violet-500/20 rounded-xl p-3">
                 <Zap className="w-4 h-4 text-violet-400 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-gray-400">
-                  <span className="text-violet-400 font-semibold">Zoom Auto-Create:</span> A Zoom meeting will be automatically created with cloud recording enabled. Attendance will be auto-tracked (75% threshold).
+                  <span className="text-violet-400 font-semibold">LiveKit Auto-Create:</span> A free LiveKit room will be automatically created. Attendance will be auto-tracked (75% threshold).
                 </div>
               </div>
             </div>
@@ -448,7 +455,7 @@ export default function LiveClassesPage() {
               <button onClick={handleCreate} disabled={saving}
                 className="flex-1 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-violet-500/25 disabled:opacity-60 flex items-center justify-center gap-2">
                 {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Video className="w-4 h-4" />}
-                {saving ? 'Creating...' : 'Schedule & Create Zoom'}
+                {saving ? 'Creating...' : 'Schedule Class'}
               </button>
             </div>
           </div>

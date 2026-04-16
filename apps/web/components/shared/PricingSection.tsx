@@ -66,6 +66,18 @@ const TIER_META: Record<string, {
     btnShadow: '0 4px 20px rgba(245,158,11,0.4)',
     highlight: false,
   },
+  basic: {
+    emoji: '🌱',
+    headerGrad: 'linear-gradient(135deg,#064e3b,#059669)',
+    accentColor: '#34d399',
+    glowColor: 'rgba(16,185,129,0.25)',
+    borderColor: 'rgba(16,185,129,0.35)',
+    badgeText: '🌱 Basic',
+    badgeGrad: 'linear-gradient(90deg,#059669,#0d9488)',
+    btnGrad: 'linear-gradient(135deg,#059669,#0d9488)',
+    btnShadow: '0 4px 20px rgba(16,185,129,0.4)',
+    highlight: false,
+  },
   supreme: {
     emoji: '💎',
     headerGrad: 'linear-gradient(135deg,#042f2e,#0d9488,#0891b2)',

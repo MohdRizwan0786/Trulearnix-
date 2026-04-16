@@ -6,14 +6,16 @@ import { authAPI } from '@/lib/api'
 import Link from 'next/link'
 import {
   LayoutDashboard, Users, Trophy, LogOut, Menu, X, UserCog,
-  Bell, ChevronRight, CalendarCheck
+  Bell, ChevronRight, CalendarCheck, Kanban, CalendarDays
 } from 'lucide-react'
 
 const navItems = [
-  { href: '/manager/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/manager/partners',       icon: Users,           label: 'My Partners' },
-  { href: '/manager/emi-commissions', icon: CalendarCheck,  label: 'EMI Commissions' },
-  { href: '/manager/leaderboard',    icon: Trophy,          label: 'Leaderboard' },
+  { href: '/manager/dashboard',       icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/manager/partners',        icon: Users,           label: 'My Partners' },
+  { href: '/manager/emi-commissions', icon: CalendarCheck,   label: 'EMI Commissions' },
+  { href: '/manager/kanban',          icon: Kanban,          label: 'Kanban' },
+  { href: '/manager/calendar',        icon: CalendarDays,    label: 'Calendar' },
+  { href: '/manager/leaderboard',     icon: Trophy,          label: 'Leaderboard' },
 ]
 
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
@@ -30,6 +32,8 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   useEffect(() => { setOpen(false) }, [pathname])
 
   if (!user || !['manager', 'admin', 'superadmin'].includes(user.role)) return null
+
+  if (/^\/manager\/meeting-room\/[^/]+$/.test(pathname)) return <>{children}</>
 
   const handleLogout = async () => {
     try { await authAPI.logout() } catch {}

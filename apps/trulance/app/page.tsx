@@ -218,11 +218,11 @@ export default function Home() {
         </section>
       )}
 
-      {/* Why TruLance */}
+      {/* Why TruLancer */}
       <section className="py-16 px-4" style={{ background: 'rgba(255,255,255,0.01)', borderTop: '1px solid rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-3">Why TruLance?</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-3">Why TruLancer?</h2>
             <p className="text-gray-500">Built for real learning, real work</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -269,7 +269,7 @@ export default function Home() {
             <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#0d9488,#0891b2)' }}>
               <Zap className="w-3 h-3 text-white" />
             </div>
-            <span className="font-black text-white">TruLance</span>
+            <span className="font-black text-white">TruLancer</span>
             <span className="text-gray-600 text-xs">by TruLearnix</span>
           </div>
           <div className="flex items-center gap-6 text-xs text-gray-500">
@@ -277,7 +277,7 @@ export default function Home() {
             <Link href="/freelancers" className="hover:text-teal-400 transition-colors">Freelancers</Link>
             <a href="https://peptly.in" className="hover:text-teal-400 transition-colors">TruLearnix</a>
           </div>
-          <p className="text-xs text-gray-700">© 2025 TruLance. All rights reserved.</p>
+          <p className="text-xs text-gray-700">© 2025 TruLancer. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -66,33 +66,47 @@ export default function EmiPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <CreditCard className="w-6 h-6 text-violet-400" />
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <h1 className="text-2xl font-black text-white flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
+              <CreditCard className="w-5 h-5 text-white" />
+            </div>
             EMI Installments
           </h1>
-          <p className="text-gray-400 text-sm mt-0.5">Manage all EMI purchases, manual payments and access control</p>
+          <p className="text-gray-400 text-sm mt-1">Manage all EMI purchases, manual payments and access control</p>
         </div>
 
-        {/* Stats */}
+        {/* ── KPI Stats ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'EMI Purchases', value: stats.totalEmiPurchases || 0, icon: CreditCard, color: 'text-violet-400', bg: 'bg-violet-500/20' },
-            { label: 'Overdue', value: stats.totalOverdue || 0, icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-500/20' },
-            { label: 'Paid Installments', value: stats.totalPaid || 0, icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/20' },
-            { label: 'Total Collected', value: fmt(stats.totalCollected || 0), icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
-          ].map(({ label, value, icon: Icon, color, bg }) => (
-            <div key={label} className="bg-slate-900 rounded-2xl border border-white/10 p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center`}>
-                  <Icon className={`w-4 h-4 ${color}`} />
-                </div>
-                <span className="text-gray-400 text-sm">{label}</span>
-              </div>
-              <p className={`text-2xl font-bold ${color}`}>{value}</p>
+          <div className="kpi-violet">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+              <CreditCard className="w-5 h-5 text-white" />
             </div>
-          ))}
+            <p className="text-2xl font-black text-white">{stats.totalEmiPurchases || 0}</p>
+            <p className="text-white/70 text-xs mt-1">EMI Purchases</p>
+          </div>
+          <div className="kpi-rose">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+              <AlertTriangle className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-2xl font-black text-white">{stats.totalOverdue || 0}</p>
+            <p className="text-white/70 text-xs mt-1">Overdue</p>
+          </div>
+          <div className="kpi-emerald">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+              <CheckCircle className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-2xl font-black text-white">{stats.totalPaid || 0}</p>
+            <p className="text-white/70 text-xs mt-1">Paid Installments</p>
+          </div>
+          <div className="kpi-amber">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-2xl font-black text-white">{fmt(stats.totalCollected || 0)}</p>
+            <p className="text-white/70 text-xs mt-1">Total Collected</p>
+          </div>
         </div>
 
         {/* Filter */}

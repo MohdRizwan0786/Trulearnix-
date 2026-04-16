@@ -411,3 +411,19 @@ main { overflow-x: hidden; }
   height: 1px;
   background: linear-gradient(90deg, transparent 0%, rgba(124,58,237,0.3) 30%, rgba(217,70,239,0.2) 70%, transparent 100%);
 }
+
+/* Dark select/dropdown overrides */
+select {
+  color-scheme: dark;
+  background-color: #0c0e20;
+  color: #f9fafb;
+}
+select option {
+  background-color: #0c0e20;
+  color: #f9fafb;
+}
+select option:hover,
+select option:checked {
+  background-color: #4c1d95;
+  color: #fff;
+}

@@ -13,7 +13,18 @@ import PricingSection from '@/components/shared/PricingSection'
 import CTASection from '@/components/shared/CTASection'
 import Footer from '@/components/layout/Footer'
 
-export default function HomePage() {
+async function fetchLeaderboard() {
+  try {
+    const res = await fetch('http://localhost:5000/api/affiliate/leaderboard', { next: { revalidate: 1800 } })
+    const data = await res.json()
+    return data.leaderboard?.slice(0, 6) || []
+  } catch {
+    return []
+  }
+}
+
+export default async function HomePage() {
+  const earners = await fetchLeaderboard()
   return (
     <main>
       <Navbar />
@@ -23,7 +34,7 @@ export default function HomePage() {
       <LiveClassesSection />
       <FeaturedCourses />
       <WhyLiveSection />
-      <EarningsProofSection />
+      <EarningsProofSection initialEarners={earners} />
       <HowItWorks />
       <TestimonialsSection />
       <WallOfLove />

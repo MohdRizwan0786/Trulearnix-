@@ -19,7 +19,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (!mounted) return
     if (!isAuthenticated()) router.push('/login')
-    else if (user && user.role !== 'student' && user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'salesperson') {
+    else if (user && user.role !== 'student' && user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'salesperson' && user.role !== 'mentor') {
       router.push('/student/dashboard')
     }
 

@@ -88,61 +88,90 @@ export default function CoursesPage() {
     <AdminLayout>
       <div className="space-y-6">
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Course Management</h1>
-            <p className="text-gray-400 text-sm mt-0.5">Create, manage and review all courses</p>
-          </div>
-          <Link href="/courses/new"
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-violet-500/20">
-            <Plus className="w-4 h-4" />
-            Create Course
-          </Link>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Courses', value: rawCourses.length, icon: BookOpen, color: 'text-violet-400', bg: 'bg-violet-500/10' },
-            { label: 'Published', value: publishedCount, icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-            { label: 'Drafts', value: draftCount, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-            { label: 'Total Enrolled', value: totalEnrolled.toLocaleString(), icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-          ].map(s => (
-            <div key={s.label} className="card flex items-center gap-4 p-4">
-              <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
-                <s.icon className={`w-5 h-5 ${s.color}`} />
-              </div>
-              <div>
-                <p className="text-gray-400 text-xs">{s.label}</p>
-                <p className="text-white font-bold text-lg leading-tight">{s.value}</p>
-              </div>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
+                  <BookOpen className="w-5 h-5 text-white" />
+                </div>
+                Course Management
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">Create, review and manage all learning content</p>
             </div>
-          ))}
+            <Link href="/courses/new"
+              className="btn-primary flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Create Course
+            </Link>
+          </div>
         </div>
 
-        {/* Tabs + Filters */}
+        {/* ── KPI Cards ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="kpi-violet">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xs text-white/60 bg-white/10 px-2 py-0.5 rounded-full">Total</span>
+            </div>
+            <p className="text-2xl font-black text-white">{rawCourses.length}</p>
+            <p className="text-white/70 text-xs mt-1">Total Courses</p>
+          </div>
+          <div className="kpi-emerald">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xs text-white/60 bg-white/10 px-2 py-0.5 rounded-full">Live</span>
+            </div>
+            <p className="text-2xl font-black text-white">{publishedCount}</p>
+            <p className="text-white/70 text-xs mt-1">Published</p>
+          </div>
+          <div className="kpi-amber">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xs text-white/60 bg-white/10 px-2 py-0.5 rounded-full">WIP</span>
+            </div>
+            <p className="text-2xl font-black text-white">{draftCount}</p>
+            <p className="text-white/70 text-xs mt-1">Drafts</p>
+          </div>
+          <div className="kpi-blue">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xs text-white/60 bg-white/10 px-2 py-0.5 rounded-full">Learners</span>
+            </div>
+            <p className="text-2xl font-black text-white">{totalEnrolled >= 1000 ? `${(totalEnrolled/1000).toFixed(1)}K` : totalEnrolled}</p>
+            <p className="text-white/70 text-xs mt-1">Total Enrolled</p>
+          </div>
+        </div>
+
+        {/* ── Tabs + Filters ── */}
         <div className="flex flex-wrap items-center gap-3 justify-between">
-          <div className="flex gap-1 bg-slate-800/50 border border-white/10 rounded-2xl p-1">
-            <button onClick={() => setTab('all')}
-              className={`px-5 py-2 rounded-xl text-sm font-medium transition-colors ${tab === 'all' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+          <div className="tab-bar">
+            <button onClick={() => setTab('all')} className={tab === 'all' ? 'tab-active' : 'tab-inactive'}>
               All Courses
             </button>
             <button onClick={() => setTab('pending')}
-              className={`px-5 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ${tab === 'pending' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+              className={`${tab === 'pending' ? 'tab-active' : 'tab-inactive'} flex items-center gap-2`}>
               <Clock className="w-3.5 h-3.5" /> Pending Approval
               {(pendingData?.courses?.length || 0) > 0 && (
-                <span className="bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">
+                <span className="bg-amber-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">
                   {pendingData?.courses?.length}
                 </span>
               )}
             </button>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <div className="search-bar w-52">
+              <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
               <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search courses..." className="input pl-9 w-52 text-sm" />
+                placeholder="Search courses..." className="search-input text-sm" />
             </div>
             {tab === 'all' && (
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input w-36 text-sm">

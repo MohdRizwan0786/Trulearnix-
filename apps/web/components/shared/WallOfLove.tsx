@@ -199,17 +199,20 @@ function MarqueeCard({ v, onClick }: { v: Video; onClick: () => void }) {
 export default function WallOfLove() {
   const [active, setActive] = useState<Video | null>(null)
   const [videos, setVideos] = useState<Video[]>(DEFAULT_VIDEOS.map(enrichVideo))
+  const [heading, setHeading] = useState('They Said It. We Didn\'t.')
+  const [subheading, setSubheading] = useState('Raw. Unscripted. Real students on camera — sharing what TruLearnix actually did to their lives.')
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/testimonials`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/wall`)
       .then(r => r.json())
       .then(d => {
-        if (d.success && d.data?.items?.length) {
-          setVideos(d.data.items.map((item: any, i: number) => enrichVideo({
+        if (!d.success || !d.data) return
+        if (d.data.heading)    setHeading(d.data.heading)
+        if (d.data.subheading) setSubheading(d.data.subheading)
+        if (d.data.videos?.length) {
+          setVideos(d.data.videos.map((item: any, i: number) => enrichVideo({
             ...item,
             id: i + 1,
-            company: item.role?.split(' @ ')[1] || '',
-            role: item.role?.split(' @ ')[0] || item.role || '',
             duration: item.duration || '1:00',
           }, i)))
         }
@@ -245,15 +248,14 @@ export default function WallOfLove() {
           <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             className="font-black text-white leading-tight mb-4"
             style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
-            They Said It.{' '}
             <span style={{ background: 'linear-gradient(135deg,#ec4899,#a855f7,#6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              We Didn't.
+              {heading}
             </span>
           </motion.h2>
 
           <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
             className="text-gray-400 text-base max-w-md mx-auto mb-5">
-            Raw. Unscripted. Real students on camera — sharing what TruLearnix actually did to their lives.
+            {subheading}
           </motion.p>
 
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.2 }}

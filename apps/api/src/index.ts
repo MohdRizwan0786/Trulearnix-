@@ -14,6 +14,7 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import courseRoutes from './routes/courses';
 import classRoutes from './routes/classes';
+import webinarRoutes from './routes/webinars';
 import quizRoutes from './routes/quizzes';
 import paymentRoutes from './routes/payments';
 import walletRoutes from './routes/wallet';
@@ -30,6 +31,7 @@ import analyticsRoutes from './routes/analytics';
 import communityRoutes from './routes/community';
 import couponRoutes from './routes/coupons';
 import taskRoutes from './routes/tasks';
+import meetingRoutes from './routes/meetings';
 import materialRoutes from './routes/materials';
 import goalRoutes from './routes/goals';
 import reminderRoutes from './routes/reminders';
@@ -47,6 +49,9 @@ import marketingRouter from './routes/marketing';
 import novaRouter, { bootstrapNovaCrons } from './routes/nova';
 import managerRouter from './routes/manager';
 import salesRouter from './routes/sales';
+import jobsRouter from './routes/jobs';
+import announcementsRouter from './routes/announcements';
+import securityMonitor, { loadBlockedIpCache } from './middleware/securityMonitor';
 
 dotenv.config();
 
@@ -69,6 +74,54 @@ export const io = new Server(server, {
 app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(securityMonitor);
+
+// Razorpay webhook — raw body needed BEFORE json parser
+app.post('/api/webhooks/razorpay-payout', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const signature = req.headers['x-razorpay-signature'] as string;
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+    const { verifyWebhookSignature } = await import('./services/razorpayPayout');
+    const rawBody = req.body.toString();
+
+    if (webhookSecret && !verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+      return res.status(400).json({ success: false, message: 'Invalid signature' });
+    }
+
+    const event = JSON.parse(rawBody);
+    const payload = event?.payload?.payout?.entity;
+    if (!payload) return res.json({ success: true });
+
+    const payoutId: string = payload.id;
+    const status: string = payload.status; // processed | failed | reversed
+    const utr: string = payload.utr || '';
+
+    const Withdrawal = (await import('./models/Withdrawal')).default;
+    const User = (await import('./models/User')).default;
+
+    const withdrawal = await Withdrawal.findOne({ razorpayPayoutId: payoutId });
+    if (!withdrawal) return res.json({ success: true }); // not our withdrawal
+
+    if (status === 'processed') {
+      withdrawal.status = 'completed';
+      if (utr) withdrawal.razorpayPayoutId = `${payoutId} | UTR: ${utr}`;
+      await withdrawal.save();
+    } else if (status === 'failed' || status === 'reversed') {
+      withdrawal.status = 'rejected';
+      withdrawal.hrStatus = 'rejected';
+      withdrawal.rejectionReason = `Auto payout ${status}. Ref: ${payoutId}`;
+      await withdrawal.save();
+      // Refund wallet
+      await User.findByIdAndUpdate(withdrawal.user, { $inc: { wallet: withdrawal.amount, totalWithdrawn: -withdrawal.amount } });
+    }
+
+    res.json({ success: true });
+  } catch (e: any) {
+    console.error('[Webhook Error]', e.message);
+    res.status(500).json({ success: false });
+  }
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -86,6 +139,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/classes', classRoutes);
+app.use('/api/webinars', webinarRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/wallet', walletRoutes);
@@ -104,6 +158,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/meetings', meetingRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/reminders', reminderRoutes);
@@ -121,6 +176,8 @@ app.use('/api/marketing', marketingRouter);
 app.use('/api/nova', novaRouter);
 app.use('/api/manager', managerRouter);
 app.use('/api/sales', salesRouter);
+app.use('/api/jobs', jobsRouter);
+app.use('/api/announcements', announcementsRouter);
 
 // Health
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'TureLearnix API', version: '2.1' }));
@@ -138,6 +195,7 @@ const start = async () => {
   await connectRedis();
   initSocketHandlers(io);
   await bootstrapNovaCrons();
+  await loadBlockedIpCache();
   server.listen(PORT, () => console.log(`TureLearnix API v2.1 running on port ${PORT}`));
 };
 

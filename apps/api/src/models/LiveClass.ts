@@ -8,12 +8,15 @@ export interface ILiveClass extends Document {
   mentor: mongoose.Types.ObjectId;
   scheduledAt: Date;
   duration: number;
-  platform: 'zoom' | 'agora';
+  platform: 'zoom' | 'agora' | 'livekit';
   zoomMeetingId?: string;
   zoomJoinUrl?: string;
   zoomStartUrl?: string;
   zoomPassword?: string;
   agoraChannelName?: string;
+  livekitRoomName?: string;
+  egressId?: string;
+  lessonId?: string;
   status: 'scheduled' | 'live' | 'ended' | 'cancelled';
   recordingUrl?: string;
   recordingSize?: number;
@@ -42,9 +45,12 @@ const LiveClassSchema = new Schema<ILiveClass>({
   mentor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   scheduledAt: { type: Date, required: true },
   duration: { type: Number, default: 60 },
-  platform: { type: String, enum: ['zoom', 'agora'], default: 'agora' },
+  platform: { type: String, enum: ['zoom', 'agora', 'livekit'], default: 'livekit' },
   zoomMeetingId: String,
   agoraChannelName: String,
+  livekitRoomName: String,
+  egressId: String,
+  lessonId: String,
   zoomJoinUrl: String,
   zoomStartUrl: String,
   zoomPassword: String,

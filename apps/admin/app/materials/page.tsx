@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
-import { Plus, X, FileText, Video, File, Link2, Image, Download, Search, Trash2, Globe, Lock, BookOpen } from 'lucide-react'
+import { Plus, X, FileText, Video, File, Link2, Image, Download, Search, Trash2, Globe, Lock, BookOpen, FolderOpen } from 'lucide-react'
 
 const TYPE_ICONS: Record<string, any> = {
   pdf: FileText, video: Video, doc: File, link: Link2, image: Image
@@ -77,14 +77,22 @@ export default function MaterialsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Study Materials</h1>
-            <p className="text-gray-400 text-sm mt-1">{materials.length} resources</p>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-700 flex items-center justify-center shadow-lg">
+                  <FolderOpen className="w-5 h-5 text-white" />
+                </div>
+                Study Materials
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">{materials.length} resources available</p>
+            </div>
+            <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Add Material
+            </button>
           </div>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" /> Add Material
-          </button>
         </div>
 
         <div className="flex gap-3 flex-wrap">

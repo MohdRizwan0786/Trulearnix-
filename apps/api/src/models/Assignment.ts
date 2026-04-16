@@ -4,10 +4,13 @@ export interface IAssignment extends Document {
   title: string;
   description: string;
   course: mongoose.Types.ObjectId;
+  batch?: mongoose.Types.ObjectId;
   module?: mongoose.Types.ObjectId;
+  lessonId?: string;
   mentor: mongoose.Types.ObjectId;
   dueDate?: Date;
   maxScore: number;
+  referenceFiles: { url: string; name: string; type: string }[];
   submissions: {
     student: mongoose.Types.ObjectId;
     fileUrl: string;
@@ -26,10 +29,13 @@ const AssignmentSchema = new Schema<IAssignment>({
   title: { type: String, required: true },
   description: { type: String, required: true },
   course: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+  batch: { type: Schema.Types.ObjectId, ref: 'Batch' },
   module: { type: Schema.Types.ObjectId },
+  lessonId: String,
   mentor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   dueDate: Date,
   maxScore: { type: Number, default: 100 },
+  referenceFiles: [{ url: String, name: String, type: { type: String } }],
   submissions: [{
     student: { type: Schema.Types.ObjectId, ref: 'User' },
     fileUrl: String,

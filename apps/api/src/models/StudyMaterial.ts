@@ -6,6 +6,9 @@ export interface IStudyMaterial extends Document {
   type: 'pdf' | 'video' | 'doc' | 'link' | 'image';
   url: string;
   courseId: mongoose.Types.ObjectId;
+  batchId?: mongoose.Types.ObjectId;
+  lessonId?: string;
+  moduleId?: string;
   uploadedBy: mongoose.Types.ObjectId;
   isPublic: boolean;
   tags: string[];
@@ -18,6 +21,9 @@ const StudyMaterialSchema = new Schema<IStudyMaterial>({
   type: { type: String, enum: ['pdf', 'video', 'doc', 'link', 'image'], required: true },
   url: { type: String, required: true },
   courseId: { type: Schema.Types.ObjectId, ref: 'Course' },
+  batchId: { type: Schema.Types.ObjectId, ref: 'Batch' },
+  lessonId: String,
+  moduleId: String,
   uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   isPublic: { type: Boolean, default: false },
   tags: [{ type: String }],

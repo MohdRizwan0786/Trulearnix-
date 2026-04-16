@@ -13,7 +13,7 @@ export interface ILead extends Document {
   utmCampaign?: string;
   utmContent?: string;
   assignedTo?: mongoose.Types.ObjectId;
-  stage: 'new' | 'contacted' | 'interested' | 'demo_done' | 'negotiating' | 'paid' | 'lost';
+  stage: 'new' | 'contacted' | 'interested' | 'demo_done' | 'negotiating' | 'token_collected' | 'paid' | 'lost';
   aiScore: number;
   aiScoreLabel: 'cold' | 'warm' | 'hot';
   aiScoreReason?: string;
@@ -54,7 +54,7 @@ const LeadSchema = new Schema<ILead>({
   utmCampaign: String,
   utmContent: String,
   assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
-  stage: { type: String, enum: ['new', 'contacted', 'interested', 'demo_done', 'negotiating', 'paid', 'lost'], default: 'new' },
+  stage: { type: String, enum: ['new', 'contacted', 'interested', 'demo_done', 'negotiating', 'token_collected', 'paid', 'lost'], default: 'new' },
   aiScore: { type: Number, default: 0 },
   aiScoreLabel: { type: String, enum: ['cold', 'warm', 'hot'], default: 'cold' },
   aiScoreReason: String,

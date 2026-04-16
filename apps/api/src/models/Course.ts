@@ -18,6 +18,7 @@ export interface IModule {
   title: string;
   description?: string;
   order: number;
+  batch?: mongoose.Types.ObjectId;
   lessons: ILesson[];
 }
 
@@ -41,6 +42,7 @@ export interface ICourse extends Document {
   tags: string[];
   price: number;
   discountPrice?: number;
+  salesRefDiscountPercent?: number;
   modules: IModule[];
   level: 'beginner' | 'intermediate' | 'advanced';
   language: string;
@@ -78,6 +80,7 @@ const ModuleSchema = new Schema<IModule>({
   title: { type: String, required: true },
   description: String,
   order: { type: Number, required: true },
+  batch: { type: Schema.Types.ObjectId, ref: 'Batch' },
   lessons: [LessonSchema]
 });
 
@@ -93,6 +96,7 @@ const CourseSchema = new Schema<ICourse>({
   tags: [String],
   price: { type: Number, required: true, min: 0 },
   discountPrice: Number,
+  salesRefDiscountPercent: { type: Number, default: 0, min: 0, max: 100 },
   modules: [ModuleSchema],
   level: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'beginner' },
   language: { type: String, default: 'Hindi' },

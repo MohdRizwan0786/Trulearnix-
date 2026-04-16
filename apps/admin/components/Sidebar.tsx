@@ -2,7 +2,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
+import { useRef, useEffect } from 'react'
 import Cookies from 'js-cookie'
+import type { UserSession } from './AdminLayout'
 import {
   LayoutDashboard, BarChart2, Users, Package, DollarSign, Coins,
   ShoppingCart, Contact, BookOpen, Video, FileText, LifeBuoy, PlayCircle,
@@ -10,7 +12,8 @@ import {
   Tag, Target, FolderOpen, AlarmClock, UserCog, Shield,
   Trophy, MousePointerClick, TrendingUp, Layers, PanelTop,
   Briefcase, UserCheck, UserX, GraduationCap, MessageSquare, ShoppingBag, UserPlus,
-  ClipboardList, HeartHandshake, CreditCard
+  ClipboardList, HeartHandshake, CreditCard, ShieldCheck, Award, Megaphone, IndianRupee,
+  Calendar, Flag, Radio,
 } from 'lucide-react'
 
 // permission key matches what's stored in localStorage adminPermissions
@@ -26,30 +29,38 @@ const navItems = [
       { label: 'Free / Unpaid', href: '/learners?tab=free',      icon: UserX,      perm: 'learners' },
     ]
   },
-  { label: 'Partners',        href: '/partners',     icon: HeartHandshake,       perm: 'learners' },
-  { label: 'Sales Team',      href: '/sales-team',   icon: TrendingUp,           perm: 'learners' },
+  { label: 'Partners',        href: '/partners',         icon: HeartHandshake, perm: 'partners' },
+  { label: 'Partner Training',href: '/partner-training', icon: GraduationCap,  perm: 'partner-training' },
+  { label: 'Qualifications',  href: '/qualifications',   icon: Trophy,         perm: 'qualifications' },
+  { label: 'Sales Team',      href: '/sales-team',   icon: TrendingUp,           perm: 'sales-team' },
   { label: 'Employees',       href: '/employees',    icon: UserPlus,        perm: 'employees' },
   { label: 'Packages',        href: '/packages',     icon: Package,         perm: 'packages' },
   {
     label: 'Finance', icon: DollarSign, perm: 'finance', children: [
       { label: 'Commissions', href: '/finance?tab=commissions', icon: Coins,        perm: 'finance' },
-      { label: 'Withdrawals', href: '/finance?tab=withdrawals', icon: DollarSign,   perm: 'finance' },
+      { label: 'Withdrawals', href: '/withdrawals',              icon: DollarSign,   perm: 'withdrawals' },
       { label: 'Purchases',   href: '/finance?tab=purchases',   icon: ShoppingCart, perm: 'finance' },
-      { label: 'EMI / Installments', href: '/emi',              icon: CreditCard,   perm: 'finance' },
+      { label: 'EMI / Installments', href: '/emi',              icon: CreditCard,   perm: 'emi' },
     ]
   },
-  { label: 'Reports',         href: '/reports',      icon: ClipboardList,   perm: 'finance' },
+  { label: 'Reports',         href: '/reports',      icon: ClipboardList,   perm: 'reports' },
   { label: 'Marketing',       href: '/marketing',    icon: MessageSquare,   perm: 'marketing' },
   { label: 'CRM',             href: '/crm',          icon: Contact,         perm: 'crm' },
   { label: 'Mentors',         href: '/mentors',      icon: GraduationCap,   perm: 'mentors' },
+  { label: 'Attendance',      href: '/attendance',       icon: Calendar,    perm: 'attendance' },
+  { label: 'Holidays',        href: '/holidays',         icon: Flag,        perm: 'holidays' },
+  { label: 'Mentor Salary',   href: '/mentor-salary',    icon: IndianRupee, perm: 'mentor-salary' },
+  { label: 'Employee Salary', href: '/employee-salary',  icon: Briefcase,   perm: 'employee-salary' },
   { label: 'Courses',         href: '/courses',      icon: BookOpen,        perm: 'courses' },
   {
     label: 'Live Classes', icon: Video, perm: 'live-classes', children: [
       { label: 'All Classes',  href: '/live-classes', icon: Video,       perm: 'live-classes' },
-      { label: 'Recordings',   href: '/recordings',   icon: PlayCircle,  perm: 'live-classes' },
+      { label: 'Recordings',   href: '/recordings',   icon: PlayCircle,  perm: 'recordings' },
+      { label: 'Webinars',     href: '/webinars',     icon: Radio,       perm: 'webinars' },
     ]
   },
   { label: 'Blog',            href: '/blog',         icon: FileText,        perm: 'blog' },
+  { label: 'Announcements',   href: '/announcements',icon: Megaphone,       perm: 'announcements' },
   { label: 'Support',         href: '/support',      icon: LifeBuoy,        perm: 'support' },
   { label: 'Coupons',         href: '/coupons',      icon: Tag,             perm: 'coupons' },
   { label: 'Notifications',   href: '/notifications',icon: Bell,            perm: 'notifications' },
@@ -73,31 +84,39 @@ const navItems = [
     label: 'TruLance', icon: Zap, perm: 'trulance', children: [
       { label: 'Projects',    href: '/trulance/projects',    icon: Briefcase, perm: 'trulance' },
       { label: 'Freelancers', href: '/trulance/freelancers', icon: UserCheck, perm: 'trulance' },
+      { label: 'Platform Jobs', href: '/trulance/jobs',     icon: Briefcase,  perm: 'trulance' },
     ]
   },
   { label: 'Study Materials', href: '/materials',    icon: FolderOpen, perm: 'materials' },
+  { label: 'Report Cards',    href: '/report-cards', icon: Award,      perm: 'report-cards' },
   { label: 'Achievements',    href: '/achievements', icon: Trophy,     perm: 'achievements' },
-  { label: 'HR Team',         href: '/hr',           icon: UserCog,    perm: 'employees' },
+  { label: 'KYC Review',      href: '/kyc',           icon: ShieldCheck, perm: 'kyc' },
+  { label: 'HR Team',         href: '/hr',            icon: UserCog,    perm: 'hr' },
   { label: 'Security',        href: '/security',     icon: Shield,     perm: 'security' },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ session }: { session: UserSession }) {
   const pathname = usePathname()
   const router = useRouter()
+  const navRef = useRef<HTMLElement>(null)
 
-  const adminName = typeof window !== 'undefined' ? (localStorage.getItem('adminName') || 'Admin') : 'Admin'
-  const adminRole = typeof window !== 'undefined' ? (localStorage.getItem('adminRole') || 'superadmin') : 'superadmin'
-  const adminDept = typeof window !== 'undefined' ? (localStorage.getItem('adminDept') || '') : ''
+  // Restore scroll position on mount / route change
+  useEffect(() => {
+    const saved = sessionStorage.getItem('sidebar-scroll')
+    if (saved && navRef.current) navRef.current.scrollTop = parseInt(saved)
+  }, [pathname])
+
+  const handleNavScroll = () => {
+    if (navRef.current) sessionStorage.setItem('sidebar-scroll', String(navRef.current.scrollTop))
+  }
+
+  const adminName = session.name || 'Admin'
+  const adminRole = session.role || 'superadmin'
+  const adminDept = session.dept || ''
 
   // superadmin and admin always get full access
   const isSuperUser = ['superadmin', 'admin'].includes(adminRole)
-  const permissions: string[] = (() => {
-    if (isSuperUser) return ['*']
-    try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem('adminPermissions') : null
-      return raw ? JSON.parse(raw) : []
-    } catch { return [] }
-  })()
+  const permissions: string[] = isSuperUser ? ['*'] : (session.permissions || [])
 
   const hasAccess = (perm?: string) => {
     if (!perm) return true
@@ -141,7 +160,7 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav ref={navRef} onScroll={handleNavScroll} className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           if (!hasAccess(item.perm)) return null
 

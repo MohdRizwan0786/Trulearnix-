@@ -209,14 +209,18 @@ export default function MarketingPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-white flex items-center gap-2">
-              <MessageSquare className="w-6 h-6 text-violet-400" /> Marketing Hub
-            </h1>
-            <p className="text-gray-400 text-sm mt-0.5">WhatsApp, Email, Templates, Chatbot — all in one place</p>
-          </div>
+        {/* ── Page Header ── */}
+        <div className="page-header">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-600 flex items-center justify-center shadow-lg">
+                  <MessageSquare className="w-5 h-5 text-white" />
+                </div>
+                Marketing Hub
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">WhatsApp, Email, Templates, Chatbot — all in one place</p>
+            </div>
           <div className="flex gap-2">
             {tab === 'email' && (
               <>
@@ -244,13 +248,14 @@ export default function MarketingPage() {
               </button>
             )}
           </div>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-1 bg-white/5 p-1 rounded-2xl w-fit">
+        {/* ── Tabs ── */}
+        <div className="tab-bar w-fit">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${tab === t.id ? 'bg-violet-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
+              className={`flex items-center gap-2 ${tab === t.id ? 'tab-active' : 'tab-inactive'}`}>
               <t.icon className={`w-4 h-4 ${tab === t.id ? 'text-white' : t.color}`} />
               {t.label}
             </button>

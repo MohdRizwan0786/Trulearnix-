@@ -1,25 +1,85 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Play, Star, Users, Award, BookOpen, Video, Zap, TrendingUp, CheckCircle2, ArrowRight, Sparkles, Flame, Shield } from 'lucide-react'
 
-const features = [
+const DEFAULT_FEATURES = [
   'Live Interactive Classes Daily',
   'AI-Generated Certificates',
-  'Earn via Affiliate Program',
+  'Earn via Partner Program',
   '500+ Expert-Led Courses',
 ]
 
-const tickerItems = [
+const DEFAULT_TICKER = [
   '🔥 New Batch Starting Monday',
   '⚡ 247 Students Joined Today',
   '🏆 50,000+ Learners Trust Us',
-  '💰 ₹2Cr+ Affiliate Earnings Paid',
+  '💰 ₹2Cr+ Partner Earnings Paid',
   '🎓 20,000+ Certificates Issued',
   '🌟 4.9/5 Platform Rating',
 ]
 
+const DEFAULT_HERO_STATS = [
+  { icon: Users,    val: '50K+',  label: 'Active Learners',     glowColor: 'rgba(124,58,237,0.2)',  iconColor: 'text-violet-400' },
+  { icon: BookOpen, val: '500+',  label: 'Expert Courses',      glowColor: 'rgba(99,102,241,0.2)',  iconColor: 'text-indigo-400' },
+  { icon: Award,    val: '20K+',  label: 'Certificates Issued', glowColor: 'rgba(245,158,11,0.2)',  iconColor: 'text-amber-400'  },
+  { icon: Zap,      val: '₹2Cr+', label: 'Partner Earnings',  glowColor: 'rgba(16,185,129,0.2)',  iconColor: 'text-green-400'  },
+]
+
+const ICON_CYCLE = [Users, BookOpen, Award, Zap]
+const GLOW_CYCLE = ['rgba(124,58,237,0.2)', 'rgba(99,102,241,0.2)', 'rgba(245,158,11,0.2)', 'rgba(16,185,129,0.2)']
+const COLOR_CYCLE = ['text-violet-400', 'text-indigo-400', 'text-amber-400', 'text-green-400']
+
 export default function HeroSection() {
+  const [badgeText, setBadgeText]             = useState('Live Classes Happening Now')
+  const [headline, setHeadline]               = useState("India's #1 Live Learning + Earning Platform")
+  const [subheadline, setSubheadline]         = useState('Interactive live classes, AI certificates & a built-in partner system — learn skills, earn money & transform your career.')
+  const [heroBannerImage, setHeroBannerImage] = useState('')
+  const [features, setFeatures]               = useState(DEFAULT_FEATURES)
+  const [tickerItems, setTickerItems]         = useState(DEFAULT_TICKER)
+  const [heroStats, setHeroStats]             = useState(DEFAULT_HERO_STATS)
+  const [liveClassTitle, setLiveClassTitle]   = useState('Full Stack Dev — Batch 12')
+  const [liveClassMentor, setLiveClassMentor] = useState('Mentor Aryan Kapoor')
+  const [liveClassViewers, setLiveClassViewers] = useState('247 watching')
+  const [chatMessages, setChatMessages]       = useState([
+    { u: 'Rahul', m: 'Finally understood useEffect! 🔥', c: 'text-blue-400' },
+    { u: 'Priya', m: 'Can you explain useCallback too?',  c: 'text-fuchsia-400' },
+    { u: 'Amit',  m: 'Getting certificate after this?',   c: 'text-green-400' },
+  ])
+
+  useEffect(() => {
+    fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/hero')
+      .then(r => r.json())
+      .then(res => {
+        const d = res.data
+        if (!d) return
+        if (d.badgeText)             setBadgeText(d.badgeText)
+        if (d.headline)              setHeadline(d.headline)
+        if (d.subheadline)           setSubheadline(d.subheadline)
+        if (d.heroBannerImage)       setHeroBannerImage(d.heroBannerImage)
+        if (d.features?.length)      setFeatures(d.features)
+        if (d.ticker?.length)        setTickerItems(d.ticker)
+        if (d.heroStats?.length) {
+          setHeroStats(d.heroStats.map((s: any, i: number) => ({
+            icon: ICON_CYCLE[i] || Users,
+            val: s.value,
+            label: s.label,
+            glowColor: GLOW_CYCLE[i] || 'rgba(124,58,237,0.2)',
+            iconColor: COLOR_CYCLE[i] || 'text-violet-400',
+          })))
+        }
+        if (d.liveClassTitle)   setLiveClassTitle(d.liveClassTitle)
+        if (d.liveClassMentor)  setLiveClassMentor(d.liveClassMentor)
+        if (d.liveClassViewers) setLiveClassViewers(d.liveClassViewers)
+        if (d.chatMessages?.length) {
+          const colors = ['text-blue-400', 'text-fuchsia-400', 'text-green-400']
+          setChatMessages(d.chatMessages.map((m: any, i: number) => ({ ...m, c: colors[i % colors.length] })))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const ticker = [...tickerItems, ...tickerItems]
 
   return (
@@ -38,11 +98,11 @@ export default function HeroSection() {
       {/* Grid overlay */}
       <div className="hero-grid absolute inset-0 pointer-events-none opacity-50" />
 
-      {/* ── Main hero content (pt-20 accounts for fixed navbar height) ── */}
+      {/* ── Main hero content ── */}
       <div className="relative z-10 flex-1 flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-16 w-full">
 
-          {/* ── Announcement ticker — inside content, below navbar ── */}
+          {/* Announcement ticker */}
           <div className="rounded-2xl mb-8 border border-violet-500/20" style={{ overflow:'hidden', width:'100%', background: 'linear-gradient(90deg, rgba(124,58,237,0.12), rgba(217,70,239,0.08), rgba(6,182,212,0.06))' }}>
             <div className="ticker-track py-2.5">
               {ticker.map((item, i) => (
@@ -53,6 +113,7 @@ export default function HeroSection() {
               ))}
             </div>
           </div>
+
           <div className="grid lg:grid-cols-2 gap-12 xl:gap-20 items-center">
 
             {/* ── LEFT ── */}
@@ -62,7 +123,7 @@ export default function HeroSection() {
                 className="inline-flex items-center gap-2 mb-7 px-4 py-2 rounded-full"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.28)' }}>
                 <span className="w-2 h-2 bg-red-400 rounded-full live-dot flex-shrink-0" />
-                <span className="text-red-400 text-sm font-black">Live Classes Happening Now</span>
+                <span className="text-red-400 text-sm font-black">{badgeText}</span>
                 <span className="hidden sm:block text-gray-600">•</span>
                 <span className="hidden sm:block text-gray-500 text-xs font-semibold">50K+ Students</span>
               </motion.div>
@@ -71,19 +132,13 @@ export default function HeroSection() {
               <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
                 <h1 className="font-black leading-[1.04] tracking-tight mb-6"
                   style={{ fontSize: 'clamp(2.2rem, 7vw, 5.5rem)' }}>
-                  <span className="text-white">India's </span>
-                  <span className="gradient-shift-text">#1 Live</span>
-                  <br />
-                  <span className="text-white">Learning </span>
-                  <span className="gradient-text">Platform</span>
+                  <span className="gradient-shift-text">{headline}</span>
                 </h1>
               </motion.div>
 
               <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                 className="text-lg text-gray-400 mb-8 leading-relaxed max-w-xl">
-                Interactive live classes, AI certificates &amp; a{' '}
-                <span className="text-fuchsia-400 font-bold">built-in affiliate system</span> — learn skills,
-                earn money &amp; transform your career.
+                {subheadline}
               </motion.p>
 
               {/* Feature checklist */}
@@ -134,7 +189,7 @@ export default function HeroSection() {
                 </div>
               </motion.div>
 
-              {/* Mobile-only hero visual — hidden on lg (full card shown on right) */}
+              {/* Mobile-only hero visual */}
               <motion.div
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -142,7 +197,6 @@ export default function HeroSection() {
                 className="lg:hidden mt-8 rounded-2xl overflow-hidden"
                 style={{ background: 'linear-gradient(160deg, #0d1020, #0a0c18)', border: '1px solid rgba(124,58,237,0.28)', boxShadow: '0 8px 40px rgba(124,58,237,0.12)' }}
               >
-                {/* Live header */}
                 <div className="flex items-center justify-between px-4 py-3"
                   style={{ background: 'linear-gradient(90deg, rgba(124,58,237,0.18), rgba(79,70,229,0.12))' }}>
                   <div className="flex items-center gap-2.5">
@@ -151,15 +205,14 @@ export default function HeroSection() {
                       <Video className="w-4 h-4 text-violet-400" />
                     </div>
                     <div>
-                      <p className="text-white font-black text-xs">Full Stack Dev — Batch 12</p>
-                      <p className="text-gray-500 text-[10px]">with Mentor Aryan Kapoor</p>
+                      <p className="text-white font-black text-xs">{liveClassTitle}</p>
+                      <p className="text-gray-500 text-[10px]">with {liveClassMentor}</p>
                     </div>
                   </div>
                   <span className="live-badge text-[10px] px-2 py-0.5 flex-shrink-0">
                     <span className="w-1.5 h-1.5 bg-red-400 rounded-full live-dot" />LIVE
                   </span>
                 </div>
-                {/* Video area mini */}
                 <div className="relative aspect-video" style={{ background: '#000' }}>
                   <video
                     className="absolute inset-0 w-full h-full object-cover"
@@ -171,10 +224,9 @@ export default function HeroSection() {
                   />
                   <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold text-gray-300 z-10"
                     style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)' }}>
-                    <Users className="w-3 h-3 text-violet-400" />247 watching
+                    <Users className="w-3 h-3 text-violet-400" />{liveClassViewers}
                   </div>
                 </div>
-                {/* Mini stats strip */}
                 <div className="grid grid-cols-3 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   {[
                     { val: '₹15K', label: 'Avg. Earned', color: 'text-green-400' },
@@ -197,16 +249,13 @@ export default function HeroSection() {
               transition={{ delay: 0.22, duration: 0.7, ease: [0.23,1,0.32,1] }}
               className="hidden lg:block relative"
             >
-              {/* Glow backdrop */}
               <div className="absolute -inset-8 rounded-full pointer-events-none"
                 style={{ background: 'radial-gradient(ellipse, rgba(124,58,237,0.2) 0%, transparent 70%)', filter:'blur(20px)' }} />
 
-              {/* Animated border card */}
               <div className="animated-border relative">
                 <div className="rounded-[22px] overflow-hidden"
                   style={{ background: 'linear-gradient(160deg, #0d1020, #0a0c18)' }}>
 
-                  {/* Card header */}
                   <div className="flex items-center justify-between px-5 py-4"
                     style={{ background: 'linear-gradient(90deg, rgba(124,58,237,0.18), rgba(79,70,229,0.12))' }}>
                     <div className="flex items-center gap-3">
@@ -215,8 +264,8 @@ export default function HeroSection() {
                         <Video className="w-5 h-5 text-violet-400" />
                       </div>
                       <div>
-                        <p className="text-white font-black text-sm">Full Stack Dev — Batch 12</p>
-                        <p className="text-gray-500 text-xs">with Mentor Aryan Kapoor</p>
+                        <p className="text-white font-black text-sm">{liveClassTitle}</p>
+                        <p className="text-gray-500 text-xs">with {liveClassMentor}</p>
                       </div>
                     </div>
                     <span className="live-badge">
@@ -224,7 +273,6 @@ export default function HeroSection() {
                     </span>
                   </div>
 
-                  {/* Video area */}
                   <div className="relative aspect-video" style={{ background: '#000' }}>
                     <video
                       className="absolute inset-0 w-full h-full object-cover"
@@ -234,10 +282,9 @@ export default function HeroSection() {
                       loop
                       playsInline
                     />
-                    {/* Watchers */}
                     <div className="absolute bottom-4 left-4 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-300 z-10"
                       style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)' }}>
-                      <Users className="w-3.5 h-3.5 text-violet-400" />247 watching
+                      <Users className="w-3.5 h-3.5 text-violet-400" />{liveClassViewers}
                     </div>
                     <div className="absolute top-4 right-4 flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs text-gray-400 z-10"
                       style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)' }}>
@@ -245,13 +292,8 @@ export default function HeroSection() {
                     </div>
                   </div>
 
-                  {/* Chat */}
                   <div className="p-4 space-y-2 border-t" style={{ borderColor:'rgba(255,255,255,0.06)' }}>
-                    {[
-                      { u:'Rahul', m:'Finally understood useEffect! 🔥', c:'text-blue-400' },
-                      { u:'Priya',  m:'Can you explain useCallback too?',  c:'text-fuchsia-400' },
-                      { u:'Amit',   m:'Getting certificate after this?',   c:'text-green-400' },
-                    ].map((msg,i) => (
+                    {chatMessages.map((msg, i) => (
                       <div key={i} className="flex items-start gap-2 text-xs">
                         <span className={`font-black ${msg.c} flex-shrink-0`}>{msg.u}:</span>
                         <span className="text-gray-400">{msg.m}</span>
@@ -284,7 +326,7 @@ export default function HeroSection() {
                   </div>
                   <div>
                     <p className="text-white font-black text-sm">₹15,000</p>
-                    <p className="text-gray-500 text-xs">Affiliate Earned</p>
+                    <p className="text-gray-500 text-xs">Partner Earned</p>
                   </div>
                 </div>
               </div>
@@ -308,12 +350,7 @@ export default function HeroSection() {
           {/* ── STATS BAR ── */}
           <motion.div initial={{ opacity:0, y:28 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.52 }}
             className="mt-12 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { icon:Users,    val:'50K+',  label:'Active Learners',    glowColor:'rgba(124,58,237,0.2)',  iconColor:'text-violet-400'  },
-              { icon:BookOpen, val:'500+',  label:'Expert Courses',     glowColor:'rgba(99,102,241,0.2)',  iconColor:'text-indigo-400'  },
-              { icon:Award,    val:'20K+',  label:'Certificates Issued',glowColor:'rgba(245,158,11,0.2)', iconColor:'text-amber-400'   },
-              { icon:Zap,      val:'₹2Cr+', label:'Affiliate Earnings', glowColor:'rgba(16,185,129,0.2)', iconColor:'text-green-400'   },
-            ].map((s,i) => (
+            {heroStats.map((s, i) => (
               <div key={i}
                 className="flex items-center gap-3 rounded-2xl p-3 sm:p-4 transition-all duration-300 hover:-translate-y-1 cursor-default group"
                 style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)' }}>
