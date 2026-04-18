@@ -50,6 +50,8 @@ export interface IPackage extends Document {
   emiAvailable: boolean;
   emiDays?: number[];       // day offsets for each installment e.g. [0, 15, 30, 45]
   emiMonthlyAmount?: number;
+  tokenAvailable: boolean;
+  tokenAmount?: number;     // fixed advance/token amount (total, inclusive of GST)
   isActive: boolean;
   displayOrder: number;
   badge?: string;
@@ -104,6 +106,8 @@ const PackageSchema = new Schema<IPackage>({
   emiAvailable: { type: Boolean, default: false },
   emiDays: [Number],
   emiMonthlyAmount: Number,
+  tokenAvailable: { type: Boolean, default: false },
+  tokenAmount: Number,
   isActive: { type: Boolean, default: true },
   displayOrder: { type: Number, default: 0 },
   badge: String,

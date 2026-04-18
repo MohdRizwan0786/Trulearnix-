@@ -6,6 +6,7 @@ import User from '../models/User';
 import Course from '../models/Course';
 import Package from '../models/Package';
 import PackagePurchase from '../models/PackagePurchase';
+import Payment from '../models/Payment';
 import Commission from '../models/Commission';
 import Withdrawal from '../models/Withdrawal';
 import LiveClass from '../models/LiveClass';
@@ -15,6 +16,7 @@ import PlatformSettings from '../models/PlatformSettings';
 import { getOrCreateActiveBatch, createPendingBatch } from '../services/batchService';
 import { protect, authorize } from '../middleware/auth';
 import { initiateWithdrawalPayout, isPayoutConfigured } from '../services/razorpayPayout';
+import { activateOrder } from '../services/orderActivation';
 
 const router = Router();
 router.use(protect, authorize('superadmin', 'admin', 'manager', 'mentor', 'salesperson'));
@@ -25,7 +27,7 @@ router.get('/dashboard', getDashboardStats);
 // Users
 router.post('/users/create', async (req: any, res) => {
   try {
-    const { name, email, phone, password, type, packageId, amountReceived, grantPartnerAccess, note } = req.body;
+    const { name, email, phone, password, type, packageId, amountReceived, grantPartnerAccess, note, paymentType: manualPaymentType, tokenAmount: manualTokenAmount, fullPackagePrice: manualFullPkgPrice } = req.body;
     if (!name || !email || !password) return res.status(400).json({ success: false, message: 'Name, email, password required' });
 
     const exists = await User.findOne({ email: email.toLowerCase().trim() });
@@ -55,6 +57,8 @@ router.post('/users/create', async (req: any, res) => {
 
     let purchase = null;
     if (type === 'paid' && packageDoc) {
+      const resolvedPType = manualPaymentType || 'full';
+      const isTokenPurchase = resolvedPType.startsWith('token');
       purchase = await PackagePurchase.create({
         user: user._id,
         package: packageDoc._id,
@@ -65,6 +69,9 @@ router.post('/users/create', async (req: any, res) => {
         paymentMethod: 'manual',
         status: 'paid',
         invoiceNumber: `MAN-${Date.now()}`,
+        paymentType: resolvedPType,
+        tokenAmount: isTokenPurchase ? Number(manualTokenAmount || amountReceived) : undefined,
+        fullPackagePrice: isTokenPurchase ? Number(manualFullPkgPrice || 0) : undefined,
       });
     }
 
@@ -130,7 +137,7 @@ router.get('/partners', async (req, res) => {
   try {
     const { search, page = 1, limit = 30, managerId } = req.query;
     const filter: any = {
-      affiliateCode: { $exists: true, $nin: [null, ''] },
+      isAffiliate: true,
       role: { $nin: ['admin', 'superadmin', 'manager', 'mentor'] },
     };
     if (search) filter.$or = [
@@ -143,12 +150,24 @@ router.get('/partners', async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit);
     const [partners, total] = await Promise.all([
       User.find(filter)
-        .select('name email phone affiliateCode packageTier commissionRate promoDiscountPercent wallet totalEarnings isActive createdAt managerId')
+        .select('name email phone affiliateCode packageTier commissionRate promoDiscountPercent wallet totalEarnings isActive createdAt managerId referredBy upline1 packagePurchasedAt')
         .populate('managerId', 'name email phone')
-        .sort('-createdAt').skip(skip).limit(Number(limit)),
+        .populate('referredBy', 'name affiliateCode packageTier')
+        .sort('-totalEarnings').skip(skip).limit(Number(limit)),
       User.countDocuments(filter),
     ]);
-    res.json({ success: true, partners, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+    // Enrich with referral count + commission count
+    const ids = partners.map((p: any) => p._id);
+    const Commission = (await import('../models/Commission')).default;
+    const [refAgg, commAgg] = await Promise.all([
+      User.aggregate([{ $match: { referredBy: { $in: ids } } }, { $group: { _id: '$referredBy', referralCount: { $sum: 1 } } }]),
+      Commission.aggregate([{ $match: { earner: { $in: ids } } }, { $group: { _id: '$earner', commCount: { $sum: 1 } } }]),
+    ]);
+    const perfMap: any = {};
+    refAgg.forEach((r: any) => { perfMap[r._id] = { referralCount: r.referralCount }; });
+    commAgg.forEach((r: any) => { if (!perfMap[r._id]) perfMap[r._id] = {}; perfMap[r._id].commCount = r.commCount; });
+    const enriched = partners.map((p: any) => ({ ...p.toObject(), _perf: perfMap[p._id.toString()] || {} }));
+    res.json({ success: true, partners: enriched, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -552,13 +571,14 @@ router.get('/platform-settings', async (_req, res) => {
 });
 router.put('/platform-settings', async (req, res) => {
   try {
-    const { tdsRate, gstRate, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage } = req.body;
+    const { tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage } = req.body;
     let settings = await PlatformSettings.findOne();
     if (!settings) {
-      settings = await PlatformSettings.create({ tdsRate, gstRate, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage });
+      settings = await PlatformSettings.create({ tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage });
     } else {
       if (tdsRate !== undefined) settings.tdsRate = tdsRate;
       if (gstRate !== undefined) settings.gstRate = gstRate;
+      if (gstNumber !== undefined) settings.gstNumber = gstNumber;
       if (minWithdrawalAmount !== undefined) settings.minWithdrawalAmount = minWithdrawalAmount;
       if (webinarLink !== undefined) settings.webinarLink = webinarLink;
       if (webinarTitle !== undefined) settings.webinarTitle = webinarTitle;
@@ -573,19 +593,65 @@ router.put('/platform-settings', async (req, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
-// Package purchases
+// Package purchases (includes old Payment records)
 router.get('/purchases', async (req, res) => {
   try {
     const { status, tier, page = 1, limit = 20 } = req.query;
-    const filter: any = {};
-    if (status) filter.status = status;
-    if (tier) filter.packageTier = tier;
-    const skip = (Number(page) - 1) * Number(limit);
-    const [purchases, total] = await Promise.all([
-      PackagePurchase.find(filter).populate('user', 'name email phone').sort('-createdAt').skip(skip).limit(Number(limit)),
-      PackagePurchase.countDocuments(filter),
+    const ppFilter: any = {};
+    if (status) ppFilter.status = status;
+    if (tier) ppFilter.packageTier = tier;
+
+    const payFilter: any = {};
+    if (status) payFilter.status = status;
+
+    const [ppData, payData] = await Promise.all([
+      PackagePurchase.find(ppFilter).populate('user', 'name email phone').sort('-createdAt').lean(),
+      tier
+        ? Promise.resolve([])
+        : Payment.find(payFilter).populate('user', 'name email phone').populate('course', 'title').sort('-createdAt').lean(),
     ]);
+
+    // Merge both, tag with _type, sort by date
+    const merged: any[] = [
+      ...ppData.map((p: any) => ({ ...p, _type: 'package' })),
+      ...payData.map((p: any) => ({
+        ...p,
+        _type: 'payment',
+        packageTier: 'course',
+        totalAmount: p.amount,
+        gstAmount: 0,
+        paymentMethod: p._migratedGateway || 'razorpay',
+      })),
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const total = merged.length;
+    const skip = (Number(page) - 1) * Number(limit);
+    const purchases = merged.slice(skip, skip + Number(limit));
     res.json({ success: true, purchases, total });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Invoice data for a specific PackagePurchase
+router.get('/purchases/:id/invoice', async (req, res) => {
+  try {
+    const purchase = await PackagePurchase.findById(req.params.id)
+      .populate('user', 'name email phone address')
+      .populate('package', 'name tier description');
+    if (!purchase) return res.status(404).json({ success: false, message: 'Purchase not found' });
+    const settings = await PlatformSettings.findOne();
+    res.json({ success: true, purchase, settings });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Invoice data for old Payment records
+router.get('/payments/:id/invoice', async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.id)
+      .populate('user', 'name email phone address')
+      .populate('course', 'title description thumbnail');
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
+    const settings = await PlatformSettings.findOne();
+    res.json({ success: true, payment, settings });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -881,15 +947,25 @@ router.post('/mentors', async (req: any, res) => {
 
 router.get('/mentors', async (req, res) => {
   try {
-    const { status = 'pending', page = 1, limit = 20 } = req.query;
+    const { status = 'all', page = 1, limit = 20, search } = req.query;
     const filter: any = { role: 'mentor' };
     if (status !== 'all') filter.mentorStatus = status;
+    if (search) filter.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }];
     const skip = (Number(page) - 1) * Number(limit);
     const [mentors, total] = await Promise.all([
       User.find(filter).select('-password -refreshToken -otp').sort('-createdAt').skip(skip).limit(Number(limit)),
       User.countDocuments(filter),
     ]);
-    res.json({ success: true, mentors, total, pages: Math.ceil(total / Number(limit)) });
+    // Enrich with course performance
+    const ids = mentors.map((m: any) => m._id);
+    const courseAgg = await Course.aggregate([
+      { $match: { mentor: { $in: ids } } },
+      { $group: { _id: '$mentor', courseCount: { $sum: 1 }, totalStudents: { $sum: '$enrolledCount' }, avgRating: { $avg: '$rating' }, publishedCourses: { $sum: { $cond: [{ $eq: ['$status', 'published'] }, 1, 0] } } } }
+    ]);
+    const perfMap: any = {};
+    courseAgg.forEach((r: any) => { perfMap[r._id] = { courseCount: r.courseCount, totalStudents: r.totalStudents, avgRating: parseFloat((r.avgRating || 0).toFixed(1)), publishedCourses: r.publishedCourses }; });
+    const enriched = mentors.map((m: any) => ({ ...m.toObject(), _perf: perfMap[m._id.toString()] || {} }));
+    res.json({ success: true, mentors: enriched, total, pages: Math.ceil(total / Number(limit)) });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -1052,19 +1128,42 @@ router.delete('/employees/:id', async (req: any, res) => {
 // ── Learners (purchased vs free) ───────────────────────────────────────────────
 router.get('/learners', async (req, res) => {
   try {
-    const { type = 'all', search, page = 1, limit = 20 } = req.query as any;
+    const { type = 'all', tier, search, page = 1, limit = 20 } = req.query as any;
     const filter: any = { role: 'student' };
-    if (type === 'purchased') filter.packageTier = { $in: ['starter', 'pro', 'elite', 'supreme'] };
-    if (type === 'free') filter.packageTier = { $in: ['free', null] };
+    // Dynamically resolve paid tiers from Package collection
+    const allPackages = await Package.find({ isActive: true }).select('tier').lean();
+    const PAID_TIERS = [...new Set(allPackages.map((p: any) => p.tier).filter(Boolean))];
+    if (tier) { filter.packageTier = tier; }
+    else if (type === 'purchased') filter.packageTier = { $in: PAID_TIERS };
+    else if (type === 'free') filter.packageTier = { $nin: PAID_TIERS };
     if (search) filter.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }, { phone: { $regex: search, $options: 'i' } }];
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const [learners, total, purchasedCount, freeCount] = await Promise.all([
-      User.find(filter).select('name email phone avatar packageTier isActive createdAt packagePurchasedAt affiliateCode xpPoints level expertise bio socialLinks').sort('-createdAt').skip(skip).limit(parseInt(limit)),
+    const Enrollment = (await import('../models/Enrollment')).default;
+    const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0,0,0,0);
+    const [learners, total, purchasedCount, freeCount, thisMonthCount] = await Promise.all([
+      User.find(filter).select('name email phone avatar packageTier isActive createdAt packagePurchasedAt affiliateCode xpPoints level expertise bio socialLinks referredBy').sort('-createdAt').skip(skip).limit(parseInt(limit)),
       User.countDocuments(filter),
-      User.countDocuments({ role: 'student', packageTier: { $in: ['starter', 'pro', 'elite', 'supreme'] } }),
-      User.countDocuments({ role: 'student', $or: [{ packageTier: 'free' }, { packageTier: { $exists: false } }] }),
+      User.countDocuments({ role: 'student', packageTier: { $in: PAID_TIERS.length ? PAID_TIERS : ['__none__'] } }),
+      User.countDocuments({ role: 'student', packageTier: { $nin: PAID_TIERS.length ? PAID_TIERS : [] } }),
+      User.countDocuments({ role: 'student', createdAt: { $gte: startOfMonth } }),
     ]);
-    res.json({ success: true, learners, total, pages: Math.ceil(total / parseInt(limit)), stats: { purchasedCount, freeCount } });
+    // Enrich with enrollment performance
+    const ids = learners.map((u: any) => u._id);
+    const [enrollAgg, completeAgg] = await Promise.all([
+      Enrollment.aggregate([
+        { $match: { student: { $in: ids } } },
+        { $group: { _id: '$student', enrollCount: { $sum: 1 }, avgProgress: { $avg: '$progressPercent' } } }
+      ]),
+      Enrollment.aggregate([
+        { $match: { student: { $in: ids }, completedAt: { $exists: true, $ne: null } } },
+        { $group: { _id: '$student', completedCount: { $sum: 1 } } }
+      ]),
+    ]);
+    const perfMap: any = {};
+    enrollAgg.forEach((r: any) => { perfMap[r._id] = { enrollCount: r.enrollCount, avgProgress: Math.round(r.avgProgress || 0) }; });
+    completeAgg.forEach((r: any) => { if (perfMap[r._id]) perfMap[r._id].completedCount = r.completedCount; });
+    const enriched = learners.map((u: any) => ({ ...u.toObject(), _perf: perfMap[u._id.toString()] || {} }));
+    res.json({ success: true, learners: enriched, total, pages: Math.ceil(total / parseInt(limit)), stats: { purchasedCount, freeCount, thisMonthCount }, packages: allPackages });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -2585,6 +2684,61 @@ router.post('/migrate-kanban-permissions', async (_req, res) => {
       ),
     ]);
     res.json({ success: true, message: 'Kanban permissions patched', mentors: m.modifiedCount, salespersons: s.modifiedCount, managers: mgr.modifiedCount });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── Manual Payment Approvals ──────────────────────────────────────────────────
+
+// GET /admin/sales-orders/pending-approval — list orders awaiting admin approval
+router.get('/sales-orders/pending-approval', async (req: any, res) => {
+  try {
+    const SalesOrder = (await import('../models/SalesOrder')).default;
+    const { page = 1, limit = 20 } = req.query as any;
+    const skip = (Number(page) - 1) * Number(limit);
+    const [orders, total] = await Promise.all([
+      SalesOrder.find({ status: 'pending_approval' })
+        .populate('salesperson', 'name email phone')
+        .populate('package', 'name tier price')
+        .populate('userId', 'name email phone')
+        .sort('-updatedAt')
+        .skip(skip)
+        .limit(Number(limit)),
+      SalesOrder.countDocuments({ status: 'pending_approval' }),
+    ]);
+    res.json({ success: true, orders, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// POST /admin/sales-orders/:id/approve — approve manual payment, activate access
+router.post('/sales-orders/:id/approve', async (req: any, res) => {
+  try {
+    const SalesOrder = (await import('../models/SalesOrder')).default;
+    const order = await SalesOrder.findById(req.params.id).populate('package');
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (order.status !== 'pending_approval') {
+      return res.status(400).json({ success: false, message: 'Order is not pending approval' });
+    }
+    order.status = 'paid';
+    await order.save();
+    const freshOrder = await SalesOrder.findById(order._id).populate('package');
+    await activateOrder(freshOrder, 'manual');
+    res.json({ success: true, message: 'Order approved. Customer access granted.' });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// POST /admin/sales-orders/:id/reject — reject manual payment, revert status
+router.post('/sales-orders/:id/reject', async (req: any, res) => {
+  try {
+    const SalesOrder = (await import('../models/SalesOrder')).default;
+    const order = await SalesOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (order.status !== 'pending_approval') {
+      return res.status(400).json({ success: false, message: 'Order is not pending approval' });
+    }
+    // Revert to appropriate previous state
+    order.status = order.tokenPaid ? 'token_paid' : 'partial';
+    await order.save();
+    res.json({ success: true, message: 'Order rejected. Payment verification required.' });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 

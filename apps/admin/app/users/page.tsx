@@ -8,12 +8,115 @@ import {
   Search, UserCheck, UserX, Shield, GraduationCap, BookOpen,
   Users, UserCog, TrendingUp, ArrowUpRight, ArrowDownRight,
   ChevronLeft, ChevronRight, Filter, Banknote, X, Loader2, Building2,
-  UserPlus, IndianRupee, Eye, EyeOff
+  UserPlus, IndianRupee, Eye, EyeOff, Star, Award, Link2, HeartHandshake
 } from 'lucide-react'
 import { format, isThisMonth } from 'date-fns'
 
-const ROLES = ['superadmin', 'admin', 'manager', 'mentor', 'student']
-const TIERS = ['starter', 'pro', 'elite', 'supreme']
+function PerfCell({ user, typeTab }: { user: any; typeTab: string }) {
+  const p = user._perf || {}
+  const fmt = (n: number) => new Intl.NumberFormat('en-IN').format(n || 0)
+
+  if (typeTab === 'partners') return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5 text-xs">
+        <IndianRupee className="w-3 h-3 text-emerald-400" />
+        <span className="text-emerald-400 font-bold">₹{fmt(user.totalEarnings)}</span>
+        <span className="text-gray-500">earned</span>
+      </div>
+      <div className="flex items-center gap-3 text-xs text-gray-500">
+        <span><Link2 className="w-3 h-3 inline mr-1 text-cyan-500" />{p.referralCount || 0} referrals</span>
+        <span><BookOpen className="w-3 h-3 inline mr-1 text-violet-400" />{p.enrollCount || 0} enrolls</span>
+      </div>
+    </div>
+  )
+
+  if (typeTab === 'learners') return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2 text-xs">
+        <BookOpen className="w-3 h-3 text-blue-400" />
+        <span className="text-white font-semibold">{p.enrollCount || 0}</span>
+        <span className="text-gray-500">enrolled</span>
+        <span className="text-emerald-400 font-semibold">{p.completedCount || 0}</span>
+        <span className="text-gray-500">done</span>
+      </div>
+      {(p.enrollCount || 0) > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${p.avgProgress || 0}%` }} />
+          </div>
+          <span className="text-xs text-gray-400">{p.avgProgress || 0}%</span>
+        </div>
+      )}
+    </div>
+  )
+
+  if (typeTab === 'mentors') return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2 text-xs">
+        <BookOpen className="w-3 h-3 text-amber-400" />
+        <span className="text-white font-semibold">{p.courseCount || 0}</span>
+        <span className="text-gray-500">courses</span>
+        <Users className="w-3 h-3 text-violet-400" />
+        <span className="text-white font-semibold">{p.totalStudents || 0}</span>
+        <span className="text-gray-500">students</span>
+      </div>
+      {(p.avgRating > 0) && (
+        <div className="flex items-center gap-1 text-xs">
+          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+          <span className="text-yellow-400 font-semibold">{p.avgRating}</span>
+        </div>
+      )}
+    </div>
+  )
+
+  if (typeTab === 'managers') return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2 text-xs">
+        <HeartHandshake className="w-3 h-3 text-orange-400" />
+        <span className="text-white font-semibold">{p.partnerCount || 0}</span>
+        <span className="text-gray-500">partners</span>
+      </div>
+      <div className="flex items-center gap-1 text-xs">
+        <IndianRupee className="w-3 h-3 text-emerald-400" />
+        <span className="text-emerald-400 font-semibold">₹{fmt(p.teamEarnings)}</span>
+        <span className="text-gray-500">team earnings</span>
+      </div>
+    </div>
+  )
+
+  // Default (all / employees / sales)
+  const score = (() => {
+    const roleWeight: Record<string, number> = { superadmin: 95, admin: 88, manager: 78, mentor: 70, student: 55 }
+    const base = roleWeight[user.role] ?? 40
+    const days = user.createdAt ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / 86400000) : 0
+    const recency = Math.max(0, 30 - Math.floor(days / 10))
+    const tierBonus: Record<string, number> = { supreme: 10, elite: 7, pro: 4, starter: 0 }
+    return Math.min(100, base + recency + (tierBonus[user.packageTier] ?? 0) + (user.isActive ? 5 : -20))
+  })()
+  const col = score >= 80 ? 'bg-emerald-400' : score >= 60 ? 'bg-violet-400' : score >= 40 ? 'bg-amber-400' : 'bg-rose-400'
+  const tcol = score >= 80 ? 'text-emerald-400' : score >= 60 ? 'text-violet-400' : score >= 40 ? 'text-amber-400' : 'text-rose-400'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${col}`} style={{ width: `${score}%` }} />
+      </div>
+      <span className={`text-xs font-semibold ${tcol}`}>{score}</span>
+    </div>
+  )
+}
+
+const ROLES = ['superadmin', 'admin', 'manager', 'mentor', 'student', 'salesperson']
+const TIERS = ['basic', 'starter', 'pro', 'proedge', 'elite', 'supreme']
+
+const TYPE_TABS = [
+  { key: 'all',       label: 'All Users',        icon: Users,        color: 'text-violet-400', bg: 'bg-violet-500/15 border-violet-500/30', roleFilter: undefined,    affiliateFilter: undefined },
+  { key: 'learners',  label: 'Learners',          icon: GraduationCap,color: 'text-blue-400',   bg: 'bg-blue-500/15 border-blue-500/30',    roleFilter: 'student',     affiliateFilter: undefined },
+  { key: 'partners',  label: 'Partners',          icon: UserCheck,    color: 'text-emerald-400',bg: 'bg-emerald-500/15 border-emerald-500/30',roleFilter: undefined,   affiliateFilter: 'true' },
+  { key: 'managers',  label: 'Partner Managers',  icon: UserCog,      color: 'text-orange-400', bg: 'bg-orange-500/15 border-orange-500/30', roleFilter: 'manager',     affiliateFilter: undefined },
+  { key: 'mentors',   label: 'Mentors',           icon: BookOpen,     color: 'text-amber-400',  bg: 'bg-amber-500/15 border-amber-500/30',   roleFilter: 'mentor',      affiliateFilter: undefined },
+  { key: 'employees', label: 'Employees',         icon: Shield,       color: 'text-rose-400',   bg: 'bg-rose-500/15 border-rose-500/30',     roleFilter: 'admin',       affiliateFilter: undefined },
+  { key: 'sales',     label: 'Sales Team',        icon: TrendingUp,   color: 'text-cyan-400',   bg: 'bg-cyan-500/15 border-cyan-500/30',     roleFilter: 'salesperson', affiliateFilter: undefined },
+]
 
 const roleColor = (r: string) => {
   const map: Record<string, string> = {
@@ -51,35 +154,9 @@ const avatarBg = (name: string) => {
   return colors[idx]
 }
 
-/* Synthetic activity score derived from join date + role weight */
-const activityScore = (user: any): number => {
-  const roleWeight: Record<string, number> = {
-    superadmin: 95, admin: 88, manager: 78, mentor: 70, student: 55
-  }
-  const base = roleWeight[user.role] ?? 40
-  const daysSinceJoin = user.createdAt
-    ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / 86400000)
-    : 0
-  const recency = Math.max(0, 30 - Math.floor(daysSinceJoin / 10))
-  const tierBonus: Record<string, number> = { supreme: 10, elite: 7, pro: 4, starter: 0 }
-  return Math.min(100, base + recency + (tierBonus[user.packageTier] ?? 0) + (user.isActive ? 5 : -20))
-}
-
-const scoreColor = (score: number) => {
-  if (score >= 80) return 'bg-emerald-400'
-  if (score >= 60) return 'bg-violet-400'
-  if (score >= 40) return 'bg-amber-400'
-  return 'bg-rose-400'
-}
-
-const scoreLabelColor = (score: number) => {
-  if (score >= 80) return 'text-emerald-400'
-  if (score >= 60) return 'text-violet-400'
-  if (score >= 40) return 'text-amber-400'
-  return 'text-rose-400'
-}
 
 export default function UsersPage() {
+  const [typeTab, setTypeTab]   = useState('all')
   const [role, setRole]         = useState('')
   const [tier, setTier]         = useState('')
   const [search, setSearch]     = useState('')
@@ -98,11 +175,15 @@ export default function UsersPage() {
 
   const { data: packagesData } = useQuery({ queryKey: ['admin-packages'], queryFn: () => adminAPI.packages().then(r => r.data.packages || r.data) })
 
+  const activeTab = TYPE_TABS.find(t => t.key === typeTab) || TYPE_TABS[0]
+  const effectiveRole = activeTab.roleFilter || role || undefined
+  const effectiveAffiliate = activeTab.affiliateFilter
+
   const { data, refetch } = useQuery({
-    queryKey: ['admin-users', role, tier, search, page],
+    queryKey: ['admin-users', typeTab, role, tier, search, page],
     queryFn: () =>
       adminAPI
-        .users({ role: role || undefined, packageTier: tier || undefined, search: search || undefined, page, limit: 20 })
+        .users({ role: effectiveRole, packageTier: tier || undefined, search: search || undefined, page, limit: 20, isAffiliate: effectiveAffiliate })
         .then(r => r.data),
     placeholderData: (prev: any) => prev,
   })
@@ -307,6 +388,21 @@ export default function UsersPage() {
           </div>
         </div>
 
+        {/* ── Type Tabs ───────────────────────────────────── */}
+        <div className="flex flex-wrap gap-2">
+          {TYPE_TABS.map(tab => {
+            const Icon = tab.icon
+            const isActive = typeTab === tab.key
+            return (
+              <button key={tab.key} onClick={() => { setTypeTab(tab.key); setRole(''); setPage(1) }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${isActive ? `${tab.bg} ${tab.color}` : 'bg-slate-800/60 text-slate-400 border-white/8 hover:text-white hover:bg-slate-700/60'}`}>
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
         {/* ── Filter Bar ──────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Search */}
@@ -397,7 +493,6 @@ export default function UsersPage() {
               </thead>
               <tbody>
                 {visibleUsers.map((user: any, idx: number) => {
-                  const score = activityScore(user)
                   const isLast = idx === visibleUsers.length - 1
                   return (
                     <tr
@@ -464,17 +559,7 @@ export default function UsersPage() {
 
                       {/* Performance */}
                       <td className="px-4 py-3.5">
-                        <div className="perf-bar-wrap w-28">
-                          <div className="perf-bar">
-                            <div
-                              className={`perf-fill ${scoreColor(score)}`}
-                              style={{ width: `${score}%` }}
-                            />
-                          </div>
-                          <span className={`text-xs font-semibold w-7 text-right tabular-nums ${scoreLabelColor(score)}`}>
-                            {score}
-                          </span>
-                        </div>
+                        <PerfCell user={user} typeTab={typeTab} />
                       </td>
 
                       {/* Joined date */}

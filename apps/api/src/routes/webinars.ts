@@ -267,7 +267,7 @@ router.patch('/:id/recording/start', protect, authorize('superadmin', 'admin', '
         info = await egressClient.startParticipantEgress(
           webinar.livekitRoomName,
           publisher.identity,
-          { file: { fileType: EncodedFileType.MP4, filepath: `/recordings/${fileName}` } }
+          { file: { fileType: EncodedFileType.MP4, filepath: `/recordings/${fileName}` } as any }
         );
       } else {
         // No one is publishing yet — fall back to room composite (waits for publisher)

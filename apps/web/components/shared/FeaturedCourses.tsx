@@ -52,21 +52,49 @@ function CourseCard({ c, i }: { c: any; i: number }) {
       {/* ── HEADER ── */}
       <div className="relative overflow-hidden" style={{ height:'clamp(110px, 18vw, 170px)', background:`linear-gradient(135deg,${gradColors})` }}>
 
-        {/* Noise texture overlay */}
-        <div className="absolute inset-0 opacity-30"
-          style={{ backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E\")" }} />
+        {/* Thumbnail image (real courses) */}
+        {c.thumbnail && (
+          <img
+            src={c.thumbnail}
+            alt={c.title}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+        )}
 
-        {/* Radial glow behind emoji */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-32 h-32 rounded-full opacity-40"
-            style={{ background:`radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 70%)`, filter:'blur(8px)' }} />
-        </div>
+        {/* Dark overlay for readability */}
+        {c.thumbnail && (
+          <div className="absolute inset-0" style={{ background:'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.5) 100%)' }} />
+        )}
 
-        {/* Decorative circles */}
-        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20"
-          style={{ background:'rgba(255,255,255,0.25)' }} />
-        <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full opacity-10"
-          style={{ background:'rgba(255,255,255,0.3)' }} />
+        {/* Noise texture overlay (only for fallback/emoji cards) */}
+        {!c.thumbnail && (
+          <div className="absolute inset-0 opacity-30"
+            style={{ backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E\")" }} />
+        )}
+
+        {/* Emoji — only for fallback cards without thumbnail */}
+        {!c.thumbnail && (
+          <>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-32 h-32 rounded-full opacity-40"
+                style={{ background:`radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 70%)`, filter:'blur(8px)' }} />
+            </div>
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20"
+              style={{ background:'rgba(255,255,255,0.25)' }} />
+            <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full opacity-10"
+              style={{ background:'rgba(255,255,255,0.3)' }} />
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center"
+              animate={hovered ? { scale:1.15, y:-4 } : { scale:1, y:0 }}
+              transition={{ duration:0.4, ease:[0.23,1,0.32,1] }}
+            >
+              <span style={{ fontSize:'4rem', lineHeight:1, filter:`drop-shadow(0 8px 24px rgba(0,0,0,0.4))` }}>
+                {c.emoji || '📚'}
+              </span>
+            </motion.div>
+          </>
+        )}
 
         {/* BADGE — top left */}
         {c.badge && (
@@ -85,21 +113,10 @@ function CourseCard({ c, i }: { c: any; i: number }) {
           </div>
         )}
 
-        {/* EMOJI — center */}
-        <motion.div
-          className="absolute inset-0 flex items-center justify-center"
-          animate={hovered ? { scale:1.15, y:-4 } : { scale:1, y:0 }}
-          transition={{ duration:0.4, ease:[0.23,1,0.32,1] }}
-        >
-          <span style={{ fontSize:'4rem', lineHeight:1, filter:`drop-shadow(0 8px 24px rgba(0,0,0,0.4))` }}>
-            {c.emoji || '📚'}
-          </span>
-        </motion.div>
-
         {/* SKILL CHIPS — bottom row */}
         <div className="absolute bottom-0 left-0 right-0 px-3 py-2.5 flex gap-1.5 overflow-x-auto scrollbar-hide"
           style={{ background:'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)' }}>
-          {(c.skills || []).slice(0,4).map((s: string) => (
+          {(c.skills || c.tags || []).slice(0,4).map((s: string) => (
             <span key={s} className="flex-shrink-0 text-[9px] font-bold text-white/90 px-2.5 py-0.5 rounded-full"
               style={{ background:'rgba(255,255,255,0.18)', backdropFilter:'blur(6px)', border:'1px solid rgba(255,255,255,0.2)' }}>
               {s}

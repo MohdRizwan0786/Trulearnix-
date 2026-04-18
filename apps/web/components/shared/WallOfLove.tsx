@@ -198,9 +198,10 @@ function MarqueeCard({ v, onClick }: { v: Video; onClick: () => void }) {
 /* ── Section ────────────────────────────────────────────────────── */
 export default function WallOfLove() {
   const [active, setActive] = useState<Video | null>(null)
-  const [videos, setVideos] = useState<Video[]>(DEFAULT_VIDEOS.map(enrichVideo))
-  const [heading, setHeading] = useState('They Said It. We Didn\'t.')
-  const [subheading, setSubheading] = useState('Raw. Unscripted. Real students on camera — sharing what TruLearnix actually did to their lives.')
+  const [videos, setVideos] = useState<Video[]>([])
+  const [heading, setHeading] = useState('')
+  const [subheading, setSubheading] = useState('')
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/wall`)
@@ -218,7 +219,10 @@ export default function WallOfLove() {
         }
       })
       .catch(() => {})
+      .finally(() => setLoaded(true))
   }, [])
+
+  if (loaded && videos.length === 0) return null
 
   const marqueeVideos = [...videos, ...videos]
 

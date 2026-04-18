@@ -162,7 +162,7 @@ export default function PackagesPage() {
   const [isCreate, setIsCreate] = useState(false)
   const [form, setForm] = useState<any>(DEFAULT_FORM)
   const [featuresInput, setFeaturesInput] = useState('')
-  const [taxForm, setTaxForm] = useState({ tdsRate: 2, gstRate: 18, minWithdrawalAmount: 500 })
+  const [taxForm, setTaxForm] = useState({ tdsRate: 2, gstRate: 18, gstNumber: '', minWithdrawalAmount: 500 })
   const [resourceForm, setResourceForm] = useState({ webinarLink: '', webinarTitle: '', webinarDate: '', presentationVideoLink: '' })
   const [myEarnings, setMyEarnings] = useState<any[]>([])
   const [allPkgL2L3, setAllPkgL2L3] = useState<any[]>([])
@@ -187,6 +187,7 @@ export default function PackagesPage() {
       setTaxForm({
         tdsRate: taxData.settings.tdsRate ?? 2,
         gstRate: taxData.settings.gstRate ?? 18,
+        gstNumber: taxData.settings.gstNumber || '',
         minWithdrawalAmount: taxData.settings.minWithdrawalAmount ?? 500,
       })
       setResourceForm({
@@ -650,6 +651,18 @@ export default function PackagesPage() {
               <div className="flex items-center gap-2 mb-2">
                 <Settings className="w-5 h-5 text-indigo-400" />
                 <h2 className="text-base font-bold text-white">Global Tax Configuration</h2>
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-400 mb-1.5">GST Registration Number (GSTIN) — shown on invoices</label>
+                <input
+                  type="text"
+                  value={taxForm.gstNumber}
+                  onChange={e => setTaxForm({ ...taxForm, gstNumber: e.target.value.toUpperCase() })}
+                  className="input font-mono tracking-widest"
+                  placeholder="e.g. 07AAYFT7302G1ZN"
+                  maxLength={15}
+                />
               </div>
 
               <div>

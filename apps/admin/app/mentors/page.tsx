@@ -47,7 +47,7 @@ const nameGradient = (name: string) =>
   avatarGradients[(name?.charCodeAt(0) ?? 0) % avatarGradients.length]
 
 export default function MentorsPage() {
-  const [status, setStatus]             = useState('pending')
+  const [status, setStatus]             = useState('all')
   const [search, setSearch]             = useState('')
   const [page, setPage]                 = useState(1)
   const [actionId, setActionId]         = useState('')
@@ -343,6 +343,22 @@ export default function MentorsPage() {
                           Joined {format(new Date(joinDate), 'dd MMM yyyy')}
                         </p>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Performance Stats */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-slate-700/40 rounded-xl p-2.5 text-center">
+                      <p className="text-lg font-bold text-white">{mentor._perf?.courseCount || 0}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Courses</p>
+                    </div>
+                    <div className="bg-slate-700/40 rounded-xl p-2.5 text-center">
+                      <p className="text-lg font-bold text-emerald-400">{mentor._perf?.totalStudents || 0}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Students</p>
+                    </div>
+                    <div className="bg-slate-700/40 rounded-xl p-2.5 text-center">
+                      <p className="text-lg font-bold text-yellow-400">{(mentor._perf?.avgRating || 0) > 0 ? mentor._perf.avgRating : '—'}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Avg Rating</p>
                     </div>
                   </div>
 

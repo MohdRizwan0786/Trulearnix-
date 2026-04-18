@@ -79,6 +79,8 @@ export const adminAPI = {
   updatePlatformSettings: (data: any) => api.put('/admin/platform-settings', data),
   // Purchases
   purchases: (params?: any) => api.get('/admin/purchases', { params }),
+  purchaseInvoice: (id: string) => api.get(`/admin/purchases/${id}/invoice`),
+  paymentInvoice: (id: string) => api.get(`/admin/payments/${id}/invoice`),
   // Commissions
   commissions: (params?: any) => api.get('/admin/commissions', { params }),
   // Withdrawals
@@ -266,6 +268,9 @@ export const adminAPI = {
   salespersons: (params?: any) => api.get('/admin/salespersons', { params }),
   salesOrders: (params?: any) => api.get('/admin/sales-orders', { params }),
   salesStats: () => api.get('/admin/sales-stats'),
+  pendingApprovals: (params?: any) => api.get('/admin/sales-orders/pending-approval', { params }),
+  approveSalesOrder: (id: string) => api.post(`/admin/sales-orders/${id}/approve`),
+  rejectSalesOrder: (id: string) => api.post(`/admin/sales-orders/${id}/reject`),
   assignLeads: (leadIds: string[], salespersonId: string) => api.post('/admin/leads/assign', { leadIds, salespersonId }),
   crmLeads: (params?: any) => api.get('/crm/leads', { params }),
   // NOVA AI Agent

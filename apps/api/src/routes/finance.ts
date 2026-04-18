@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth';
 import PackagePurchase from '../models/PackagePurchase';
+import Payment from '../models/Payment';
 import Commission from '../models/Commission';
 import Withdrawal from '../models/Withdrawal';
 import Expense from '../models/Expense';
@@ -39,6 +40,7 @@ router.get('/overview', async (req: any, res) => {
     // Revenue from package purchases
     const [
       revenueAgg, prevRevenueAgg,
+      oldRevenueAgg, oldPrevRevenueAgg,
       gstAgg, tdsAgg,
       commissionAgg, pendingCommAgg,
       withdrawalAgg, pendingWithdAgg,
@@ -48,6 +50,9 @@ router.get('/overview', async (req: any, res) => {
     ] = await Promise.all([
       PackagePurchase.aggregate([{ $match: { status: 'paid', ...dateFilter } }, { $group: { _id: null, totalAmount: { $sum: '$totalAmount' }, netAmount: { $sum: '$amount' }, gst: { $sum: '$gstAmount' }, count: { $sum: 1 } } }]),
       PackagePurchase.aggregate([{ $match: { status: 'paid', ...prevFilter } }, { $group: { _id: null, totalAmount: { $sum: '$totalAmount' }, netAmount: { $sum: '$amount' } } }]),
+      // Old Payment records (no GST tracked separately)
+      Payment.aggregate([{ $match: { status: 'paid', ...dateFilter } }, { $group: { _id: null, totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+      Payment.aggregate([{ $match: { status: 'paid', ...prevFilter } }, { $group: { _id: null, totalAmount: { $sum: '$amount' } } }]),
       PackagePurchase.aggregate([{ $match: { status: 'paid', ...dateFilter } }, { $group: { _id: null, gst: { $sum: '$gstAmount' } } }]),
       // TDS = 2% on paid commissions
       Commission.aggregate([{ $match: { status: 'paid', ...dateFilter } }, { $group: { _id: null, total: { $sum: '$commissionAmount' } } }]),
@@ -62,9 +67,9 @@ router.get('/overview', async (req: any, res) => {
       PackagePurchase.aggregate([{ $match: { status: 'paid', ...dateFilter } }, { $group: { _id: '$packageTier', total: { $sum: '$totalAmount' }, count: { $sum: 1 } } }, { $sort: { total: -1 } }]),
     ]);
 
-    const grossRevenue = revenueAgg[0]?.totalAmount || 0;
-    const netRevenue = revenueAgg[0]?.netAmount || 0;
-    const prevRevenue = prevRevenueAgg[0]?.totalAmount || 0;
+    const grossRevenue = (revenueAgg[0]?.totalAmount || 0) + (oldRevenueAgg[0]?.totalAmount || 0);
+    const netRevenue = (revenueAgg[0]?.netAmount || 0) + (oldRevenueAgg[0]?.totalAmount || 0);
+    const prevRevenue = (prevRevenueAgg[0]?.totalAmount || 0) + (oldPrevRevenueAgg[0]?.totalAmount || 0);
     const gstCollected = gstAgg[0]?.gst || 0;
     const paidCommissions = tdsAgg[0]?.total || 0;
     const tdsDeducted = paidCommissions * 0.02;
@@ -89,7 +94,7 @@ router.get('/overview', async (req: any, res) => {
       period,
       summary: {
         grossRevenue, netRevenue, prevRevenue, revenueGrowth: Math.round(revenueGrowth * 10) / 10,
-        salesCount: revenueAgg[0]?.count || 0,
+        salesCount: (revenueAgg[0]?.count || 0) + (oldRevenueAgg[0]?.count || 0),
         gstCollected, gstPaidOnExpenses, netGstPayable,
         totalCommissions, paidCommissions, pendingComm, pendingCommCount,
         tdsDeducted,
@@ -111,10 +116,15 @@ router.get('/pnl', async (req: any, res) => {
     const startOfYear = new Date(y, 0, 1);
     const endOfYear = new Date(y, 11, 31, 23, 59, 59);
 
-    const [revenueByMonth, commByMonth, withdrawByMonth, expenseByMonth] = await Promise.all([
+    const [revenueByMonth, oldRevenueByMonth, commByMonth, withdrawByMonth, expenseByMonth] = await Promise.all([
       PackagePurchase.aggregate([
         { $match: { status: 'paid', createdAt: { $gte: startOfYear, $lte: endOfYear } } },
         { $group: { _id: { $month: '$createdAt' }, grossRevenue: { $sum: '$totalAmount' }, netRevenue: { $sum: '$amount' }, gstCollected: { $sum: '$gstAmount' }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]),
+      Payment.aggregate([
+        { $match: { status: 'paid', createdAt: { $gte: startOfYear, $lte: endOfYear } } },
+        { $group: { _id: { $month: '$createdAt' }, grossRevenue: { $sum: '$amount' }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } }
       ]),
       Commission.aggregate([
@@ -138,6 +148,10 @@ router.get('/pnl', async (req: any, res) => {
     const pnl = months.map((month, i) => {
       const m = i + 1;
       const rev = revenueByMonth.find((r: any) => r._id === m) || { grossRevenue: 0, netRevenue: 0, gstCollected: 0, count: 0 };
+      const oldRev = oldRevenueByMonth.find((r: any) => r._id === m) || { grossRevenue: 0, count: 0 };
+      rev.grossRevenue += oldRev.grossRevenue;
+      rev.netRevenue += oldRev.grossRevenue; // old payments: no GST, full amount = net
+      rev.count += oldRev.count;
       const comm = commByMonth.find((c: any) => c._id === m)?.total || 0;
       const withd = withdrawByMonth.find((w: any) => w._id === m)?.total || 0;
       const exp = expenseByMonth.find((e: any) => e._id === m) || { total: 0, gstPaid: 0 };
@@ -290,10 +304,15 @@ router.get('/revenue-chart', async (req: any, res) => {
     const { period = '30d' } = req.query;
     const { start, end } = getDateRange(period as string);
 
-    const [revenueByDay, commByDay, expenseByDay] = await Promise.all([
+    const [ppByDay, oldPayByDay, commByDay, expenseByDay] = await Promise.all([
       PackagePurchase.aggregate([
         { $match: { status: 'paid', createdAt: { $gte: start, $lte: end } } },
         { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, revenue: { $sum: '$totalAmount' }, net: { $sum: '$amount' }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]),
+      Payment.aggregate([
+        { $match: { status: 'paid', createdAt: { $gte: start, $lte: end } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, revenue: { $sum: '$amount' }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } }
       ]),
       Commission.aggregate([
@@ -307,6 +326,14 @@ router.get('/revenue-chart', async (req: any, res) => {
         { $sort: { _id: 1 } }
       ]),
     ]);
+
+    // Merge PP + old Payment daily revenue
+    const allDates = Array.from(new Set([...ppByDay.map((d: any) => d._id), ...oldPayByDay.map((d: any) => d._id)])).sort();
+    const revenueByDay = allDates.map(date => {
+      const pp = ppByDay.find((d: any) => d._id === date) || { revenue: 0, net: 0, count: 0 };
+      const op = oldPayByDay.find((d: any) => d._id === date) || { revenue: 0, count: 0 };
+      return { _id: date, revenue: pp.revenue + op.revenue, net: pp.net + op.revenue, count: pp.count + op.count };
+    });
 
     res.json({ success: true, revenueByDay, commByDay, expenseByDay });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }

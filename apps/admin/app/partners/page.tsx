@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
   Search, Users, RefreshCw, UserCog, X, CheckCircle, Crown,
   TrendingUp, IndianRupee, BarChart2, ChevronRight, Loader2,
-  Phone, Star, Package, Activity, Award, UserPlus
+  Phone, Star, Package, Activity, Award, UserPlus, Link2
 } from 'lucide-react'
 
 const TIER_COLOR: Record<string, string> = {
@@ -274,9 +274,27 @@ export default function PartnersPage() {
                       </div>
                       <div className="bg-slate-700/50 rounded-xl p-2.5">
                         <p className="text-base font-bold text-emerald-400">₹{((p.wallet || 0) / 1000).toFixed(1)}k</p>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Wallet</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Wallet Balance</p>
+                      </div>
+                      <div className="bg-slate-700/50 rounded-xl p-2.5">
+                        <p className="text-base font-bold text-cyan-400">{p._perf?.referralCount || 0}</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Referrals</p>
+                      </div>
+                      <div className="bg-slate-700/50 rounded-xl p-2.5">
+                        <p className="text-base font-bold text-violet-400">{p._perf?.commCount || 0}</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Commissions</p>
                       </div>
                     </div>
+
+                    {/* Sponsor row */}
+                    {p.referredBy && (
+                      <div className="flex items-center gap-1.5 bg-slate-700/30 rounded-lg px-2.5 py-1.5">
+                        <Link2 className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                        <span className="text-xs text-gray-400">Sponsor:</span>
+                        <span className="text-xs text-cyan-300 font-medium">{p.referredBy.name}</span>
+                        <span className="text-[10px] text-gray-500 font-mono ml-auto">{p.referredBy.affiliateCode}</span>
+                      </div>
+                    )}
 
                     {/* Footer */}
                     <div className="flex items-center justify-between pt-1">

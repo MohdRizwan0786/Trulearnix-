@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IPlatformSettings extends Document {
   tdsRate: number;
   gstRate: number;
+  gstNumber: string;
   minWithdrawalAmount: number;
   webinarLink?: string;
   webinarTitle?: string;
@@ -17,6 +18,7 @@ export interface IPlatformSettings extends Document {
 const PlatformSettingsSchema = new Schema<IPlatformSettings>({
   tdsRate: { type: Number, default: 2 },
   gstRate: { type: Number, default: 18 },
+  gstNumber: { type: String, default: '' },
   minWithdrawalAmount: { type: Number, default: 500 },
   webinarLink: { type: String, default: '' },
   webinarTitle: { type: String, default: '' },

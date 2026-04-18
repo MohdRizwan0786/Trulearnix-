@@ -11,6 +11,25 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
   await transporter.sendMail({ from: process.env.EMAIL_FROM, to, subject, html });
 };
 
+export const sendPasswordResetEmail = async (to: string, otp: string, name: string) => {
+  await sendEmail(to, '🔐 Password Reset OTP — TruLearnix', `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9f9f9;padding:20px;border-radius:10px">
+      <div style="text-align:center;padding:20px 0">
+        <h1 style="color:#6366f1">TruLearnix</h1>
+      </div>
+      <div style="background:white;padding:30px;border-radius:8px">
+        <h2>Hello ${name},</h2>
+        <p>We received a request to reset your password. Use the OTP below:</p>
+        <div style="text-align:center;margin:30px 0">
+          <span style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#6366f1;background:#f0f0ff;padding:15px 30px;border-radius:8px">${otp}</span>
+        </div>
+        <p>This OTP expires in <strong>10 minutes</strong>.</p>
+        <p style="color:#888">If you didn't request a password reset, please ignore this email. Your account is safe.</p>
+      </div>
+    </div>
+  `);
+};
+
 export const sendOTPEmail = async (to: string, otp: string, name: string) => {
   await sendEmail(to, 'Verify Your TruLearnix Account', `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9f9f9;padding:20px;border-radius:10px">
@@ -191,11 +210,12 @@ export interface InvoiceData {
   userEmail: string;
   packageName: string;
   // payment type
-  paymentType: 'full' | 'token' | 'emi_installment' | 'wallet';
+  paymentType: 'full' | 'token' | 'emi_installment' | 'wallet' | 'emi' | 'token_emi' | 'token_full';
   // amounts
   amountPaid: number;
   gstAmount?: number;
   walletAmountUsed?: number;
+  fullPackagePrice?: number;
   // emi info
   installmentNumber?: number;
   totalInstallments?: number;
@@ -214,25 +234,36 @@ export const sendInvoiceEmail = async (to: string, data: InvoiceData) => {
   const paymentLabel =
     paymentType === 'full'              ? '✅ Full Payment'
     : paymentType === 'token'           ? '🪙 Token Amount (Advance)'
+    : paymentType === 'token_emi'       ? '🪙 Token/Advance Payment (Balance via EMI)'
+    : paymentType === 'token_full'      ? '🪙 Token/Advance Payment (Balance via Full)'
+    : paymentType === 'emi'             ? `📅 EMI — Installment 1 of ${totalInstallments || 4}`
     : paymentType === 'emi_installment' ? `📅 EMI — Installment ${installmentNumber} of ${totalInstallments}`
     :                                     '💰 Wallet Payment';
 
   const subjectLabel =
     paymentType === 'full'              ? 'Payment Receipt'
     : paymentType === 'token'           ? 'Token Payment Receipt'
+    : paymentType === 'token_emi'       ? 'Token/Advance Receipt (EMI Plan)'
+    : paymentType === 'token_full'      ? 'Token/Advance Receipt (Full Payment Plan)'
+    : paymentType === 'emi'             ? 'EMI Installment 1 Receipt'
     : paymentType === 'emi_installment' ? `EMI Installment ${installmentNumber} Receipt`
     :                                     'Payment Receipt';
 
   const accentColor =
-    paymentType === 'full'    ? '#10b981'
-    : paymentType === 'token' ? '#f59e0b'
-    : paymentType === 'wallet'? '#f59e0b'
-    :                            '#6366f1';
+    paymentType === 'full'                                ? '#10b981'
+    : (paymentType === 'token' || paymentType.startsWith('token_')) ? '#f59e0b'
+    : paymentType === 'wallet'                            ? '#f59e0b'
+    :                                                       '#6366f1';
 
-  const tokenNoteRow = paymentType === 'token' ? `
+  const tokenNoteRow = (paymentType === 'token' || paymentType === 'token_emi' || paymentType === 'token_full') ? `
     <div style="background:#1c1400;border:1px solid #92400e;border-radius:8px;padding:14px;margin:16px 0 0">
       <p style="color:#fbbf24;font-size:12px;font-weight:700;margin:0 0 4px">📋 Next Steps</p>
-      <p style="color:#fde68a;font-size:13px;margin:0">Your token amount has been received. Your sales partner will contact you shortly to finalise the remaining payment schedule (EMI or full payment).</p>
+      <p style="color:#fde68a;font-size:13px;margin:0">
+        Your advance/token payment has been received.
+        ${paymentType === 'token_emi' ? `Balance of ₹${((data as any).fullPackagePrice || 0) - amountPaid} will be charged via EMI installments.`
+          : paymentType === 'token_full' ? `Balance of ₹${((data as any).fullPackagePrice || 0) - amountPaid} to be paid as a full payment.`
+          : 'Your sales partner will contact you shortly to finalise the remaining payment schedule.'}
+      </p>
     </div>` : '';
 
   const emiNextRow = (!allInstallmentsPaid && nextDueDate && nextInstallmentAmount) ? `

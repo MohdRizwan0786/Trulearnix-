@@ -8,7 +8,7 @@ import {
   Settings, Plus, Trash2, Save, Upload, Copy, Check, Video,
   Edit3, X, ChevronUp, ChevronDown, Loader2, Link2, FileVideo,
   PlayCircle, Globe, PanelTop, Navigation, FootprintsIcon, Info,
-  MousePointer, Phone, Users, Star, Megaphone
+  MousePointer, Phone, Users, Star, Megaphone, Trophy
 } from 'lucide-react'
 
 const TABS = [
@@ -23,6 +23,7 @@ const TABS = [
   { id: 'contact',      label: 'Contact',       icon: Phone         },
   { id: 'mentor',       label: 'Become Mentor', icon: Users         },
   { id: 'wall',         label: 'Wall of Love',  icon: Star          },
+  { id: 'achievements', label: 'Achievements',  icon: Trophy        },
   { id: 'movement',     label: 'Our Movement',  icon: Megaphone     },
   { id: 'media',        label: 'Media Library', icon: ImageIcon     },
   { id: 'settings',     label: 'Site Settings', icon: Settings      },
@@ -1491,10 +1492,185 @@ function WallVideoCard({ v, i, onChange, onDelete }: { v: any; i: number; onChan
   )
 }
 
+// ── Tab: Achievements ──────────────────────────────────────────────────────────
+const ICON_OPTIONS = ['Trophy', 'Star', 'Shield', 'Zap', 'Award', 'TrendingUp', 'Globe', 'Cpu']
+const COLOR_OPTIONS = ['amber', 'violet', 'blue', 'green', 'cyan', 'pink', 'orange', 'indigo', 'fuchsia']
+
+function AchievementsTab() {
+  const [heading, setHeading] = useState('')
+  const [subheading, setSubheading] = useState('')
+  const [awards, setAwards] = useState<any[]>([])
+  const [photos, setPhotos] = useState<any[]>([])
+  const [stats, setStats] = useState<any[]>([])
+  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    adminAPI.getSiteContent('achievements').then(r => {
+      if (r.data.data) {
+        const d = r.data.data
+        if (d.heading) setHeading(d.heading)
+        if (d.subheading) setSubheading(d.subheading)
+        if (d.awards?.length) setAwards(d.awards)
+        if (d.photos?.length) setPhotos(d.photos)
+        if (d.stats?.length) setStats(d.stats)
+      }
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const save = async () => {
+    setSaving(true)
+    try { await adminAPI.saveSiteContent('achievements', { heading, subheading, awards, photos, stats }); toast.success('Achievements saved!') }
+    catch { toast.error('Save failed') }
+    finally { setSaving(false) }
+  }
+
+  const updateAward = (i: number, v: any) => setAwards(a => a.map((x, idx) => idx === i ? v : x))
+  const addAward = () => setAwards(a => [...a, { icon: 'Trophy', color: 'amber', title: '', org: '', year: new Date().getFullYear().toString() }])
+  const deleteAward = (i: number) => setAwards(a => a.filter((_, idx) => idx !== i))
+
+  const updatePhoto = (i: number, v: any) => setPhotos(p => p.map((x, idx) => idx === i ? v : x))
+  const addPhoto = () => setPhotos(p => [...p, { src: '', caption: '', sub: '' }])
+  const deletePhoto = (i: number) => setPhotos(p => p.filter((_, idx) => idx !== i))
+
+  const updateStat = (i: number, v: any) => setStats(s => s.map((x, idx) => idx === i ? v : x))
+  const addStat = () => setStats(s => [...s, { val: '', label: '', color: 'amber' }])
+  const deleteStat = (i: number) => setStats(s => s.filter((_, idx) => idx !== i))
+
+  if (loading) return <Spinner />
+
+  return (
+    <div className="space-y-6">
+      {/* Heading */}
+      <div className={cardCls}>
+        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Section Heading</h3>
+        <label className={labelCls}>Main Heading</label>
+        <input value={heading} onChange={e => setHeading(e.target.value)} placeholder="Recognised by India's Best" className={inputCls} />
+        <label className={labelCls}>Subheading</label>
+        <input value={subheading} onChange={e => setSubheading(e.target.value)} placeholder="Trusted by top organisations..." className={inputCls} />
+      </div>
+
+      {/* Awards */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-white text-sm">Awards ({awards.length})</h3>
+          <button type="button" onClick={addAward}
+            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">
+            <Plus className="w-4 h-4" /> Add Award
+          </button>
+        </div>
+        {awards.map((a, i) => (
+          <div key={i} className={cardCls + ' space-y-3'}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-white text-xs font-bold">Award #{i + 1}</span>
+              <button type="button" onClick={() => deleteAward(i)} className="text-red-400 hover:text-red-300 transition-colors">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Icon</label>
+                <select value={a.icon} onChange={e => updateAward(i, { ...a, icon: e.target.value })} className={inputCls}>
+                  {ICON_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Color</label>
+                <select value={a.color} onChange={e => updateAward(i, { ...a, color: e.target.value })} className={inputCls}>
+                  {COLOR_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+            </div>
+            <label className={labelCls}>Award Title</label>
+            <input value={a.title} onChange={e => updateAward(i, { ...a, title: e.target.value })} placeholder="Best EdTech Startup" className={inputCls} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Organisation</label>
+                <input value={a.org} onChange={e => updateAward(i, { ...a, org: e.target.value })} placeholder="Inc42 Awards" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Year</label>
+                <input value={a.year} onChange={e => updateAward(i, { ...a, year: e.target.value })} placeholder="2024" className={inputCls} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Photos */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-white text-sm">Moment Photos ({photos.length})</h3>
+          <button type="button" onClick={addPhoto}
+            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">
+            <Plus className="w-4 h-4" /> Add Photo
+          </button>
+        </div>
+        <p className="text-gray-500 text-xs">Upload images to /public/achievements/ and enter the path (e.g. /achievements/img-1.jpg)</p>
+        {photos.map((p, i) => (
+          <div key={i} className={cardCls + ' space-y-3'}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-white text-xs font-bold">Photo #{i + 1}</span>
+              <button type="button" onClick={() => deletePhoto(i)} className="text-red-400 hover:text-red-300 transition-colors">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            <label className={labelCls}>Image Path (from /public)</label>
+            <input value={p.src} onChange={e => updatePhoto(i, { ...p, src: e.target.value })} placeholder="/achievements/img-1.jpg" className={inputCls} />
+            <label className={labelCls}>Caption</label>
+            <input value={p.caption} onChange={e => updatePhoto(i, { ...p, caption: e.target.value })} placeholder="Award Night 2024" className={inputCls} />
+            <label className={labelCls}>Sub-caption</label>
+            <input value={p.sub} onChange={e => updatePhoto(i, { ...p, sub: e.target.value })} placeholder="Inc42 Summit, Bangalore" className={inputCls} />
+          </div>
+        ))}
+      </div>
+
+      {/* Stats */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-white text-sm">Bottom Stats ({stats.length})</h3>
+          <button type="button" onClick={addStat}
+            className="flex items-center gap-2 bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">
+            <Plus className="w-4 h-4" /> Add Stat
+          </button>
+        </div>
+        {stats.map((s, i) => (
+          <div key={i} className={cardCls + ' space-y-3'}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-white text-xs font-bold">Stat #{i + 1}</span>
+              <button type="button" onClick={() => deleteStat(i)} className="text-red-400 hover:text-red-300 transition-colors">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className={labelCls}>Value</label>
+                <input value={s.val} onChange={e => updateStat(i, { ...s, val: e.target.value })} placeholder="12+" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Label</label>
+                <input value={s.label} onChange={e => updateStat(i, { ...s, label: e.target.value })} placeholder="Awards Won" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Color</label>
+                <select value={s.color} onChange={e => updateStat(i, { ...s, color: e.target.value })} className={inputCls}>
+                  {COLOR_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <SaveBtn onClick={save} saving={saving} label="Save Achievements" />
+    </div>
+  )
+}
+
 function WallTab() {
   const [heading, setHeading] = useState('Wall of Love')
   const [subheading, setSubheading] = useState('Real students. Real results. Watch their stories.')
-  const [videos, setVideos] = useState(DEFAULT_WALL_VIDEOS)
+  const [videos, setVideos] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -1758,6 +1934,7 @@ export default function ContentPage() {
         {tab === 'contact'      && <ContactTab />}
         {tab === 'mentor'       && <MentorTab />}
         {tab === 'wall'         && <WallTab />}
+        {tab === 'achievements' && <AchievementsTab />}
         {tab === 'movement'     && <MovementTab />}
         {tab === 'media'        && <MediaTab />}
         {tab === 'settings'     && <SettingsTab />}

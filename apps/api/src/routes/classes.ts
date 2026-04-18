@@ -225,7 +225,7 @@ router.post('/:id/egress/start', protect, authorize('mentor', 'superadmin', 'adm
         info = await egressClient.startParticipantEgress(
           roomName,
           publisher.identity,
-          { file: { fileType: EncodedFileType.MP4, filepath: `/recordings/${fileName}` } }
+          { file: { fileType: EncodedFileType.MP4, filepath: `/recordings/${fileName}` } as any }
         );
       } else {
         // No publisher yet — fall back to room composite (waits for someone to publish)

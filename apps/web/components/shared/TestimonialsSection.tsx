@@ -63,7 +63,8 @@ function TestCard({ t }: { t: Testimonial }) {
 }
 
 export default function TestimonialsSection() {
-  const [testimonials, setTestimonials] = useState(DEFAULT_TESTIMONIALS as Testimonial[])
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/testimonials')
@@ -81,7 +82,10 @@ export default function TestimonialsSection() {
         })))
       })
       .catch(() => {})
+      .finally(() => setLoaded(true))
   }, [])
+
+  if (loaded && testimonials.length === 0) return null
 
   const doubled = [...testimonials, ...testimonials]
 

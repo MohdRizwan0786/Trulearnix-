@@ -5,9 +5,11 @@ import { AuthRequest } from '../middleware/auth';
 
 export const getCourses = async (req: Request, res: Response) => {
   try {
-    const { category, level, search, page = 1, limit = 12, sort = '-createdAt' } = req.query;
+    const { category, level, search, page = 1, limit = 12, sort = '-createdAt', type } = req.query;
     const query: any = { status: 'published' };
 
+    if (type === 'package') query.isPackage = true;
+    if (type === 'course') query.isPackage = { $ne: true };
     if (category) query.category = category;
     if (level) query.level = level;
     if (search) query.$text = { $search: search as string };

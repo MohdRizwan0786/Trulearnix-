@@ -8,6 +8,9 @@ import Commission from '../models/Commission';
 import User, { COMMISSION_RATES, PackageTier } from '../models/User';
 import Transaction from '../models/Transaction';
 import Notification from '../models/Notification';
+import redisClient from '../config/redis';
+import { sendPurchaseWelcomeEmail, sendSponsorPurchaseAlert } from '../services/emailService';
+import { sendWhatsAppText } from '../services/whatsappMetaService';
 
 const razorpay = process.env.RAZORPAY_KEY_ID && !process.env.RAZORPAY_KEY_ID.includes('your_')
   ? new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID!, key_secret: process.env.RAZORPAY_KEY_SECRET! })
@@ -137,7 +140,7 @@ export const verifyPackagePayment = async (req: AuthRequest, res: Response) => {
     // Credit 3-level MLM commissions
     await creditMLMCommissions(purchase, updatedUser);
 
-    // Notify user
+    // Notify user (in-app)
     await Notification.create({
       user: purchase.user,
       title: '🎉 Package Activated!',
@@ -145,6 +148,48 @@ export const verifyPackagePayment = async (req: AuthRequest, res: Response) => {
       type: 'success',
       channel: 'inapp',
     });
+
+    // Email + WA to user + sponsor (fire and forget)
+    (async () => {
+      try {
+        const buyer = await User.findById(purchase.user).select('name email phone referredBy upline1');
+        if (!buyer) return;
+
+        const pkg = await Package.findById(purchase.package).select('name tier');
+        const pkgName = (pkg as any)?.name || tier;
+
+        // Get password from Redis (set at registration)
+        const password = await redisClient.get(`reg-pw:${buyer._id}`) || '(your registration password)';
+
+        // Get sponsor (direct referrer)
+        const sponsorId = buyer.upline1 || buyer.referredBy;
+        const sponsor = sponsorId ? await User.findById(sponsorId).select('name email phone') : null;
+
+        const waToUser = `🎉 *Package Activated — TruLearnix!*\n\nHi *${buyer.name}*! Your *${pkgName}* package is now active.\n\n📧 *Email:* ${buyer.email}\n🔑 *Password:* ${password}\n\n${sponsor ? `👤 *Your Mentor:* ${sponsor.name}\n` : ''}⚠️ Change your password after first login.\n👉 ${process.env.WEB_URL}/login`;
+
+        const tasks: Promise<any>[] = [
+          sendPurchaseWelcomeEmail(buyer.email, buyer.name, pkgName, buyer.email, password),
+          buyer.phone ? sendWhatsAppText(buyer.phone, waToUser) : Promise.resolve(),
+        ];
+
+        if (sponsor) {
+          // Find commission earned by sponsor for this purchase
+          const comm = await Commission.findOne({ buyer: buyer._id, earner: sponsor._id, level: 1 }).sort({ createdAt: -1 });
+          const commAmount = comm?.commissionAmount || 0;
+
+          const waToSponsor = `💰 *New Sale — Commission Earned!*\n\nHi *${sponsor.name}*! Your referral just purchased a package.\n\n👤 *Member:* ${buyer.name}\n📦 *Package:* ${pkgName}${commAmount > 0 ? `\n💰 *Commission:* ₹${commAmount}` : ''}\n\n👉 ${process.env.WEB_URL}/partner/earnings`;
+
+          tasks.push(
+            sendSponsorPurchaseAlert(sponsor.email, sponsor.name, buyer.name, buyer.email, pkgName, commAmount),
+            sponsor.phone ? sendWhatsAppText(sponsor.phone, waToSponsor) : Promise.resolve(),
+          );
+        }
+
+        await Promise.all(tasks);
+      } catch (e: any) {
+        console.error('[package-notify]', e.message);
+      }
+    })();
 
     res.json({ success: true, message: 'Package activated! Affiliate panel unlocked.', tier });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }

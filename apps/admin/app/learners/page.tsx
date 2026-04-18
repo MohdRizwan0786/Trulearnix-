@@ -36,7 +36,6 @@ function avatarPalette(name: string) {
   return AVATAR_PALETTES[hash % AVATAR_PALETTES.length]
 }
 
-type Tab = 'all' | 'purchased' | 'free' | 'starter' | 'pro' | 'elite' | 'supreme'
 
 // ─── Brand completeness helper ────────────────────────────────────────────────
 function brandPct(u: any): number {
@@ -241,16 +240,9 @@ function BrandDrawer({ learnerId, onClose }: { learnerId: string; onClose: () =>
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'all',      label: 'All Learners' },
-  { key: 'purchased',label: 'Purchased'    },
-  { key: 'free',     label: 'Free'         },
-  { key: 'starter',  label: 'Starter'      },
-  { key: 'pro',      label: 'Pro'          },
-  { key: 'elite',    label: 'Elite'        },
-  { key: 'supreme',  label: 'Supreme'      },
-]
+// ─── Static tabs (tier tabs built dynamically from API) ──────────────────────
+type StaticTab = 'all' | 'purchased' | 'free'
+type Tab = StaticTab | string   // string = any tier name from packages
 
 export default function LearnersPage() {
   const [tab, setTab]                       = useState<Tab>('all')
@@ -258,28 +250,32 @@ export default function LearnersPage() {
   const [page, setPage]                     = useState(1)
   const [selectedLearner, setSelectedLearner] = useState<string | null>(null)
 
-  // Resolve API type param — tier tabs map to 'purchased' for the API or pass tier name
-  const apiType = tab === 'all' ? 'all' : tab === 'purchased' ? 'purchased' : tab === 'free' ? 'free' : 'purchased'
+  // Resolve API params — static tabs vs tier tabs
+  const isStaticTab = tab === 'all' || tab === 'purchased' || tab === 'free'
+  const apiParams = isStaticTab
+    ? { type: tab, search: search || undefined, page, limit: 20 }
+    : { type: 'purchased', tier: tab, search: search || undefined, page, limit: 20 }
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-learners', tab, search, page],
-    queryFn: () => adminAPI.learners({ type: apiType, search: search || undefined, page, limit: 20 }).then(r => r.data),
+    queryFn: () => adminAPI.learners(apiParams).then(r => r.data),
     placeholderData: (prev: any) => prev,
   })
 
-  const stats        = data?.stats || { purchasedCount: 0, freeCount: 0, thisMonthCount: 0 }
-  const totalAll     = (stats.purchasedCount || 0) + (stats.freeCount || 0)
-  const thisMonth    = stats.thisMonthCount || 0
+  const stats     = data?.stats || { purchasedCount: 0, freeCount: 0, thisMonthCount: 0 }
+  const totalAll  = (stats.purchasedCount || 0) + (stats.freeCount || 0)
+  const thisMonth = stats.thisMonthCount || 0
+
+  // Dynamic tier tabs from packages returned by API
+  const packages: any[] = data?.packages || []
+  const tierMap: Record<string, any> = {}
+  packages.forEach((p: any) => { if (p.tier && !tierMap[p.tier]) tierMap[p.tier] = p })
+  const tierTabs = Object.values(tierMap)
 
   const handleSearch = (v: string) => { setSearch(v); setPage(1) }
   const handleTab    = (t: Tab)    => { setTab(t); setPage(1) }
 
-  // Client-side tier filter for tier tabs (starter/pro/elite/supreme)
-  const tierTabs: Tab[] = ['starter', 'pro', 'elite', 'supreme']
-  const rawLearners: any[] = data?.learners || []
-  const learners = tierTabs.includes(tab)
-    ? rawLearners.filter((u: any) => u.packageTier === tab)
-    : rawLearners
+  const learners: any[] = data?.learners || []
 
   return (
     <AdminLayout>
@@ -356,12 +352,23 @@ export default function LearnersPage() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Tier filter tabs */}
           <div className="tab-bar">
-            {TABS.map(t => (
-              <button key={t.key} onClick={() => handleTab(t.key)}
-                className={tab === t.key ? 'tab-active' : 'tab-inactive'}>
-                {t.label}
+            {/* Static tabs */}
+            {(['all', 'purchased', 'free'] as const).map(key => (
+              <button key={key} onClick={() => handleTab(key)}
+                className={tab === key ? 'tab-active' : 'tab-inactive'}>
+                {key === 'all' ? 'All Learners' : key === 'purchased' ? 'Purchased' : 'Free'}
               </button>
             ))}
+            {/* Dynamic tier tabs from packages */}
+            {tierTabs.map((p: any) => {
+              const cfg = TIER_CONFIG[p.tier]
+              return (
+                <button key={p.tier} onClick={() => handleTab(p.tier)}
+                  className={tab === p.tier ? 'tab-active' : 'tab-inactive'}>
+                  {cfg ? cfg.label : (p.name || p.tier)}
+                </button>
+              )
+            })}
           </div>
 
           {/* Search */}
@@ -455,13 +462,24 @@ export default function LearnersPage() {
                           )}
                         </td>
 
-                        {/* Enrollment count */}
+                        {/* Enrollment + Performance */}
                         <td className="px-5 py-4 hidden lg:table-cell">
                           <div className="flex items-center gap-2">
                             <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-white font-semibold text-sm">{enrollCount}</span>
-                            <span className="text-gray-500 text-xs">courses</span>
+                            <span className="text-white font-semibold text-sm">{u._perf?.enrollCount || enrollCount || 0}</span>
+                            <span className="text-gray-500 text-xs">enrolled</span>
+                            {(u._perf?.completedCount || 0) > 0 && (
+                              <span className="text-emerald-400 font-semibold text-xs">· {u._perf.completedCount} done</span>
+                            )}
                           </div>
+                          {(u._perf?.enrollCount || 0) > 0 && (
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-violet-500 rounded-full" style={{ width: `${u._perf?.avgProgress || 0}%` }} />
+                              </div>
+                              <span className="text-xs text-gray-400">{u._perf?.avgProgress || 0}% avg</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1.5 mt-1">
                             <TrendingUp className="w-3 h-3 text-violet-400" />
                             <span className="text-xs text-gray-400">{u.xpPoints || 0} XP · Lv {u.level || 1}</span>

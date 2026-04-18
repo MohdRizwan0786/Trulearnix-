@@ -39,14 +39,10 @@ export default function HeroSection() {
   const [features, setFeatures]               = useState(DEFAULT_FEATURES)
   const [tickerItems, setTickerItems]         = useState(DEFAULT_TICKER)
   const [heroStats, setHeroStats]             = useState(DEFAULT_HERO_STATS)
-  const [liveClassTitle, setLiveClassTitle]   = useState('Full Stack Dev — Batch 12')
-  const [liveClassMentor, setLiveClassMentor] = useState('Mentor Aryan Kapoor')
-  const [liveClassViewers, setLiveClassViewers] = useState('247 watching')
-  const [chatMessages, setChatMessages]       = useState([
-    { u: 'Rahul', m: 'Finally understood useEffect! 🔥', c: 'text-blue-400' },
-    { u: 'Priya', m: 'Can you explain useCallback too?',  c: 'text-fuchsia-400' },
-    { u: 'Amit',  m: 'Getting certificate after this?',   c: 'text-green-400' },
-  ])
+  const [liveClassTitle, setLiveClassTitle]   = useState('')
+  const [liveClassMentor, setLiveClassMentor] = useState('')
+  const [liveClassViewers, setLiveClassViewers] = useState('')
+  const [chatMessages, setChatMessages]       = useState<{ u: string; m: string; c: string }[]>([])
 
   useEffect(() => {
     fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/hero')

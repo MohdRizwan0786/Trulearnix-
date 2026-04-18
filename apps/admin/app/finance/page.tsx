@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
@@ -10,11 +11,12 @@ import {
   Plus, Trash2, X, Loader2,
   Wallet, BarChart3, PieChart,
   ShieldCheck, Calculator, BadgePercent, Coins,
-  IndianRupee, CreditCard, Building2, Activity
+  IndianRupee, CreditCard, Building2, Activity,
+  ShoppingCart, Download, Search, CheckCircle2, Clock, XCircle
 } from 'lucide-react'
 import { format } from 'date-fns'
 
-type Tab = 'overview' | 'pnl' | 'gst' | 'tds' | 'expenses'
+type Tab = 'overview' | 'pnl' | 'gst' | 'tds' | 'expenses' | 'purchases'
 
 const fmt = (n: number) => `₹${Math.abs(n).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
 const fmtShort = (n: number) => {
@@ -121,12 +123,19 @@ function BarChart({ data, height = 80, barColor = '#7c3aed', label2Color }: {
 }
 
 export default function FinanceDashboard() {
-  const [tab, setTab] = useState<Tab>('overview')
-  const [period, setPeriod] = useState('mtd')
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = searchParams?.get('tab') as Tab
+    return (['overview','pnl','gst','tds','expenses','purchases'] as Tab[]).includes(t) ? t : 'overview'
+  })
+  const [period, setPeriod] = useState('all')
   const [chartPeriod, setChartPeriod] = useState('30d')
   const [pnlYear, setPnlYear] = useState(new Date().getFullYear())
   const [gstYear, setGstYear] = useState(new Date().getFullYear())
   const [tdsYear, setTdsYear] = useState(new Date().getFullYear())
+  const [purchaseSearch, setPurchaseSearch] = useState('')
+  const [purchasePage, setPurchasePage] = useState(1)
+  const [purchaseStatus, setPurchaseStatus] = useState('')
   const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [expForm, setExpForm] = useState({
     title:'', category:'server', amount:'', gstPaid:'',
@@ -164,6 +173,11 @@ export default function FinanceDashboard() {
     queryKey: ['finance-expenses'],
     queryFn: () => adminAPI.financeExpenses().then(r => r.data),
     enabled: tab === 'expenses',
+  })
+  const { data: purchaseData, isLoading: loadingPurchases } = useQuery({
+    queryKey: ['admin-purchases-finance', purchasePage, purchaseStatus],
+    queryFn: () => adminAPI.purchases({ page: purchasePage, limit: 20, status: purchaseStatus || undefined }).then(r => r.data),
+    enabled: tab === 'purchases',
   })
 
   const s = overview?.summary || {}
@@ -222,6 +236,7 @@ export default function FinanceDashboard() {
     { id: 'gst', label: 'GST', icon: BadgePercent },
     { id: 'tds', label: 'TDS', icon: ShieldCheck },
     { id: 'expenses', label: 'Expenses', icon: Receipt },
+    { id: 'purchases', label: 'Purchases', icon: ShoppingCart },
   ]
 
   return (
@@ -775,6 +790,152 @@ export default function FinanceDashboard() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* ── PURCHASES TAB ──────────────────────────────────────────────────── */}
+        {tab === 'purchases' && (
+          <div className="space-y-4">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-48">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={purchaseSearch}
+                  onChange={e => setPurchaseSearch(e.target.value)}
+                  className="w-full bg-gray-900 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500"
+                />
+              </div>
+              <select
+                value={purchaseStatus}
+                onChange={e => { setPurchaseStatus(e.target.value); setPurchasePage(1) }}
+                className="bg-gray-900 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500"
+              >
+                <option value="">All Status</option>
+                <option value="paid">Paid</option>
+                <option value="created">Pending</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </div>
+
+            {/* Table */}
+            <div className="bg-gray-900 border border-white/10 rounded-2xl overflow-hidden">
+              {loadingPurchases ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="text-left px-5 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Buyer</th>
+                          <th className="text-left px-4 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Package</th>
+                          <th className="text-left px-4 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Amount</th>
+                          <th className="text-left px-4 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Status</th>
+                          <th className="text-left px-4 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Date</th>
+                          <th className="text-right px-5 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Invoice</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {(purchaseData?.purchases || [])
+                          .filter((p: any) => {
+                            if (!purchaseSearch) return true
+                            const q = purchaseSearch.toLowerCase()
+                            return p.user?.name?.toLowerCase().includes(q) || p.user?.email?.toLowerCase().includes(q)
+                          })
+                          .map((p: any) => {
+                            const statusCfg: Record<string, { icon: any; cls: string }> = {
+                              paid: { icon: CheckCircle2, cls: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
+                              created: { icon: Clock, cls: 'text-amber-400 bg-amber-500/15 border-amber-500/30' },
+                              failed: { icon: XCircle, cls: 'text-red-400 bg-red-500/15 border-red-500/30' },
+                              refunded: { icon: XCircle, cls: 'text-blue-400 bg-blue-500/15 border-blue-500/30' },
+                            }
+                            const sc = statusCfg[p.status] || statusCfg.created
+                            const StatusIcon = sc.icon
+                            return (
+                              <tr key={p._id} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="px-5 py-3.5">
+                                  <p className="text-white font-medium">{p.user?.name || '—'}</p>
+                                  <p className="text-gray-500 text-xs">{p.user?.email || ''}</p>
+                                  {p.user?.phone && <p className="text-gray-600 text-xs">{p.user.phone}</p>}
+                                </td>
+                                <td className="px-4 py-3.5">
+                                  <p className="text-gray-300 font-medium">
+                                    {p._type === 'payment'
+                                      ? (p.course?.title || 'Course Purchase')
+                                      : (p.packageTier?.toUpperCase() || '—')}
+                                  </p>
+                                  <p className="text-gray-600 text-xs capitalize">{p.paymentMethod}</p>
+                                </td>
+                                <td className="px-4 py-3.5">
+                                  <p className="text-white font-bold">{fmt(p.totalAmount)}</p>
+                                  {p.gstAmount > 0 && (
+                                    <p className="text-gray-500 text-xs">Base: {fmt(p.amount)} + GST: {fmt(p.gstAmount)}</p>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3.5">
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium ${sc.cls}`}>
+                                    <StatusIcon className="w-3 h-3" />
+                                    {p.status}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3.5 text-gray-400 text-xs whitespace-nowrap">
+                                  {new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </td>
+                                <td className="px-5 py-3.5 text-right">
+                                  {p.status === 'paid' ? (
+                                    <a
+                                      href={p._type === 'payment' ? `/payments/${p._id}/invoice` : `/purchases/${p._id}/invoice`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-600/20 hover:bg-violet-600/40 border border-violet-500/30 text-violet-300 text-xs font-medium rounded-lg transition-colors"
+                                    >
+                                      <Download className="w-3.5 h-3.5" />
+                                      Invoice
+                                    </a>
+                                  ) : (
+                                    <span className="text-gray-600 text-xs">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })
+                        }
+                        {(purchaseData?.purchases || []).length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="text-center py-12 text-gray-600">No purchases found</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Pagination */}
+                  {purchaseData?.total > 20 && (
+                    <div className="flex items-center justify-between px-5 py-3 border-t border-white/10">
+                      <p className="text-gray-500 text-xs">{purchaseData.total} total purchases</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setPurchasePage(p => Math.max(1, p - 1))}
+                          disabled={purchasePage === 1}
+                          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 text-xs disabled:opacity-40 hover:bg-white/10"
+                        >Prev</button>
+                        <span className="px-3 py-1.5 text-gray-400 text-xs">Page {purchasePage}</span>
+                        <button
+                          onClick={() => setPurchasePage(p => p + 1)}
+                          disabled={purchasePage * 20 >= purchaseData.total}
+                          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 text-xs disabled:opacity-40 hover:bg-white/10"
+                        >Next</button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -316,18 +316,19 @@ router.post('/validate-code', async (req: any, res) => {
 // ── POST /api/checkout/create-order ───────────────────────────────────────
 router.post('/create-order', protect, async (req: any, res) => {
   try {
-    const { type, tier, courseId, promoCode, couponCode, isEmi, name, email } = req.body;
+    const { type, tier, courseId, promoCode, couponCode, isEmi, isToken, tokenMode, name, email } = req.body;
     // tier field now accepts either tier slug or package _id
     const pkgIdentifier = tier;
 
     let basePrice = 0, gst = 0, discount = 0, itemName = '', packageId: any = null;
+    let pkgDoc: any = null;
 
     if (type === 'package') {
       const pkg = mongoose.Types.ObjectId.isValid(pkgIdentifier)
         ? await Package.findById(pkgIdentifier)
         : await Package.findOne({ tier: pkgIdentifier, isActive: true });
       if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
-
+      pkgDoc = pkg;
       basePrice = pkg.price;
       packageId = pkg._id;
       itemName = `${pkg.name} Package`;
@@ -378,16 +379,34 @@ router.post('/create-order', protect, async (req: any, res) => {
     const gstRateForOrder = type === 'package' ? await getGstRate() : 0;
     gst = type === 'package' ? Math.round(afterDiscount * gstRateForOrder / 100) : 0;
     let totalAmount = afterDiscount + gst;
+    const fullPackagePrice = totalAmount; // full price before any EMI/token reduction
 
-    // EMI: first installment only
+    // Determine payment type and amount to pay now
     let isEmiOrder = false;
     let emiInstallmentAmount = totalAmount;
     let emiMonths = 4;
-    if (type === 'package' && isEmi) {
-      emiMonths = 4;
-      emiInstallmentAmount = Math.ceil(totalAmount / emiMonths);
-      totalAmount = emiInstallmentAmount; // pay first installment now
-      isEmiOrder = true;
+    let paymentType: 'full' | 'emi' | 'token_emi' | 'token_full' = 'full';
+    let tokenAmountToPay = 0;
+
+    if (type === 'package') {
+      if (isToken && pkgDoc?.tokenAvailable && pkgDoc?.tokenAmount > 0) {
+        // Token payment (advance)
+        tokenAmountToPay = pkgDoc.tokenAmount;
+        totalAmount = tokenAmountToPay;
+        if (tokenMode === 'emi') {
+          paymentType = 'token_emi';
+          isEmiOrder = true;
+          emiMonths = 4;
+        } else {
+          paymentType = 'token_full';
+        }
+      } else if (isEmi) {
+        emiMonths = 4;
+        emiInstallmentAmount = Math.ceil(totalAmount / emiMonths);
+        totalAmount = emiInstallmentAmount; // pay first installment now
+        isEmiOrder = true;
+        paymentType = 'emi';
+      }
     }
 
     const order = await rzp.orders.create({
@@ -399,17 +418,24 @@ router.post('/create-order', protect, async (req: any, res) => {
 
     // Create purchase record
     if (type === 'package') {
-      const purchase = await PackagePurchase.create({
+      const purchaseData: any = {
         user: req.user._id, package: packageId, packageTier: tier,
-        amount: afterDiscount, gstAmount: gst, totalAmount: afterDiscount + gst,
+        amount: paymentType.startsWith('token') ? tokenAmountToPay : afterDiscount,
+        gstAmount: paymentType.startsWith('token') ? 0 : gst,
+        totalAmount: paymentType.startsWith('token') ? tokenAmountToPay : (afterDiscount + gst),
         razorpayOrderId: order.id, status: 'created',
         affiliateCode: promoCode || '', isEmi: isEmiOrder,
         emiMonth: isEmiOrder ? 1 : undefined, emiTotal: isEmiOrder ? emiMonths : undefined,
-      });
+        paymentType,
+        tokenAmount: paymentType.startsWith('token') ? tokenAmountToPay : undefined,
+        fullPackagePrice: paymentType.startsWith('token') ? fullPackagePrice : undefined,
+      };
+      const purchase = await PackagePurchase.create(purchaseData);
       return res.json({
         success: true, orderId: order.id, amount: Math.round(totalAmount * 100),
         currency: 'INR', keyId: process.env.RAZORPAY_KEY_ID, purchaseId: purchase._id,
-        itemName, isEmi: isEmiOrder, emiInstallmentAmount, emiMonths,
+        itemName, isEmi: isEmiOrder, emiInstallmentAmount, emiMonths, paymentType,
+        tokenAmount: tokenAmountToPay || undefined,
       });
     } else {
       // Course
@@ -476,7 +502,12 @@ router.post('/verify', protect, async (req: any, res) => {
         try {
           const emiDays: number[] = (pkg?.emiDays && pkg.emiDays.length) ? pkg.emiDays : [0, 15, 30, 45];
           const EMI_TOTAL = emiDays.length;
-          const totalAmt = purchase.amount + purchase.gstAmount;
+          // For token_emi: installments are on the REMAINING balance (fullPackagePrice - tokenAmount)
+          // For regular emi: installments are on the full package price
+          const emiBase = (purchase as any).paymentType === 'token_emi'
+            ? Math.max(0, ((purchase as any).fullPackagePrice || 0) - ((purchase as any).tokenAmount || 0))
+            : purchase.amount + purchase.gstAmount;
+          const totalAmt = emiBase;
           const installmentAmt = Math.ceil(totalAmt / EMI_TOTAL);
           const webUrl = process.env.WEB_URL || 'https://peptly.in';
           const now = new Date();
@@ -575,6 +606,71 @@ router.post('/verify', protect, async (req: any, res) => {
         const { notify } = await import('../services/pushService');
         await notify(req.user._id, `🎉 Welcome to ${pkg?.name || tier}!`, `Your account is now upgraded. Start your learning journey now!`, { type: 'success', url: '/student/courses', tag: 'package-purchase' });
       } catch {}
+
+      // Fire-and-forget: invoice email + WhatsApp
+      (async () => {
+        try {
+          const buyer = await User.findById(req.user._id).select('name email phone');
+          if (!buyer) return;
+          const { sendInvoiceEmail } = await import('../services/emailService');
+          const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+          const pkgName = pkg?.name || tier;
+          const invoiceNumber = `TLX-${purchase._id.toString().slice(-8).toUpperCase()}`;
+          const invoiceDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+          const pType = (purchase as any).paymentType || (purchase.isEmi ? 'emi' : 'full');
+          if (pType === 'token_emi' || pType === 'token_full') {
+            const tokenAmt = (purchase as any).tokenAmount || purchase.totalAmount;
+            const fullPrice = (purchase as any).fullPackagePrice || 0;
+            const remaining = fullPrice - tokenAmt;
+            await sendInvoiceEmail(buyer.email, {
+              invoiceNumber, invoiceDate,
+              userName: buyer.name, userEmail: buyer.email,
+              packageName: pkgName,
+              paymentType: pType === 'token_emi' ? 'token_emi' : 'token_full',
+              amountPaid: tokenAmt,
+              fullPackagePrice: fullPrice,
+            });
+            if (buyer.phone) {
+              const modeStr = pType === 'token_emi' ? 'EMI installments' : 'full payment';
+              const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! Advance/Token received.\n\n📦 *Package:* ${pkgName}\n💰 *Token Paid:* ₹${tokenAmt}\n💳 *Balance:* ₹${remaining} (via ${modeStr})\n\n📄 *Invoice No:* ${invoiceNumber}`;
+              await sendWhatsAppText(buyer.phone, waMsg);
+            }
+          } else if (pType === 'emi') {
+            const nextInst = await EmiInstallment.findOne({ packagePurchase: purchase._id, installmentNumber: 2 });
+            const totalInstallments = (nextInst as any)?.totalInstallments || 4;
+            const installmentAmt = Math.ceil((purchase.amount + purchase.gstAmount) / totalInstallments);
+            await sendInvoiceEmail(buyer.email, {
+              invoiceNumber, invoiceDate,
+              userName: buyer.name, userEmail: buyer.email,
+              packageName: pkgName,
+              paymentType: 'emi',
+              amountPaid: installmentAmt,
+              totalInstallments,
+            });
+            if (buyer.phone) {
+              const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! EMI Installment 1 of ${totalInstallments} received.\n\n📦 *Package:* ${pkgName}\n💰 *Paid Now:* ₹${installmentAmt}\n\n📄 *Invoice No:* ${invoiceNumber}`;
+              await sendWhatsAppText(buyer.phone, waMsg);
+            }
+          } else {
+            const totalPaid = purchase.totalAmount || (purchase.amount + purchase.gstAmount);
+            await sendInvoiceEmail(buyer.email, {
+              invoiceNumber, invoiceDate,
+              userName: buyer.name, userEmail: buyer.email,
+              packageName: pkgName,
+              paymentType: 'full',
+              amountPaid: totalPaid,
+              gstAmount: purchase.gstAmount,
+            });
+            if (buyer.phone) {
+              const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! Payment received successfully.\n\n📦 *Package:* ${pkgName}\n💰 *Amount Paid:* ₹${totalPaid}\n\n📄 *Invoice No:* ${invoiceNumber}`;
+              await sendWhatsAppText(buyer.phone, waMsg);
+            }
+          }
+        } catch (e: any) {
+          console.error('[invoice-notify]', e.message);
+        }
+      })();
 
       return res.json({ success: true, message: `Welcome to ${pkg?.name || tier}!`, tier, isEmi: purchase.isEmi });
     }
@@ -790,6 +886,46 @@ router.post('/emi/verify', protect, async (req: any, res) => {
     if (purchaseForComm) {
       await creditMLM(req.user._id.toString(), installment.amount, purchaseForComm._id.toString(), purchaseForComm.packageTier || '', purchaseForComm.package as any);
     }
+
+    // Fire-and-forget: invoice email + WhatsApp for EMI installment
+    (async () => {
+      try {
+        const buyer = await User.findById(req.user._id).select('name email phone');
+        if (!buyer) return;
+        const { sendInvoiceEmail } = await import('../services/emailService');
+        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+
+        const emiPkg = purchaseForComm?.package as any;
+        const pkgName = emiPkg?.name || purchaseForComm?.packageTier || 'Package';
+        const invoiceNumber = `TLX-E${installment.installmentNumber}-${installment._id.toString().slice(-6).toUpperCase()}`;
+        const invoiceDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        const allPaid = !remaining;
+        const nextInst = allPaid ? null : await EmiInstallment.findOne({
+          packagePurchase: installment.packagePurchase,
+          status: { $in: ['pending', 'overdue'] },
+        }).sort({ installmentNumber: 1 });
+
+        await sendInvoiceEmail(buyer.email, {
+          invoiceNumber, invoiceDate,
+          userName: buyer.name, userEmail: buyer.email,
+          packageName: pkgName,
+          paymentType: 'emi_installment',
+          amountPaid: installment.amount,
+          installmentNumber: installment.installmentNumber,
+          totalInstallments: (installment as any).totalInstallments,
+          nextDueDate: nextInst ? new Date((nextInst as any).dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : undefined,
+          nextInstallmentAmount: nextInst ? (nextInst as any).amount : undefined,
+          allInstallmentsPaid: allPaid,
+        });
+
+        if (buyer.phone) {
+          const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! EMI Installment ${installment.installmentNumber} of ${(installment as any).totalInstallments || '?'} paid.\n\n📦 *Package:* ${pkgName}\n💰 *Amount:* ₹${installment.amount}${allPaid ? '\n\n✅ *All EMIs paid! Full access restored.*' : nextInst ? `\n📅 *Next Due:* ${new Date((nextInst as any).dueDate).toLocaleDateString('en-IN')} — ₹${(nextInst as any).amount}` : ''}\n\n📄 *Invoice No:* ${invoiceNumber}`;
+          await sendWhatsAppText(buyer.phone, waMsg);
+        }
+      } catch (e: any) {
+        console.error('[emi-invoice-notify]', e.message);
+      }
+    })();
 
     res.json({ success: true, message: 'EMI payment successful!' });
   } catch (e: any) {

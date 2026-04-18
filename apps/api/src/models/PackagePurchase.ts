@@ -18,6 +18,9 @@ export interface IPackagePurchase extends Document {
   isEmi: boolean;
   emiMonth?: number;
   emiTotal?: number;
+  paymentType: 'full' | 'emi' | 'token_emi' | 'token_full';
+  tokenAmount?: number;      // advance/token paid (for token_* types)
+  fullPackagePrice?: number; // full package price (for token_* types, for reference)
   invoiceNumber?: string;
   invoiceUrl?: string;
   createdAt: Date;
@@ -42,6 +45,9 @@ const PackagePurchaseSchema = new Schema<IPackagePurchase>({
   isEmi: { type: Boolean, default: false },
   emiMonth: Number,
   emiTotal: Number,
+  paymentType: { type: String, enum: ['full', 'emi', 'token_emi', 'token_full'], default: 'full' },
+  tokenAmount: Number,
+  fullPackagePrice: Number,
   invoiceNumber: String,
   invoiceUrl: String,
 }, { timestamps: true });

@@ -19,7 +19,7 @@ export interface ISalesOrder extends Document {
   emiDays?: number[];   // day offsets snapshot from package at time of order
   totalAmount: number;
   paidAmount: number;
-  status: 'pending' | 'token_paid' | 'partial' | 'paid' | 'cancelled';
+  status: 'pending' | 'token_paid' | 'partial' | 'pending_approval' | 'paid' | 'cancelled';
   paymentLink?: string;
   paymentLinkExpiry?: Date;
   phonepeMerchantOrderId?: string;
@@ -52,7 +52,7 @@ const SalesOrderSchema = new Schema<ISalesOrder>({
   emiDays: [Number],
   totalAmount: { type: Number, required: true },
   paidAmount: { type: Number, default: 0 },
-  status: { type: String, enum: ['pending', 'token_paid', 'partial', 'paid', 'cancelled'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'token_paid', 'partial', 'pending_approval', 'paid', 'cancelled'], default: 'pending' },
   paymentLink: String,
   paymentLinkExpiry: Date,
   phonepeMerchantOrderId: String,

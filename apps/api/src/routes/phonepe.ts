@@ -318,31 +318,52 @@ router.post('/guest-package', async (req: any, res) => {
 
     const afterDiscount = Math.max(0, basePrice - promoDiscount - couponDiscount);
     const gst = Math.round(afterDiscount * 0.18);
-    const totalAmount = afterDiscount + gst;
+    const fullPackagePrice = afterDiscount + gst;
     const EMI_MONTHS = 4;
     const isEmiOrder = !!isEmi;
-    const payNow = isEmiOrder ? Math.ceil(totalAmount / EMI_MONTHS) : totalAmount;
+    const { isToken, tokenMode } = req.body;
+
+    let payNow = fullPackagePrice;
+    let paymentType: 'full' | 'emi' | 'token_emi' | 'token_full' = 'full';
+    let tokenAmountVal = 0;
+
+    if (isToken && (pkg as any).tokenAvailable && (pkg as any).tokenAmount > 0) {
+      tokenAmountVal = (pkg as any).tokenAmount;
+      payNow = tokenAmountVal;
+      paymentType = tokenMode === 'emi' ? 'token_emi' : 'token_full';
+    } else if (isEmiOrder) {
+      payNow = Math.ceil(fullPackagePrice / EMI_MONTHS);
+      paymentType = 'emi';
+    }
 
     const merchantOrderId = `TL_${Date.now()}_${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
     const webUrl = process.env.WEB_URL || 'https://peptly.in';
-    const redirectUrl = `${webUrl}/checkout/phonepe-status?orderId=${merchantOrderId}&type=package&tier=${pkgTier}&isEmi=${isEmiOrder}`;
+    const redirectUrl = `${webUrl}/checkout/phonepe-status?orderId=${merchantOrderId}&type=package&tier=${pkgTier}&isEmi=${isEmiOrder}&paymentType=${paymentType}`;
 
+    const msgSuffix = paymentType === 'emi' ? ` — Installment 1 of ${EMI_MONTHS}` : paymentType.startsWith('token') ? ' — Token/Advance' : '';
     const client = getClient();
     const request = StandardCheckoutPayRequest.builder()
       .merchantOrderId(merchantOrderId)
       .amount(Math.round(payNow * 100))
       .redirectUrl(redirectUrl)
-      .message(isEmiOrder ? `${itemName} — Installment 1 of ${EMI_MONTHS}` : itemName)
+      .message(`${itemName}${msgSuffix}`)
       .build();
 
     const ppResponse = await client.pay(request);
 
     await PackagePurchase.create({
       user: user._id, package: pkg._id, packageTier: pkgTier,
-      amount: afterDiscount, gstAmount: gst, totalAmount,
+      amount: paymentType.startsWith('token') ? tokenAmountVal : afterDiscount,
+      gstAmount: paymentType.startsWith('token') ? 0 : gst,
+      totalAmount: paymentType.startsWith('token') ? tokenAmountVal : fullPackagePrice,
       razorpayOrderId: merchantOrderId, status: 'created',
       affiliateCode: promoCode || '', affiliatePartnerCode: promoCode || '',
-      isEmi: isEmiOrder, emiMonth: isEmiOrder ? 1 : undefined, emiTotal: isEmiOrder ? EMI_MONTHS : undefined,
+      isEmi: isEmiOrder || paymentType === 'token_emi',
+      emiMonth: (isEmiOrder || paymentType === 'token_emi') ? 1 : undefined,
+      emiTotal: (isEmiOrder || paymentType === 'token_emi') ? EMI_MONTHS : undefined,
+      paymentType,
+      tokenAmount: paymentType.startsWith('token') ? tokenAmountVal : undefined,
+      fullPackagePrice: paymentType.startsWith('token') ? fullPackagePrice : undefined,
       ...(affiliateUser ? { affiliateUser: affiliateUser._id } : {}),
     });
 
@@ -419,24 +440,39 @@ router.post('/create-order', protect, async (req: any, res) => {
     const totalDiscount = promoDiscount + discount;
     const afterDiscount = Math.max(0, basePrice - totalDiscount);
     gst = type === 'package' ? Math.round(afterDiscount * 0.18) : 0;
-    const totalAmount = afterDiscount + gst;
+    const fullPkgPrice = afterDiscount + gst;
 
-    // EMI: only first installment amount
+    // Payment type resolution
     const EMI_MONTHS = 4;
-    const isEmiOrder = type === 'package' && !!isEmi;
-    const payNow = isEmiOrder ? Math.ceil(totalAmount / EMI_MONTHS) : totalAmount;
+    const { isToken: isTokenReq, tokenMode: tokenModeReq } = req.body;
+    const resolvedPkg = (req as any)._resolvedPkg;
+    let payNow = fullPkgPrice;
+    let paymentType2: 'full' | 'emi' | 'token_emi' | 'token_full' = 'full';
+    let tokenAmtVal = 0;
+    let isEmiOrder2 = type === 'package' && !!isEmi;
+
+    if (type === 'package' && isTokenReq && resolvedPkg?.tokenAvailable && resolvedPkg?.tokenAmount > 0) {
+      tokenAmtVal = resolvedPkg.tokenAmount;
+      payNow = tokenAmtVal;
+      paymentType2 = tokenModeReq === 'emi' ? 'token_emi' : 'token_full';
+      isEmiOrder2 = paymentType2 === 'token_emi';
+    } else if (isEmiOrder2) {
+      payNow = Math.ceil(fullPkgPrice / EMI_MONTHS);
+      paymentType2 = 'emi';
+    }
 
     const merchantOrderId = `TL_${Date.now()}_${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
     const webUrl = process.env.WEB_URL || 'https://peptly.in';
     const resolvedTier = (req as any)._resolvedTier || tier;
-    const redirectUrl = `${webUrl}/checkout/phonepe-status?orderId=${merchantOrderId}&type=${type}${resolvedTier ? `&tier=${resolvedTier}` : ''}${courseId ? `&courseId=${courseId}` : ''}&isEmi=${isEmiOrder}`;
+    const redirectUrl = `${webUrl}/checkout/phonepe-status?orderId=${merchantOrderId}&type=${type}${resolvedTier ? `&tier=${resolvedTier}` : ''}${courseId ? `&courseId=${courseId}` : ''}&isEmi=${isEmiOrder2}&paymentType=${paymentType2}`;
 
+    const msgSuffix2 = paymentType2 === 'emi' ? ` — Installment 1 of ${EMI_MONTHS}` : paymentType2.startsWith('token') ? ' — Token/Advance' : '';
     const client = getClient();
     const request = StandardCheckoutPayRequest.builder()
       .merchantOrderId(merchantOrderId)
       .amount(Math.round(payNow * 100))
       .redirectUrl(redirectUrl)
-      .message(isEmiOrder ? `${itemName} — Installment 1 of ${EMI_MONTHS}` : itemName)
+      .message(`${itemName}${msgSuffix2}`)
       .build();
 
     const ppResponse = await client.pay(request);
@@ -444,15 +480,20 @@ router.post('/create-order', protect, async (req: any, res) => {
     if (type === 'package') {
       await PackagePurchase.create({
         user: req.user._id, package: packageId, packageTier: (req as any)._resolvedTier || tier,
-        amount: afterDiscount, gstAmount: gst, totalAmount: afterDiscount + gst,
+        amount: paymentType2.startsWith('token') ? tokenAmtVal : afterDiscount,
+        gstAmount: paymentType2.startsWith('token') ? 0 : gst,
+        totalAmount: paymentType2.startsWith('token') ? tokenAmtVal : fullPkgPrice,
         razorpayOrderId: merchantOrderId,
         status: 'created', affiliateCode: promoCode || '',
-        isEmi: isEmiOrder, emiMonth: isEmiOrder ? 1 : undefined, emiTotal: isEmiOrder ? EMI_MONTHS : undefined,
+        isEmi: isEmiOrder2, emiMonth: isEmiOrder2 ? 1 : undefined, emiTotal: isEmiOrder2 ? EMI_MONTHS : undefined,
         affiliatePartnerCode: promoCode || '',
+        paymentType: paymentType2,
+        tokenAmount: paymentType2.startsWith('token') ? tokenAmtVal : undefined,
+        fullPackagePrice: paymentType2.startsWith('token') ? fullPkgPrice : undefined,
       });
     } else {
       const payment = await Payment.create({
-        user: req.user._id, course: courseId, amount: totalAmount,
+        user: req.user._id, course: courseId, amount: fullPkgPrice,
         razorpayOrderId: merchantOrderId,
         status: 'created', affiliateCode: promoCode || '',
       });
@@ -469,9 +510,11 @@ router.post('/create-order', protect, async (req: any, res) => {
       merchantOrderId,
       amount: Math.round(payNow * 100),
       itemName,
-      isEmi: isEmiOrder,
+      isEmi: isEmiOrder2,
       emiMonths: EMI_MONTHS,
-      emiInstallmentAmount: isEmiOrder ? Math.ceil(totalAmount / EMI_MONTHS) : undefined,
+      emiInstallmentAmount: isEmiOrder2 ? Math.ceil(fullPkgPrice / EMI_MONTHS) : undefined,
+      paymentType: paymentType2,
+      tokenAmount: tokenAmtVal || undefined,
     });
   } catch (e: any) {
     console.error('[PhonePe create-order]', e?.message || e);
@@ -521,8 +564,12 @@ router.get('/status/:merchantOrderId', protect, async (req: any, res) => {
       let emiPerInstallmentComm = 0;
       let emiInstallmentAmt = 0;
       if (isEmiOrder) {
-        const totalAmt = purchase.amount + purchase.gstAmount;
-        emiInstallmentAmt = Math.ceil(totalAmt / EMI_MONTHS);
+        // For token_emi: installments on remaining balance; for emi: on full amount
+        const pType = (purchase as any).paymentType || 'emi';
+        const emiBase = pType === 'token_emi'
+          ? Math.max(0, ((purchase as any).fullPackagePrice || 0) - ((purchase as any).tokenAmount || 0))
+          : purchase.amount + purchase.gstAmount;
+        emiInstallmentAmt = Math.ceil(emiBase / EMI_MONTHS);
         const webUrl = process.env.WEB_URL || 'https://peptly.in';
         const now = new Date();
 

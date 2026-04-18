@@ -1,12 +1,13 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { courseAPI, userAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { Search, Star, Users, Heart } from 'lucide-react'
+import { Search, Star, Users, Heart, Package } from 'lucide-react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 const categories = ['All', 'Web Development', 'Data Science', 'Mobile Dev', 'UI/UX Design', 'Digital Marketing', 'Cloud & DevOps', 'Cybersecurity', 'AI/ML']
 const levels = ['All', 'beginner', 'intermediate', 'advanced']
@@ -41,17 +42,20 @@ function FavoriteBtn({ courseId }: { courseId: string }) {
 }
 
 export default function CoursesPage() {
+  const searchParams = useSearchParams()
+  const typeParam = searchParams.get('type') // 'package' | 'course' | null
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [level, setLevel] = useState('All')
   const [page, setPage] = useState(1)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['courses', search, category, level, page],
+    queryKey: ['courses', search, category, level, page, typeParam],
     queryFn: () => courseAPI.getAll({
       search: search || undefined,
       category: category !== 'All' ? category : undefined,
       level: level !== 'All' ? level : undefined,
+      type: typeParam || undefined,
       page, limit: 12
     }).then(r => r.data),
     placeholderData: (prev: any) => prev
@@ -64,8 +68,14 @@ export default function CoursesPage() {
         {/* Header */}
         <div className="bg-dark-800/50 py-16 px-4">
           <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-4xl font-bold text-white mb-4">Explore Courses</h1>
-            <p className="text-gray-400 mb-8">500+ expert-led courses to accelerate your career</p>
+            <h1 className="text-4xl font-bold text-white mb-4">
+              {typeParam === 'package' ? 'Course Packages' : 'Explore Courses'}
+            </h1>
+            <p className="text-gray-400 mb-8">
+              {typeParam === 'package'
+                ? 'Bundle packages — multiple skills in one. Best value for serious learners.'
+                : '500+ expert-led courses to accelerate your career'}
+            </p>
             <div className="relative max-w-2xl mx-auto">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input value={search} onChange={e => setSearch(e.target.value)}

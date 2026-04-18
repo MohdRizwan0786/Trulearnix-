@@ -32,9 +32,7 @@ function initials(name: string) {
 }
 
 function formatINR(n: number) {
-  if (n >= 100000) return `₹${(n/100000).toFixed(1)}L`
-  if (n >= 1000)   return `₹${(n/1000).toFixed(0)}K`
-  return `₹${n}`
+  return `₹${n.toLocaleString('en-IN')}`
 }
 
 function RankBadge({ rank }: { rank: number }) {
@@ -241,7 +239,7 @@ export default function LeaderboardClient({ initialData }: { initialData: any[] 
                     <div className="col-span-3 sm:col-span-3">
                       <p className="font-black text-sm" style={{ color }}>{formatINR(earned)}</p>
                       {e.isIndustrialPartner && e.industrialEarning > 0
-                        ? <p className="text-amber-500/70 text-[10px]">🏭 incl. ₹{(e.industrialEarning/1000).toFixed(0)}K industrial</p>
+                        ? <p className="text-amber-500/70 text-[10px]">🏭 incl. ₹{(e.industrialEarning).toLocaleString('en-IN')} industrial</p>
                         : <p className="text-gray-600 text-[10px]">{e.streak || 0}mo streak</p>
                       }
                     </div>

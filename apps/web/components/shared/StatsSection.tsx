@@ -52,9 +52,8 @@ function StatCard({ s }: { s: StatItem }) {
 }
 
 export default function StatsSection() {
-  const [stats, setStats] = useState<StatItem[]>(
-    DEFAULT_STATS.map((s, i) => ({ ...s, icon: ICONS[i], ...COLORS[i] }))
-  )
+  const [stats, setStats] = useState<StatItem[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/stats`)
@@ -65,7 +64,10 @@ export default function StatsSection() {
         }
       })
       .catch(() => {})
+      .finally(() => setLoaded(true))
   }, [])
+
+  if (loaded && stats.length === 0) return null
 
   const doubled = [...stats, ...stats]
   return (

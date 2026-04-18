@@ -5,18 +5,19 @@ import { adminAPI } from '@/lib/api'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import {
-  UserCheck, Users, IndianRupee, ShoppingBag, TrendingUp,
-  Search, RefreshCw, X, CheckCircle, ChevronRight, Loader2,
-  UserPlus, ClipboardList, Eye, Phone, MessageCircle, BarChart2, Target,
-  ArrowRight, Award, Zap
+  UserCheck, Users, IndianRupee, ShoppingBag,
+  Search, RefreshCw, X, CheckCircle, Loader2,
+  UserPlus, ClipboardList, Phone, MessageCircle, BarChart2, Target,
+  Award, Zap, ThumbsUp, ThumbsDown, AlertCircle
 } from 'lucide-react'
 
 const STATUS_COLOR: Record<string, string> = {
-  pending:    'bg-yellow-500/20 text-yellow-400',
-  token_paid: 'bg-blue-500/20 text-blue-400',
-  partial:    'bg-orange-500/20 text-orange-400',
-  paid:       'bg-green-500/20 text-green-400',
-  cancelled:  'bg-red-500/20 text-red-400',
+  pending:          'bg-yellow-500/20 text-yellow-400',
+  token_paid:       'bg-blue-500/20 text-blue-400',
+  partial:          'bg-orange-500/20 text-orange-400',
+  pending_approval: 'bg-purple-500/20 text-purple-400',
+  paid:             'bg-green-500/20 text-green-400',
+  cancelled:        'bg-red-500/20 text-red-400',
 }
 
 const STAGE_COLOR: Record<string, string> = {
@@ -71,10 +72,14 @@ function getPerformanceScore(sp: any) {
 }
 
 export default function SalesTeamPage() {
-  const [tab, setTab] = useState<'team' | 'orders' | 'leads'>('team')
+  const [tab, setTab] = useState<'team' | 'orders' | 'approvals' | 'leads'>('team')
   const [salespersons, setSalespersons] = useState<any[]>([])
   const [orders, setOrders] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
+  const [approvals, setApprovals] = useState<any[]>([])
+  const [approvalTotal, setApprovalTotal] = useState(0)
+  const [approvalLoading, setApprovalLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -98,15 +103,46 @@ export default function SalesTeamPage() {
   const [createForm, setCreateForm] = useState({ name: '', email: '', phone: '', password: '', department: 'sales' })
   const [creating, setCreating] = useState(false)
 
-  useEffect(() => { fetchStats() }, [])
+  useEffect(() => { fetchStats(); fetchApprovals() }, [])
   useEffect(() => {
     if (tab === 'team') fetchTeam()
     else if (tab === 'orders') fetchOrders()
+    else if (tab === 'approvals') fetchApprovals()
     else fetchLeads()
   }, [tab, search, statusFilter, page])
 
   const fetchStats = async () => {
     try { const r = await adminAPI.salesStats(); setStats(r.data.stats) } catch {}
+  }
+
+  const fetchApprovals = async () => {
+    setApprovalLoading(true)
+    try {
+      const r = await adminAPI.pendingApprovals({ page, limit: 20 })
+      setApprovals(r.data.orders || [])
+      setApprovalTotal(r.data.total || 0)
+    } catch { toast.error('Failed to load pending approvals') }
+    finally { setApprovalLoading(false) }
+  }
+
+  const handleApprove = async (orderId: string) => {
+    setActionLoading(orderId + '_approve')
+    try {
+      await adminAPI.approveSalesOrder(orderId)
+      toast.success('Order approved! Customer access granted via email & WhatsApp.')
+      fetchApprovals(); fetchStats()
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to approve') }
+    finally { setActionLoading(null) }
+  }
+
+  const handleReject = async (orderId: string) => {
+    setActionLoading(orderId + '_reject')
+    try {
+      await adminAPI.rejectSalesOrder(orderId)
+      toast.success('Order rejected. Salesperson notified.')
+      fetchApprovals()
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to reject') }
+    finally { setActionLoading(null) }
   }
 
   const handleCreate = async () => {
@@ -195,9 +231,10 @@ export default function SalesTeamPage() {
   }
 
   const handleRefresh = () => {
-    fetchStats()
+    fetchStats(); fetchApprovals()
     if (tab === 'team') fetchTeam()
     else if (tab === 'orders') fetchOrders()
+    else if (tab === 'approvals') fetchApprovals()
     else fetchLeads()
   }
 
@@ -298,7 +335,7 @@ export default function SalesTeamPage() {
 
         {/* ── Tab Bar ── */}
         <div className="tab-bar">
-          {(['team', 'orders', 'leads'] as const).map(t => (
+          {(['team', 'orders', 'approvals', 'leads'] as const).map(t => (
             <button key={t}
               onClick={() => { setTab(t); setPage(1); setSearch('') }}
               className={tab === t ? 'tab-active' : 'tab-inactive'}>
@@ -306,6 +343,16 @@ export default function SalesTeamPage() {
                 <><Users className="w-4 h-4" /> Sales Team</>
               ) : t === 'orders' ? (
                 <><ShoppingBag className="w-4 h-4" /> Orders</>
+              ) : t === 'approvals' ? (
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Pending Approvals</span>
+                  {approvalTotal > 0 && (
+                    <span className="bg-purple-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center leading-none">
+                      {approvalTotal}
+                    </span>
+                  )}
+                </div>
               ) : (
                 <><ClipboardList className="w-4 h-4" /> Assign Leads</>
               )}
@@ -331,8 +378,8 @@ export default function SalesTeamPage() {
               onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
               className="bg-slate-800 text-white rounded-xl px-4 py-2.5 text-sm border border-white/10 outline-none focus:border-violet-500/50 min-w-40">
               <option value="">All Status</option>
-              {['pending','token_paid','partial','paid','cancelled'].map(s => (
-                <option key={s} value={s} className="capitalize">{s.replace('_',' ')}</option>
+              {['pending','token_paid','partial','pending_approval','paid','cancelled'].map(s => (
+                <option key={s} value={s} className="capitalize">{s.replace(/_/g,' ')}</option>
               ))}
             </select>
           )}
@@ -540,6 +587,104 @@ export default function SalesTeamPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ──── Pending Approvals Tab ──── */}
+            {tab === 'approvals' && (
+              <div className="space-y-4">
+                <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl px-5 py-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-purple-300 font-semibold text-sm">Manual Payment Approvals</p>
+                    <p className="text-purple-400/70 text-xs mt-0.5">
+                      These orders have been marked as fully paid by the salesperson manually. Review and approve to grant customer access via email and WhatsApp.
+                    </p>
+                  </div>
+                </div>
+
+                {approvalLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+                    <p className="text-gray-500 text-sm">Loading pending approvals...</p>
+                  </div>
+                ) : approvals.length === 0 ? (
+                  <div className="text-center py-20 glass rounded-2xl border border-white/5">
+                    <div className="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="w-7 h-7 text-green-400" />
+                    </div>
+                    <p className="text-gray-300 font-semibold">All caught up!</p>
+                    <p className="text-gray-600 text-sm mt-1">No pending manual payment approvals.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {approvals.map((o: any) => (
+                      <div key={o._id} className="glass border border-purple-500/20 rounded-2xl p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                          {/* Customer & Package Info */}
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="badge bg-purple-500/20 text-purple-300">Pending Approval</span>
+                              <span className="text-xs text-gray-500 capitalize">{o.paymentType?.replace('_',' ')} payment</span>
+                            </div>
+                            <div>
+                              <p className="text-white font-bold text-base">{o.customer?.name}</p>
+                              <p className="text-gray-400 text-sm">{o.customer?.phone}{o.customer?.email ? ` · ${o.customer.email}` : ''}</p>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                              <div className="bg-slate-700/40 rounded-xl px-3 py-2">
+                                <p className="text-xs text-gray-500">Package</p>
+                                <p className="text-white text-sm font-semibold capitalize">{o.packageTier || o.package?.tier || '—'}</p>
+                              </div>
+                              <div className="bg-slate-700/40 rounded-xl px-3 py-2">
+                                <p className="text-xs text-gray-500">Total Amount</p>
+                                <p className="text-white text-sm font-bold">₹{(o.totalAmount || 0).toLocaleString()}</p>
+                              </div>
+                              <div className="bg-slate-700/40 rounded-xl px-3 py-2">
+                                <p className="text-xs text-gray-500">Paid Amount</p>
+                                <p className="text-green-400 text-sm font-bold">₹{(o.paidAmount || 0).toLocaleString()}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 pt-1">
+                              <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                                <Users className="w-3 h-3 text-violet-400" />
+                              </div>
+                              <span className="text-xs text-gray-400">
+                                Salesperson: <span className="text-gray-200 font-medium">{o.salesperson?.name || '—'}</span>
+                                {o.salesperson?.phone && <> · {o.salesperson.phone}</>}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600">
+                              Submitted {new Date(o.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex sm:flex-col gap-2 sm:min-w-36">
+                            <button
+                              onClick={() => handleApprove(o._id)}
+                              disabled={actionLoading === o._id + '_approve' || actionLoading === o._id + '_reject'}
+                              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
+                              {actionLoading === o._id + '_approve'
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <ThumbsUp className="w-4 h-4" />}
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleReject(o._id)}
+                              disabled={actionLoading === o._id + '_approve' || actionLoading === o._id + '_reject'}
+                              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-red-600/80 hover:bg-red-600 disabled:opacity-50 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
+                              {actionLoading === o._id + '_reject'
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <ThumbsDown className="w-4 h-4" />}
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

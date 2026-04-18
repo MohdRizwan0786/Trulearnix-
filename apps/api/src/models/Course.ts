@@ -60,6 +60,7 @@ export interface ICourse extends Document {
   certificate: boolean;
   passingScore: number;
   batchSettings: IBatchSettings;
+  isPackage: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -108,6 +109,7 @@ const CourseSchema = new Schema<ICourse>({
     question: { type: String, required: true },
     answer: { type: String, required: true },
   }],
+  isPackage: { type: Boolean, default: false },
   status: { type: String, enum: ['draft', 'pending', 'published', 'rejected'], default: 'draft' },
   rejectionReason: String,
   enrolledCount: { type: Number, default: 0 },

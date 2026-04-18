@@ -42,9 +42,11 @@ export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
 
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
-    const { role, page = 1, limit = 20, search } = req.query;
+    const { role, page = 1, limit = 20, search, packageTier, isAffiliate } = req.query;
     const query: any = {};
     if (role) query.role = role;
+    if (packageTier) query.packageTier = packageTier;
+    if (isAffiliate === 'true') query.isAffiliate = true;
     if (search) query.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }];
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -52,7 +54,69 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       User.find(query).select('-password -refreshToken -otp').skip(skip).limit(Number(limit)).sort('-createdAt'),
       User.countDocuments(query)
     ]);
-    res.json({ success: true, users, pagination: { total, page: Number(page), pages: Math.ceil(total / Number(limit)) } });
+
+    const userIds = users.map((u: any) => u._id);
+
+    // Performance enrichment based on type
+    let perfMap: Record<string, any> = {};
+
+    if (isAffiliate === 'true') {
+      // Partners: commission count + referral count
+      const [commAgg, refAgg] = await Promise.all([
+        Enrollment.aggregate([
+          { $match: { student: { $in: userIds } } },
+          { $group: { _id: '$student', enrollCount: { $sum: 1 } } }
+        ]),
+        User.aggregate([
+          { $match: { referredBy: { $in: userIds } } },
+          { $group: { _id: '$referredBy', referralCount: { $sum: 1 } } }
+        ])
+      ]);
+      commAgg.forEach((r: any) => { perfMap[r._id] = { ...perfMap[r._id], enrollCount: r.enrollCount }; });
+      refAgg.forEach((r: any) => { perfMap[r._id] = { ...perfMap[r._id], referralCount: r.referralCount }; });
+    } else if (role === 'student') {
+      // Learners: enrollment count + completed count
+      const [enrollAgg, completeAgg] = await Promise.all([
+        Enrollment.aggregate([
+          { $match: { student: { $in: userIds } } },
+          { $group: { _id: '$student', enrollCount: { $sum: 1 }, avgProgress: { $avg: '$progressPercent' } } }
+        ]),
+        Enrollment.aggregate([
+          { $match: { student: { $in: userIds }, completedAt: { $exists: true, $ne: null } } },
+          { $group: { _id: '$student', completedCount: { $sum: 1 } } }
+        ])
+      ]);
+      enrollAgg.forEach((r: any) => { perfMap[r._id] = { enrollCount: r.enrollCount, avgProgress: Math.round(r.avgProgress || 0) }; });
+      completeAgg.forEach((r: any) => { perfMap[r._id] = { ...perfMap[r._id], completedCount: r.completedCount }; });
+    } else if (role === 'mentor') {
+      // Mentors: course count + total enrolled students
+      const courseAgg = await Course.aggregate([
+        { $match: { mentor: { $in: userIds } } },
+        { $group: { _id: '$mentor', courseCount: { $sum: 1 }, totalStudents: { $sum: '$enrolledCount' }, avgRating: { $avg: '$rating' } } }
+      ]);
+      courseAgg.forEach((r: any) => { perfMap[r._id] = { courseCount: r.courseCount, totalStudents: r.totalStudents, avgRating: (r.avgRating || 0).toFixed(1) }; });
+    } else if (role === 'manager') {
+      // Managers: assigned partner count + team earnings
+      const [partnerAgg, earningsAgg] = await Promise.all([
+        User.aggregate([
+          { $match: { managerId: { $in: userIds } } },
+          { $group: { _id: '$managerId', partnerCount: { $sum: 1 } } }
+        ]),
+        User.aggregate([
+          { $match: { managerId: { $in: userIds } } },
+          { $group: { _id: '$managerId', teamEarnings: { $sum: '$totalEarnings' } } }
+        ])
+      ]);
+      partnerAgg.forEach((r: any) => { perfMap[r._id] = { partnerCount: r.partnerCount }; });
+      earningsAgg.forEach((r: any) => { perfMap[r._id] = { ...perfMap[r._id], teamEarnings: r.teamEarnings }; });
+    }
+
+    const enriched = users.map((u: any) => ({
+      ...u.toObject(),
+      _perf: perfMap[u._id.toString()] || {}
+    }));
+
+    res.json({ success: true, users: enriched, pagination: { total, page: Number(page), pages: Math.ceil(total / Number(limit)) } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
