@@ -6,6 +6,7 @@ import LiveClassesSection from '@/components/shared/LiveClassesSection'
 import FeaturedCourses from '@/components/shared/FeaturedCourses'
 import WhyLiveSection from '@/components/shared/WhyLiveSection'
 import EarningsProofSection from '@/components/shared/EarningsProofSection'
+import EarningMilestonesSection from '@/components/shared/EarningMilestonesSection'
 import HowItWorks from '@/components/shared/HowItWorks'
 import TestimonialsSection from '@/components/shared/TestimonialsSection'
 import WallOfLove from '@/components/shared/WallOfLove'
@@ -35,6 +36,7 @@ export default async function HomePage() {
       <FeaturedCourses />
       <WhyLiveSection />
       <EarningsProofSection initialEarners={earners} />
+      <EarningMilestonesSection />
       <HowItWorks />
       <TestimonialsSection />
       <WallOfLove />

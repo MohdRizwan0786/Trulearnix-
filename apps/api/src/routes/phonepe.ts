@@ -14,6 +14,7 @@ import EmiInstallment from '../models/EmiInstallment';
 import { sendPurchaseWelcomeEmail } from '../services/emailService';
 import { sendWhatsAppText } from '../services/whatsappMetaService';
 import redisClient from '../config/redis';
+import { checkEarningMilestones } from '../services/milestoneService';
 
 const router = Router();
 
@@ -79,7 +80,11 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
         buyerPackageTier: tier, level: 1, levelRate: commAmt,
         saleAmount, commissionAmount: commAmt, packagePurchaseId: purchaseId, status: 'approved',
       });
+      const prevL1Earnings = level1.totalEarnings || 0;
       const updatedLevel1 = await User.findByIdAndUpdate(level1._id, { $inc: { wallet: commAmt, totalEarnings: commAmt } }, { new: true });
+      if (updatedLevel1) {
+        checkEarningMilestones(level1._id.toString(), prevL1Earnings, updatedLevel1.totalEarnings, updatedLevel1.name, updatedLevel1.avatar, updatedLevel1.affiliateCode).catch(() => {});
+      }
       await Transaction.create({
         user: level1._id, type: 'credit', category: 'affiliate_commission',
         amount: commAmt, description: `Commission — ${tier || 'package'} purchased`,

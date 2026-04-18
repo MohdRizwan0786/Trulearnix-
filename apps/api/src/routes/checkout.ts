@@ -14,6 +14,7 @@ import Commission from '../models/Commission';
 import EmiInstallment from '../models/EmiInstallment';
 import PlatformSettings from '../models/PlatformSettings';
 import { getOrCreateActiveBatch, onStudentEnrolled } from '../services/batchService';
+import { checkEarningMilestones } from '../services/milestoneService';
 
 // Cache GST rate to avoid DB hit on every request
 let _cachedGstRate: number | null = null;
@@ -118,7 +119,11 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
           level: mlmLevel, levelRate: rateUsed,
           saleAmount, commissionAmount: commAmt, packagePurchaseId: purchaseId, status: 'approved',
         });
-        await User.findByIdAndUpdate(earner._id, { $inc: { wallet: commAmt, totalEarnings: commAmt } });
+        const prevEarnings = earner.totalEarnings || 0;
+        const updatedEarner = await User.findByIdAndUpdate(earner._id, { $inc: { wallet: commAmt, totalEarnings: commAmt } }, { new: true });
+        if (updatedEarner) {
+          checkEarningMilestones(earner._id.toString(), prevEarnings, updatedEarner.totalEarnings, updatedEarner.name, updatedEarner.avatar, updatedEarner.affiliateCode).catch(() => {});
+        }
         await Transaction.create({
           user: earner._id, type: 'credit', category: 'affiliate_commission',
           amount: commAmt, description: `L${mlmLevel} commission — ${tier} package sold`,
@@ -728,7 +733,11 @@ router.post('/verify', protect, async (req: any, res) => {
               : Math.round(payment.amount * parseFloat(process.env.AFFILIATE_COMMISSION_RATE || '10') / 100);
             const alreadyCredited = await Commission.findOne({ buyer: req.user._id, paymentId: payment._id });
             if (!alreadyCredited && commAmt > 0) {
+              const prevAffEarnings = affiliate.totalEarnings || 0;
               const updatedAffiliate = await User.findByIdAndUpdate(affiliate._id, { $inc: { wallet: commAmt, totalEarnings: commAmt } }, { new: true });
+              if (updatedAffiliate) {
+                checkEarningMilestones(affiliate._id.toString(), prevAffEarnings, updatedAffiliate.totalEarnings, updatedAffiliate.name, updatedAffiliate.avatar, updatedAffiliate.affiliateCode).catch(() => {});
+              }
               await Transaction.create({
                 user: affiliate._id, type: 'credit', category: 'affiliate_commission',
                 amount: commAmt, description: `Partner commission — course sale`, referenceId: payment._id, status: 'completed',

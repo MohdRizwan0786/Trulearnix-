@@ -3,6 +3,7 @@ import User, { COMMISSION_RATES, PACKAGE_PRICES, PackageTier } from '../models/U
 import Commission from '../models/Commission';
 import Transaction from '../models/Transaction';
 import Withdrawal from '../models/Withdrawal';
+import EarningMilestone from '../models/EarningMilestone';
 import { protect, authorize } from '../middleware/auth';
 
 const router = Router();
@@ -228,6 +229,19 @@ router.patch('/withdrawals/:id', protect, authorize('superadmin', 'admin'), asyn
     }, { new: true });
     res.json({ success: true, withdrawal });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ── GET /api/affiliate/milestone-achievers — public, for homepage poster section
+router.get('/milestone-achievers', async (_req, res) => {
+  try {
+    const milestones = await EarningMilestone.find()
+      .sort({ milestone: -1, achievedAt: -1 })
+      .limit(50)
+      .lean();
+    res.json({ success: true, milestones });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message });
+  }
 });
 
 export default router;
