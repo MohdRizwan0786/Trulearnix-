@@ -105,7 +105,7 @@ const UserSchema = new Schema<IUser>({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   phone: { type: String, trim: true },
   password: { type: String, required: true, minlength: 6, select: false },
-  role: { type: String, enum: ['superadmin', 'admin', 'manager', 'mentor', 'student', 'salesperson'], default: 'student' },
+  role: { type: String, enum: ['superadmin', 'admin', 'manager', 'department_head', 'team_lead', 'employee', 'mentor', 'student', 'salesperson'], default: 'student' },
   avatar: { type: String },
   isVerified: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },

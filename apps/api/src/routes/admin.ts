@@ -1076,7 +1076,7 @@ router.post('/employees', async (req: any, res) => {
     if (!name || !email || !password) return res.status(400).json({ success: false, message: 'Name, email and password are required' });
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) return res.status(400).json({ success: false, message: 'Email already registered' });
-    const count = await User.countDocuments({ role: { $in: ['superadmin', 'admin', 'manager'] } });
+    const count = await User.countDocuments({ role: { $in: ['superadmin', 'admin', 'manager', 'department_head', 'team_lead', 'employee'] } });
     const empId = `EMP${String(count + 1).padStart(4, '0')}`;
     // superadmin/admin get all permissions, otherwise use provided or department defaults
     const resolvedPerms = ['superadmin', 'admin'].includes(role)

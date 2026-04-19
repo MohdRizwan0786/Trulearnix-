@@ -493,23 +493,13 @@ export default function EmployeesPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-gray-400 text-xs font-medium block mb-1.5">Department *</label>
                     <div className="relative">
                       <select value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
                         className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500 transition-colors appearance-none cursor-pointer">
                         {DEPARTMENTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-xs font-medium block mb-1.5">Role / Access *</label>
-                    <div className="relative">
-                      <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-                        className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500 transition-colors appearance-none cursor-pointer">
-                        {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                     </div>
