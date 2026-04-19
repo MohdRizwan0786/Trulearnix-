@@ -81,7 +81,7 @@ const navItems = [
     ]
   },
   {
-    label: 'TruLance', icon: Zap, perm: 'trulance', children: [
+    label: 'TruLancer', icon: Zap, perm: 'trulance', children: [
       { label: 'Projects',    href: '/trulance/projects',    icon: Briefcase, perm: 'trulance' },
       { label: 'Freelancers', href: '/trulance/freelancers', icon: UserCheck, perm: 'trulance' },
       { label: 'Platform Jobs', href: '/trulance/jobs',     icon: Briefcase,  perm: 'trulance' },
