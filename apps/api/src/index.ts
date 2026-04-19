@@ -220,13 +220,27 @@ app.use('/api/announcements', announcementsRouter);
 app.get('/api/public/maintenance', async (_req, res) => {
   try {
     const PlatformSettings = (await import('./models/PlatformSettings')).default;
-    const settings = await PlatformSettings.findOne().select('maintenanceMode trulanceMaintenance maintenanceMessage').lean();
+    const settings = await PlatformSettings.findOne().select('maintenanceMode trulanceMaintenance maintenanceMessage earlyAccessEnabled').lean();
     res.json({
       maintenanceMode: settings?.maintenanceMode ?? false,
       trulanceMaintenance: settings?.trulanceMaintenance ?? false,
       message: settings?.maintenanceMessage ?? 'We are performing scheduled maintenance. We will be back shortly.',
+      earlyAccessEnabled: settings?.earlyAccessEnabled ?? false,
     });
-  } catch { res.json({ maintenanceMode: false, trulanceMaintenance: false, message: '' }); }
+  } catch { res.json({ maintenanceMode: false, trulanceMaintenance: false, message: '', earlyAccessEnabled: false }); }
+});
+
+// Validate early access token — no auth required
+app.get('/api/public/validate-early-access', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== 'string') return res.json({ valid: false });
+    const PlatformSettings = (await import('./models/PlatformSettings')).default;
+    const settings = await PlatformSettings.findOne().select('earlyAccessEnabled earlyAccessTokens').lean();
+    if (!settings?.earlyAccessEnabled) return res.json({ valid: false });
+    const found = settings.earlyAccessTokens?.some((t: any) => t.token === token);
+    res.json({ valid: !!found });
+  } catch { res.json({ valid: false }); }
 });
 
 // Health

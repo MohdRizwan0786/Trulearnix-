@@ -1,5 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IEarlyAccessToken {
+  token: string;
+  label: string;
+  createdAt: Date;
+}
+
 export interface IPlatformSettings extends Document {
   tdsRate: number;
   gstRate: number;
@@ -12,6 +18,8 @@ export interface IPlatformSettings extends Document {
   maintenanceMode: boolean;
   trulanceMaintenance: boolean;
   maintenanceMessage?: string;
+  earlyAccessEnabled: boolean;
+  earlyAccessTokens: IEarlyAccessToken[];
   updatedAt: Date;
 }
 
@@ -27,6 +35,12 @@ const PlatformSettingsSchema = new Schema<IPlatformSettings>({
   maintenanceMode: { type: Boolean, default: false },
   trulanceMaintenance: { type: Boolean, default: false },
   maintenanceMessage: { type: String, default: 'We are performing scheduled maintenance. We will be back shortly.' },
+  earlyAccessEnabled: { type: Boolean, default: false },
+  earlyAccessTokens: [{
+    token: { type: String, required: true },
+    label: { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now },
+  }],
 }, { timestamps: true });
 
 export default mongoose.model<IPlatformSettings>('PlatformSettings', PlatformSettingsSchema);

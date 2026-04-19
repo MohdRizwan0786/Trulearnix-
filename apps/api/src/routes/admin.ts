@@ -612,10 +612,10 @@ router.get('/platform-settings', async (_req, res) => {
 });
 router.put('/platform-settings', async (req, res) => {
   try {
-    const { tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage } = req.body;
+    const { tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled } = req.body;
     let settings = await PlatformSettings.findOne();
     if (!settings) {
-      settings = await PlatformSettings.create({ tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage });
+      settings = await PlatformSettings.create({ tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled });
     } else {
       if (tdsRate !== undefined) settings.tdsRate = tdsRate;
       if (gstRate !== undefined) settings.gstRate = gstRate;
@@ -628,8 +628,33 @@ router.put('/platform-settings', async (req, res) => {
       if (maintenanceMode !== undefined) settings.maintenanceMode = maintenanceMode;
       if (trulanceMaintenance !== undefined) settings.trulanceMaintenance = trulanceMaintenance;
       if (maintenanceMessage !== undefined) settings.maintenanceMessage = maintenanceMessage;
+      if (earlyAccessEnabled !== undefined) settings.earlyAccessEnabled = earlyAccessEnabled;
       await settings.save();
     }
+    res.json({ success: true, settings });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Generate early access token
+router.post('/platform-settings/early-access-token', async (req, res) => {
+  try {
+    const { label } = req.body;
+    const token = 'ea_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+    let settings = await PlatformSettings.findOne();
+    if (!settings) settings = await PlatformSettings.create({});
+    settings.earlyAccessTokens.push({ token, label: label || '', createdAt: new Date() });
+    await settings.save();
+    res.json({ success: true, token, settings });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Delete early access token
+router.delete('/platform-settings/early-access-token/:token', async (req, res) => {
+  try {
+    const settings = await PlatformSettings.findOne();
+    if (!settings) return res.json({ success: true });
+    settings.earlyAccessTokens = settings.earlyAccessTokens.filter((t: any) => t.token !== req.params.token);
+    await settings.save();
     res.json({ success: true, settings });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });

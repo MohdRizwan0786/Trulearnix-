@@ -77,6 +77,8 @@ export const adminAPI = {
   updatePackageEarner: (soldPkgId: string, data: any) => api.patch(`/admin/packages/${soldPkgId}/earner`, data),
   platformSettings: () => api.get('/admin/platform-settings'),
   updatePlatformSettings: (data: any) => api.put('/admin/platform-settings', data),
+  generateEarlyAccessToken: (label: string) => api.post('/admin/platform-settings/early-access-token', { label }),
+  deleteEarlyAccessToken: (token: string) => api.delete(`/admin/platform-settings/early-access-token/${encodeURIComponent(token)}`),
   // Purchases
   purchases: (params?: any) => api.get('/admin/purchases', { params }),
   purchaseInvoice: (id: string) => api.get(`/admin/purchases/${id}/invoice`),
