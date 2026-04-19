@@ -80,6 +80,45 @@ router.post('/users/create', async (req: any, res) => {
 });
 
 router.get('/users', getAllUsers);
+// GET /admin/users/:id/referrals — who did this partner/salesperson refer
+router.get('/users/:id/referrals', async (req, res) => {
+  try {
+    const { page = 1, limit = 30, search } = req.query as any;
+    const referrer = await User.findById(req.params.id).select('name email affiliateCode isAffiliate role totalEarnings wallet packageTier');
+    if (!referrer) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const filter: any = { referredBy: referrer._id };
+    if (search) filter.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+      { phone: { $regex: search, $options: 'i' } },
+    ];
+    const skip = (Number(page) - 1) * Number(limit);
+    const [referrals, total] = await Promise.all([
+      User.find(filter)
+        .select('name email phone packageTier isAffiliate affiliateCode totalEarnings wallet createdAt packagePurchasedAt referredBy')
+        .sort('-createdAt').skip(skip).limit(Number(limit)),
+      User.countDocuments(filter),
+    ]);
+
+    // For each referral, also count their own downline (sub-referrals)
+    const ids = referrals.map((r: any) => r._id);
+    const downlineAgg = await User.aggregate([
+      { $match: { referredBy: { $in: ids } } },
+      { $group: { _id: '$referredBy', count: { $sum: 1 } } },
+    ]);
+    const downlineMap: Record<string, number> = {};
+    downlineAgg.forEach((d: any) => { downlineMap[d._id.toString()] = d.count; });
+
+    const enriched = referrals.map((r: any) => ({
+      ...r.toObject(),
+      downlineCount: downlineMap[r._id.toString()] || 0,
+    }));
+
+    res.json({ success: true, referrer, referrals: enriched, total, pages: Math.ceil(total / Number(limit)) });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 router.get('/users/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password -refreshToken -otp');

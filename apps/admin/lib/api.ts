@@ -247,6 +247,7 @@ export const adminAPI = {
   updateEmployee: (id: string, data: any) => api.patch(`/admin/employees/${id}`, data),
   deleteEmployee: (id: string) => api.delete(`/admin/employees/${id}`),
   employeePerformance: (id: string) => api.get(`/admin/employees/${id}/performance`),
+  userReferrals: (id: string, params?: any) => api.get(`/admin/users/${id}/referrals`, { params }),
   // Learners
   learners: (params?: any) => api.get('/admin/learners', { params }),
   learnerBrand: (id: string) => api.get(`/admin/learners/${id}/brand`),

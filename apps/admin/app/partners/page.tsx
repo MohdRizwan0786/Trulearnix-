@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
+import ReferralsModal from '@/components/ReferralsModal'
 import {
   Search, Users, RefreshCw, UserCog, X, CheckCircle, Crown,
   TrendingUp, IndianRupee, BarChart2, ChevronRight, Loader2,
@@ -37,6 +38,7 @@ export default function PartnersPage() {
   const [createMgrModal, setCreateMgrModal] = useState(false)
   const [mgrForm, setMgrForm]         = useState({ name: '', email: '', phone: '', password: '' })
   const [creatingMgr, setCreatingMgr] = useState(false)
+  const [refModal, setRefModal]       = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => { fetchManagers() }, [])
   useEffect(() => { fetchPartners() }, [search, mgrFilter, page])
@@ -276,10 +278,11 @@ export default function PartnersPage() {
                         <p className="text-base font-bold text-emerald-400">₹{((p.wallet || 0) / 1000).toFixed(1)}k</p>
                         <p className="text-[10px] text-gray-500 mt-0.5">Wallet Balance</p>
                       </div>
-                      <div className="bg-slate-700/50 rounded-xl p-2.5">
+                      <button onClick={() => setRefModal({ id: p._id, name: p.name })}
+                        className="bg-slate-700/50 hover:bg-cyan-500/15 rounded-xl p-2.5 text-left transition-colors w-full">
                         <p className="text-base font-bold text-cyan-400">{p._perf?.referralCount || 0}</p>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Referrals</p>
-                      </div>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Referrals →</p>
+                      </button>
                       <div className="bg-slate-700/50 rounded-xl p-2.5">
                         <p className="text-base font-bold text-violet-400">{p._perf?.commCount || 0}</p>
                         <p className="text-[10px] text-gray-500 mt-0.5">Commissions</p>
@@ -602,6 +605,14 @@ export default function PartnersPage() {
             </div>
           </div>
         </div>
+      )}
+      {/* ─── REFERRALS MODAL ─── */}
+      {refModal && (
+        <ReferralsModal
+          userId={refModal.id}
+          userName={refModal.name}
+          onClose={() => setRefModal(null)}
+        />
       )}
     </AdminLayout>
   )

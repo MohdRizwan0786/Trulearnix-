@@ -4,6 +4,7 @@ import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import ReferralsModal from '@/components/ReferralsModal'
 import {
   UserCheck, Users, IndianRupee, ShoppingBag,
   Search, RefreshCw, X, CheckCircle, Loader2,
@@ -92,6 +93,8 @@ export default function SalesTeamPage() {
   const [selectedLeads, setSelectedLeads] = useState<string[]>([])
   const [assignTo, setAssignTo] = useState('')
   const [assigning, setAssigning] = useState(false)
+
+  const [refModal, setRefModal] = useState<{ id: string; name: string } | null>(null)
 
   // Performance modal
   const [perfModal, setPerfModal] = useState(false)
@@ -514,12 +517,12 @@ export default function SalesTeamPage() {
                             <button
                               onClick={() => openPerformance(s._id)}
                               className="btn-primary flex-1 flex items-center justify-center gap-1.5 text-xs py-2">
-                              <BarChart2 className="w-3.5 h-3.5" /> View Performance
+                              <BarChart2 className="w-3.5 h-3.5" /> Performance
                             </button>
                             <button
-                              onClick={() => { setTab('leads'); setPage(1) }}
+                              onClick={() => setRefModal({ id: s._id, name: s.name })}
                               className="btn-secondary flex-1 flex items-center justify-center gap-1.5 text-xs py-2">
-                              <UserPlus className="w-3.5 h-3.5" /> Assign Leads
+                              <Users className="w-3.5 h-3.5" /> Referrals
                             </button>
                           </div>
                         </div>
@@ -1181,6 +1184,13 @@ export default function SalesTeamPage() {
             </div>
           </div>
         </div>
+      )}
+      {refModal && (
+        <ReferralsModal
+          userId={refModal.id}
+          userName={refModal.name}
+          onClose={() => setRefModal(null)}
+        />
       )}
     </AdminLayout>
   )
