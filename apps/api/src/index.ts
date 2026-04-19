@@ -4,6 +4,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
 import { Server } from 'socket.io';
 import { connectDB } from './config/database';
 import { connectRedis } from './config/redis';
@@ -122,16 +124,40 @@ app.post('/api/webhooks/razorpay-payout', express.raw({ type: 'application/json'
   }
 });
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// Sanitize NoSQL injection from req.body, req.params, req.query
+app.use(mongoSanitize({ replaceWith: '_' }));
+
+// Prevent HTTP Parameter Pollution
+app.use(hpp());
 
 // Serve uploaded files as static assets
 app.use('/uploads', express.static('/var/www/trulearnix/uploads'));
 
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5000, skip: (req: any) => !!req.headers.authorization || !!req.headers.cookie });
+// General rate limit — 300 req/15min per IP (no skip for anyone)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' },
+});
 app.use('/api/', limiter);
 
-const strictLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20 });
+// Upload route gets higher limit (file uploads)
+const uploadLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
+app.use('/api/upload', uploadLimiter);
+
+// Auth routes — strict: 15 attempts/15min
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many attempts, please try again after 15 minutes.' },
+});
 app.use('/api/auth/', strictLimiter);
 
 // Core routes

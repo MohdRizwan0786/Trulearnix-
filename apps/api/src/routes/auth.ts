@@ -22,7 +22,7 @@ router.post('/resend-otp-email', async (req, res) => {
     await (await import('../config/redis')).default.setEx(`otp:${user._id}`, 600, otp);
     const waMsg = `🔐 Your TruLearnix OTP is: *${otp}*\n\nValid for 10 minutes.`;
     try { await sendWhatsAppText((user as any).phone, waMsg); } catch {}
-    res.json({ success: true, userId: user._id, _devOtp: otp });
+    res.json({ success: true, userId: user._id });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 router.post('/refresh-token', refreshToken);
