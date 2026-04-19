@@ -179,8 +179,14 @@ export default function WebinarsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-300">
-                          <div>{format(new Date(w.scheduledAt), 'dd MMM yyyy')}</div>
-                          <div className="text-xs text-gray-500">{format(new Date(w.scheduledAt), 'hh:mm a')}</div>
+                          {w.scheduledAt && !isNaN(new Date(w.scheduledAt).getTime()) ? (
+                            <>
+                              <div>{format(new Date(w.scheduledAt), 'dd MMM yyyy')}</div>
+                              <div className="text-xs text-gray-500">{format(new Date(w.scheduledAt), 'hh:mm a')}</div>
+                            </>
+                          ) : (
+                            <span className="text-gray-500">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${st.cls}`}>

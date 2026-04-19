@@ -10,14 +10,40 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 
-// ─── Tier Config ─────────────────────────────────────────────────────────────
-const TIER_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: any }> = {
-  free:    { label: 'Free',    color: 'text-gray-400',   bg: 'bg-gray-500/20',   border: 'border-gray-500/30',   icon: Users   },
-  starter: { label: 'Starter', color: 'text-sky-400',    bg: 'bg-sky-500/20',    border: 'border-sky-500/30',    icon: Star    },
-  pro:     { label: 'Pro',     color: 'text-violet-400', bg: 'bg-violet-500/20', border: 'border-violet-500/30', icon: Zap     },
-  elite:   { label: 'Elite',   color: 'text-amber-400',  bg: 'bg-amber-500/20',  border: 'border-amber-500/30',  icon: Shield  },
-  supreme: { label: 'Supreme', color: 'text-rose-400',   bg: 'bg-rose-500/20',   border: 'border-rose-500/30',   icon: Crown   },
+// ─── Tier Config (base) — extended dynamically from API packages ──────────────
+const BASE_TIER_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: any }> = {
+  free:     { label: 'Free',     color: 'text-gray-400',   bg: 'bg-gray-500/20',   border: 'border-gray-500/30',   icon: Users   },
+  starter:  { label: 'Starter',  color: 'text-sky-400',    bg: 'bg-sky-500/20',    border: 'border-sky-500/30',    icon: Star    },
+  basic:    { label: 'Basic',    color: 'text-teal-400',   bg: 'bg-teal-500/20',   border: 'border-teal-500/30',   icon: Star    },
+  pro:      { label: 'Pro',      color: 'text-violet-400', bg: 'bg-violet-500/20', border: 'border-violet-500/30', icon: Zap     },
+  proedge:  { label: 'Pro-Edge', color: 'text-pink-400',   bg: 'bg-pink-500/20',   border: 'border-pink-500/30',   icon: Zap     },
+  elite:    { label: 'Elite',    color: 'text-amber-400',  bg: 'bg-amber-500/20',  border: 'border-amber-500/30',  icon: Shield  },
+  supreme:  { label: 'Supreme',  color: 'text-rose-400',   bg: 'bg-rose-500/20',   border: 'border-rose-500/30',   icon: Crown   },
 }
+
+// Build tier config from packages — uses package name as label for unknown tiers
+function buildTierConfig(packages: any[]) {
+  const config = { ...BASE_TIER_CONFIG }
+  const fallbackStyles = [
+    { color: 'text-cyan-400',   bg: 'bg-cyan-500/20',   border: 'border-cyan-500/30'   },
+    { color: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/30' },
+    { color: 'text-lime-400',   bg: 'bg-lime-500/20',   border: 'border-lime-500/30'   },
+    { color: 'text-fuchsia-400',bg: 'bg-fuchsia-500/20',border: 'border-fuchsia-500/30'},
+  ]
+  let fallbackIdx = 0
+  packages.forEach((p: any) => {
+    if (p.tier && !config[p.tier]) {
+      const style = fallbackStyles[fallbackIdx++ % fallbackStyles.length]
+      config[p.tier] = { label: p.name || p.tier, ...style, icon: Star }
+    } else if (p.tier && config[p.tier] && p.name) {
+      // Override label with actual package name
+      config[p.tier] = { ...config[p.tier], label: p.name }
+    }
+  })
+  return config
+}
+
+const DEFAULT_TIER = BASE_TIER_CONFIG.free
 
 // ─── Avatar color hash ────────────────────────────────────────────────────────
 const AVATAR_PALETTES = [
@@ -50,7 +76,7 @@ function perfFillColor(pct: number): string {
 }
 
 // ─── BrandDrawer ──────────────────────────────────────────────────────────────
-function BrandDrawer({ learnerId, onClose }: { learnerId: string; onClose: () => void }) {
+function BrandDrawer({ learnerId, onClose, tierConfig }: { learnerId: string; onClose: () => void; tierConfig: Record<string, any> }) {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-learner-brand', learnerId],
     queryFn: () => adminAPI.learnerBrand(learnerId).then(r => r.data),
@@ -62,6 +88,7 @@ function BrandDrawer({ learnerId, onClose }: { learnerId: string; onClose: () =>
   const pct = data?.pct || 0
   const certs = data?.certs || []
   const enrollments = data?.enrollments || []
+  const purchases = data?.purchases || []
 
   const items = [
     { label: 'Profile Photo',      done: completeness.avatar      },
@@ -104,13 +131,58 @@ function BrandDrawer({ learnerId, onClose }: { learnerId: string; onClose: () =>
                 <p className="text-gray-400 text-sm">{u?.email}</p>
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   {u?.packageTier && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${TIER_CONFIG[u.packageTier]?.color || 'text-gray-400'} ${TIER_CONFIG[u.packageTier]?.bg || 'bg-gray-500/20'}`}>
-                      {TIER_CONFIG[u.packageTier]?.label || u.packageTier}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${tierConfig[u.packageTier]?.color || 'text-gray-400'} ${tierConfig[u.packageTier]?.bg || 'bg-gray-500/20'}`}>
+                      {tierConfig[u.packageTier]?.label || u.packageTier}
                     </span>
                   )}
                   <span className="text-xs text-violet-400 font-semibold">{u?.xpPoints || 0} XP · Lvl {u?.level || 1}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Package Info */}
+            <div className="rounded-2xl p-4 bg-white/5 border border-white/10">
+              <h3 className="font-bold text-white text-sm mb-3 flex items-center gap-2">
+                <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" /> Package Details
+              </h3>
+              {u?.packageTier && u.packageTier !== 'free' ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Current Plan</span>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${tierConfig[u.packageTier]?.color || 'text-gray-300'} ${tierConfig[u.packageTier]?.bg || 'bg-gray-500/20'}`}>
+                      {tierConfig[u.packageTier]?.label || u.packageTier}
+                    </span>
+                  </div>
+                  {u.packagePurchasedAt && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">Purchased On</span>
+                      <span className="text-xs text-white">{format(new Date(u.packagePurchasedAt), 'dd MMM yyyy')}</span>
+                    </div>
+                  )}
+                  {u.packageExpiresAt && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">Expires On</span>
+                      <span className="text-xs text-amber-400">{format(new Date(u.packageExpiresAt), 'dd MMM yyyy')}</span>
+                    </div>
+                  )}
+                  {purchases.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wide">Purchase History</p>
+                      {purchases.map((p: any) => (
+                        <div key={p._id} className="flex items-center justify-between p-2 rounded-lg bg-emerald-500/8 border border-emerald-500/15">
+                          <div>
+                            <p className="text-xs text-white font-medium">{p.package?.name || p.packageTier}</p>
+                            <p className="text-[10px] text-gray-500">{p.createdAt ? format(new Date(p.createdAt), 'dd MMM yyyy') : ''}</p>
+                          </div>
+                          <span className="text-xs text-emerald-400 font-bold">₹{(p.totalAmount || p.amount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-xs italic">No package purchased — Free user</p>
+              )}
             </div>
 
             {/* Brand Completeness */}
@@ -268,6 +340,7 @@ export default function LearnersPage() {
 
   // Dynamic tier tabs from packages returned by API
   const packages: any[] = data?.packages || []
+  const TIER_CONFIG = buildTierConfig(packages)
   const tierMap: Record<string, any> = {}
   packages.forEach((p: any) => { if (p.tier && !tierMap[p.tier]) tierMap[p.tier] = p })
   const tierTabs = Object.values(tierMap)
@@ -365,7 +438,7 @@ export default function LearnersPage() {
               return (
                 <button key={p.tier} onClick={() => handleTab(p.tier)}
                   className={tab === p.tier ? 'tab-active' : 'tab-inactive'}>
-                  {cfg ? cfg.label : (p.name || p.tier)}
+                  {cfg?.label || p.name || p.tier}
                 </button>
               )
             })}
@@ -415,7 +488,7 @@ export default function LearnersPage() {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {learners.map((u: any) => {
-                    const tier    = TIER_CONFIG[u.packageTier] || TIER_CONFIG.free
+                    const tier    = TIER_CONFIG[u.packageTier] || TIER_CONFIG.free || DEFAULT_TIER
                     const TierIcon = tier.icon
                     const palette = avatarPalette(u.name || '')
                     const pct     = brandPct(u)
@@ -558,7 +631,7 @@ export default function LearnersPage() {
 
       {/* Brand Detail Drawer */}
       {selectedLearner && (
-        <BrandDrawer learnerId={selectedLearner} onClose={() => setSelectedLearner(null)} />
+        <BrandDrawer learnerId={selectedLearner} onClose={() => setSelectedLearner(null)} tierConfig={TIER_CONFIG} />
       )}
     </AdminLayout>
   )

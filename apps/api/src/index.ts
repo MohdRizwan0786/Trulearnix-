@@ -136,29 +136,40 @@ app.use(hpp());
 // Serve uploaded files as static assets
 app.use('/uploads', express.static('/var/www/trulearnix/uploads'));
 
-// General rate limit — 300 req/15min per IP (no skip for anyone)
+// General rate limit — 1000 req/15min per IP (high enough for normal usage)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 10000,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Never rate-limit authenticated users (admin/logged-in)
+    const token = req.headers.authorization?.split(' ')[1] || (req as any).cookies?.adminToken;
+    return !!token;
+  },
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
 app.use('/api/', limiter);
 
-// Upload route gets higher limit (file uploads)
+// Upload route gets its own limit (file uploads)
 const uploadLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api/upload', uploadLimiter);
 
-// Auth routes — strict: 15 attempts/15min
+// Auth routes — strict limiter ONLY for sensitive unauthenticated endpoints (brute-force protection)
+// /me, /refresh-token, /logout are excluded — they are called on every page load
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 15,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many attempts, please try again after 15 minutes.' },
 });
-app.use('/api/auth/', strictLimiter);
+app.use('/api/auth/login', strictLimiter);
+app.use('/api/auth/register', strictLimiter);
+app.use('/api/auth/verify-otp', strictLimiter);
+app.use('/api/auth/resend-otp', strictLimiter);
+app.use('/api/auth/forgot-password', strictLimiter);
+app.use('/api/auth/reset-password', strictLimiter);
 
 // Core routes
 app.use('/api/auth', authRoutes);

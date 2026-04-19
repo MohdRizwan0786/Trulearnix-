@@ -214,4 +214,25 @@ UserSchema.methods.comparePassword = async function (password: string) {
   return bcrypt.compare(password, this.password);
 };
 
+const UPLOADS_BASE = 'https://api.peptly.in/uploads';
+function normalizeAvatar(avatar: string | undefined): string {
+  if (!avatar) return '';
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) return avatar;
+  return `${UPLOADS_BASE}/${avatar}`;
+}
+
+UserSchema.set('toJSON', {
+  transform(_doc, ret) {
+    if (ret.avatar !== undefined) ret.avatar = normalizeAvatar(ret.avatar);
+    return ret;
+  },
+});
+
+UserSchema.set('toObject', {
+  transform(_doc, ret) {
+    if (ret.avatar !== undefined) ret.avatar = normalizeAvatar(ret.avatar);
+    return ret;
+  },
+});
+
 export default mongoose.model<IUser>('User', UserSchema);
