@@ -32,8 +32,8 @@ router.post('/image', protect, uploadToS3.single('image'), async (req: any, res)
 router.post('/video', protect, authorize('mentor', 'admin', 'superadmin'), uploadToS3.single('video'), async (req: any, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
   try {
-    const { filename } = await processAndSaveUpload(req.file);
-    const url = `${API_URL}/uploads/${filename}`;
+    const { filename, cdnUrl } = await processAndSaveUpload(req.file);
+    const url = cdnUrl || `${API_URL}/uploads/${filename}`;
     await MediaFile.create({
       filename, originalName: req.file.originalname,
       url, type: 'video', size: req.file.size, mimeType: req.file.mimetype,
@@ -62,9 +62,9 @@ router.post('/document', protect, uploadToS3.single('document'), async (req: any
 router.post('/any', protect, uploadToS3.single('file'), async (req: any, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
   try {
-    const { filename } = await processAndSaveUpload(req.file);
-    const url = `${API_URL}/uploads/${filename}`;
+    const { filename, cdnUrl } = await processAndSaveUpload(req.file);
     const type = getType(req.file.mimetype);
+    const url = (type === 'video' && cdnUrl) ? cdnUrl : `${API_URL}/uploads/${filename}`;
     await MediaFile.create({
       filename, originalName: req.file.originalname,
       url, type, size: req.file.size, mimeType: req.file.mimetype,
