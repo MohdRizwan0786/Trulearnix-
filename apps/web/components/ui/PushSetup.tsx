@@ -14,6 +14,7 @@ export default function PushSetup() {
   }, [])
 
   useEffect(() => {
+    if (!user?.id) return
     const perm = getNotificationPermission()
     if (perm === 'granted') {
       subscribeToPush().catch(() => {})
