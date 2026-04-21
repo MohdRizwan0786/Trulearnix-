@@ -8,7 +8,7 @@ import {
   Settings, Plus, Trash2, Save, Upload, Copy, Check, Video,
   Edit3, X, ChevronUp, ChevronDown, Loader2, Link2, FileVideo,
   PlayCircle, Globe, PanelTop, Navigation, FootprintsIcon, Info,
-  MousePointer, Phone, Users, Star, Megaphone, Trophy
+  MousePointer, Phone, Users, Star, Megaphone, Trophy, FileText, Eye, EyeOff
 } from 'lucide-react'
 
 const TABS = [
@@ -25,6 +25,7 @@ const TABS = [
   { id: 'wall',         label: 'Wall of Love',  icon: Star          },
   { id: 'achievements', label: 'Achievements',  icon: Trophy        },
   { id: 'movement',     label: 'Our Movement',  icon: Megaphone     },
+  { id: 'legal',        label: 'Legal Docs',    icon: FileText      },
   { id: 'media',        label: 'Media Library', icon: ImageIcon     },
   { id: 'settings',     label: 'Site Settings', icon: Settings      },
 ]
@@ -235,6 +236,18 @@ const DEFAULT_CONTACT = {
   mapEmbedUrl: '',
   formHeading: 'Send us a Message',
 }
+
+const DEFAULT_LEGAL = {
+  heading: 'Legal & Compliance',
+  subheading: 'All our policies, terms, and legal documents — transparent and accessible.',
+  docs: [
+    { title: 'Privacy Policy',     category: 'Privacy Policy',     desc: 'How we collect, use, and protect your personal information.', fileUrl: '', visible: true },
+    { title: 'Terms & Conditions', category: 'Terms & Conditions', desc: 'Rules and guidelines for using the TruLearnix platform.',      fileUrl: '', visible: true },
+    { title: 'Refund Policy',      category: 'Refund Policy',      desc: 'Our refund and cancellation terms for all purchases.',          fileUrl: '', visible: true },
+  ],
+}
+
+const LEGAL_CATEGORIES = ['Privacy Policy', 'Terms & Conditions', 'Refund Policy', 'Cookie Policy', 'Disclaimer', 'User Agreement', 'Other']
 
 const DEFAULT_MENTOR = {
   heroBadge: 'Join Our Expert Network',
@@ -2069,6 +2082,134 @@ function MovementTab() {
   )
 }
 
+// ── Tab: Legal Docs ───────────────────────────────────────────────────────────
+function LegalTab() {
+  const [data, setData] = useState(DEFAULT_LEGAL)
+  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState<number | null>(null)
+
+  useEffect(() => {
+    adminAPI.getSiteContent('legal').then(r => {
+      if (r.data.data) setData(d => ({ ...d, ...r.data.data }))
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const save = async () => {
+    setSaving(true)
+    try { await adminAPI.saveSiteContent('legal', data); toast.success('Legal docs saved!') }
+    catch { toast.error('Save failed') }
+    finally { setSaving(false) }
+  }
+
+  const set = (key: string, val: any) => setData(d => ({ ...d, [key]: val }))
+
+  const updateDoc = (i: number, k: string, v: any) => {
+    const a = [...data.docs]; a[i] = { ...a[i], [k]: v }; set('docs', a)
+  }
+  const addDoc = () => set('docs', [...data.docs, { title: '', category: 'Other', desc: '', fileUrl: '', visible: true }])
+  const removeDoc = (i: number) => set('docs', data.docs.filter((_: any, idx: number) => idx !== i))
+
+  const uploadPDF = async (i: number, file: File) => {
+    setUploading(i)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const r = await adminAPI.uploadFile(fd)
+      updateDoc(i, 'fileUrl', r.data.url)
+      toast.success('PDF uploaded!')
+    } catch { toast.error('Upload failed') }
+    finally { setUploading(null) }
+  }
+
+  if (loading) return <Spinner />
+
+  return (
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className={cardCls}>
+        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Page Header</h3>
+        <label className={labelCls}>Heading</label>
+        <input value={data.heading} onChange={e => set('heading', e.target.value)} className={inputCls} />
+        <label className={labelCls}>Subheading</label>
+        <textarea value={data.subheading} onChange={e => set('subheading', e.target.value)} rows={2} className={`${inputCls} resize-none`} />
+      </div>
+
+      {/* Documents */}
+      <div className={cardCls}>
+        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Legal Documents</h3>
+        <div className="space-y-5 mt-1">
+          {data.docs.map((doc: any, i: number) => (
+            <div key={i} className="p-5 bg-slate-700/40 rounded-2xl space-y-3 border border-white/10">
+              <div className="flex items-center justify-between">
+                <p className="text-white font-bold text-sm">Document {i + 1}</p>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => updateDoc(i, 'visible', !doc.visible)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${doc.visible ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-gray-500 bg-white/5 border border-white/10'}`}>
+                    {doc.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    {doc.visible ? 'Visible' : 'Hidden'}
+                  </button>
+                  <button type="button" onClick={() => removeDoc(i)} className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Title</label>
+                  <input value={doc.title} onChange={e => updateDoc(i, 'title', e.target.value)} placeholder="Privacy Policy" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Category</label>
+                  <select value={doc.category} onChange={e => updateDoc(i, 'category', e.target.value)}
+                    className={`${inputCls} cursor-pointer`}>
+                    {LEGAL_CATEGORIES.map(c => <option key={c} value={c} className="bg-slate-800">{c}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className={labelCls}>Description</label>
+                <textarea value={doc.desc} onChange={e => updateDoc(i, 'desc', e.target.value)} rows={2} placeholder="Brief description of this document..." className={`${inputCls} resize-none`} />
+              </div>
+
+              <div>
+                <label className={labelCls}>PDF File</label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all ${uploading === i ? 'opacity-50 pointer-events-none' : 'bg-white/10 hover:bg-white/15 border border-white/20 text-white'}`}>
+                    {uploading === i ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Upload className="w-4 h-4" />}
+                    {uploading === i ? 'Uploading...' : 'Upload PDF'}
+                    <input type="file" hidden accept="application/pdf" onChange={e => e.target.files?.[0] && uploadPDF(i, e.target.files[0])} />
+                  </label>
+                  {doc.fileUrl && (
+                    <a href={doc.fileUrl} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:opacity-80 transition-all">
+                      <FileText className="w-3.5 h-3.5" /> View PDF
+                    </a>
+                  )}
+                </div>
+                {doc.fileUrl && (
+                  <p className="text-gray-600 text-[10px] mt-1.5 truncate">{doc.fileUrl}</p>
+                )}
+                {!doc.fileUrl && (
+                  <p className="text-gray-600 text-xs mt-1.5 italic">No file uploaded yet — document will show "Coming soon"</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button type="button" onClick={addDoc}
+          className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 py-1.5 px-3 border border-dashed border-violet-500/40 rounded-xl w-full justify-center hover:border-violet-400 transition-colors mt-4">
+          <Plus className="w-3.5 h-3.5" /> Add Document
+        </button>
+      </div>
+
+      <SaveBtn onClick={save} saving={saving} label="Save Legal Docs" />
+    </div>
+  )
+}
+
 // ── Tab: Settings ─────────────────────────────────────────────────────────────
 function SettingsTab() {
   const [data, setData] = useState(DEFAULT_SETTINGS)
@@ -2199,6 +2340,7 @@ export default function ContentPage() {
         {tab === 'wall'         && <WallTab />}
         {tab === 'achievements' && <AchievementsTab />}
         {tab === 'movement'     && <MovementTab />}
+        {tab === 'legal'        && <LegalTab />}
         {tab === 'media'        && <MediaTab />}
         {tab === 'settings'     && <SettingsTab />}
       </div>
