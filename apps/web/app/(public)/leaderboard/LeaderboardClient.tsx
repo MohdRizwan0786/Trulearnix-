@@ -6,22 +6,12 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { Crown, Star, IndianRupee, Users, Flame, ArrowLeft, Zap, ArrowRight, Trophy, TrendingUp } from 'lucide-react'
 
-type Tier = 'Elite' | 'Pro' | 'Starter'
-type FilterVal = Tier | 'All' | 'Industrial'
-
-const tierConfig = {
-  Elite:   { bg: 'rgba(251,191,36,0.12)',  color: '#fbbf24', label: '👑 Elite'   },
-  Pro:     { bg: 'rgba(167,139,250,0.12)', color: '#a78bfa', label: '⚡ Pro'     },
-  Starter: { bg: 'rgba(96,165,250,0.12)',  color: '#60a5fa', label: '🚀 Starter' },
+const tierConfig: Record<string, { bg: string; color: string }> = {
+  elite:   { bg: 'rgba(251,191,36,0.12)',  color: '#fbbf24' },
+  supreme: { bg: 'rgba(251,191,36,0.12)',  color: '#fbbf24' },
+  pro:     { bg: 'rgba(167,139,250,0.12)', color: '#a78bfa' },
+  starter: { bg: 'rgba(96,165,250,0.12)',  color: '#60a5fa' },
 }
-
-const FILTERS: { label: string; value: FilterVal }[] = [
-  { label: 'All',           value: 'All'        },
-  { label: '👑 Elite',      value: 'Elite'      },
-  { label: '⚡ Pro',        value: 'Pro'        },
-  { label: '🚀 Starter',   value: 'Starter'    },
-  { label: '🏭 Industrial', value: 'Industrial' },
-]
 
 const COLORS = ['#fbbf24','#34d399','#fb923c','#a78bfa','#f472b6','#60a5fa','#e879f9','#38bdf8','#4ade80','#facc15']
 function getColor(rank: number) { return COLORS[(rank - 1) % COLORS.length] }
@@ -57,7 +47,7 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 export default function LeaderboardClient({ initialData }: { initialData: any[] }) {
-  const [filter, setFilter] = useState<FilterVal>('All')
+  const [filter, setFilter] = useState<string>('All')
   const [all, setAll] = useState<any[]>(initialData)
   const [loading, setLoading] = useState(false)
   const [tierNameMap, setTierNameMap] = useState<Record<string, string>>({})
@@ -89,9 +79,16 @@ export default function LeaderboardClient({ initialData }: { initialData: any[] 
 
   const getTierName = (t?: string) => t ? (tierNameMap[t.toLowerCase()] || t) : '—'
 
+  // Build dynamic filters from loaded packages
+  const filters = [
+    { label: 'All', value: 'All' },
+    ...Object.entries(tierNameMap).map(([tier, name]) => ({ label: name, value: tier })),
+    { label: '🏭 Industrial', value: 'Industrial' },
+  ]
+
   const list = filter === 'All' ? all
     : filter === 'Industrial' ? all.filter((a: any) => a.isIndustrialPartner)
-    : all.filter((a: any) => a.tier === filter)
+    : all.filter((a: any) => a.packageTier?.toLowerCase() === filter)
   const top3 = all.slice(0, 3)
   const totalPaid = all.reduce((s: number, a: any) => s + (a.totalEarnings ?? a.monthlyEarnings ?? a.earned ?? 0), 0)
 
@@ -195,7 +192,7 @@ export default function LeaderboardClient({ initialData }: { initialData: any[] 
 
           {/* Filter tabs */}
           <div className="flex items-center gap-2 mb-6 flex-wrap">
-            {FILTERS.map(f => (
+            {filters.map(f => (
               <button key={f.value} onClick={() => setFilter(f.value)}
                 className="px-4 py-2 rounded-xl text-xs font-black transition-all"
                 style={filter === f.value
@@ -226,7 +223,7 @@ export default function LeaderboardClient({ initialData }: { initialData: any[] 
               </div>
 
               {list.map((e, i) => {
-                const tier = tierConfig[e.tier as keyof typeof tierConfig] || tierConfig.Starter
+                const tier = tierConfig[e.packageTier?.toLowerCase()] || tierConfig['starter']
                 const color = getColor(e.rank)
                 const earned = e.totalEarnings ?? e.monthlyEarnings ?? e.earned ?? 0
                 return (
@@ -267,7 +264,7 @@ export default function LeaderboardClient({ initialData }: { initialData: any[] 
                     <div className="col-span-3 sm:col-span-2 flex flex-col gap-1.5">
                       <span className="text-[10px] font-black px-2.5 py-1 rounded-full w-fit"
                         style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.color}44` }}>
-                        {getTierName(e.tier)}
+                        {getTierName(e.packageTier)}
                       </span>
                       {e.isIndustrialPartner && (
                         <span className="text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 w-fit"

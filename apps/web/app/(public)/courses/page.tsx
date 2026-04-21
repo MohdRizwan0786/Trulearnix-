@@ -5,7 +5,7 @@ import { courseAPI, userAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { Search, Star, Users, Heart, Package } from 'lucide-react'
+import { Search, Star, Users, Heart, Package, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
@@ -64,7 +64,12 @@ export default function CoursesPage() {
   return (
     <div>
       <Navbar />
-      <div className="pt-20 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 pt-24 pb-0">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
+          <ArrowLeft className="w-4 h-4" />Back to Home
+        </Link>
+      </div>
+      <div className="pt-4 min-h-screen">
         {/* Header */}
         <div className="bg-dark-800/50 py-16 px-4">
           <div className="max-w-7xl mx-auto text-center">

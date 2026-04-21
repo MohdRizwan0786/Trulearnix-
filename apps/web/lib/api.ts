@@ -396,7 +396,7 @@ export const salesAPI = {
 };
 
 export const phonepeAPI = {
-  createOrder: (data: { type: 'package' | 'course'; packageId?: string; tier?: string; courseId?: string; promoCode?: string; couponCode?: string; isEmi?: boolean }) =>
+  createOrder: (data: { type: 'package' | 'course'; packageId?: string; tier?: string; courseId?: string; promoCode?: string; couponCode?: string; isEmi?: boolean; age?: string; state?: string }) =>
     api.post('/phonepe/create-order', data),
   getStatus: (merchantOrderId: string, params: { type: string; tier?: string; courseId?: string; couponCode?: string; promoCode?: string; isEmi?: string }) =>
     api.get(`/phonepe/status/${merchantOrderId}`, { params }),
