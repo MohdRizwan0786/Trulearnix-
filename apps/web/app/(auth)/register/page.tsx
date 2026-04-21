@@ -8,7 +8,7 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   User, Mail, Phone, Calendar, MapPin, Globe, Loader2,
-  CheckCircle, ChevronRight, Sparkles, Shield, ArrowRight
+  CheckCircle, ChevronRight, Sparkles, Shield, ArrowRight, MessageCircle
 } from 'lucide-react'
 import { authAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
@@ -122,11 +122,11 @@ function RegisterForm() {
       <div className="min-h-screen bg-[#0a0a14] flex items-center justify-center px-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-violet-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-violet-500/30">
-              <Mail className="w-7 h-7 text-violet-400" />
+            <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-500/30">
+              <MessageCircle className="w-7 h-7 text-green-400" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Check your email</h1>
-            <p className="text-gray-400 text-sm mt-2">We sent a 6-digit OTP to your email address</p>
+            <h1 className="text-2xl font-bold text-white">Verify your account</h1>
+            <p className="text-gray-400 text-sm mt-2">We sent a 6-digit OTP to your WhatsApp & email</p>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
