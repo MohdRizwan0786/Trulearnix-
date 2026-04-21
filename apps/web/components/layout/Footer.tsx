@@ -17,6 +17,7 @@ const DEFAULT_COMPANY_LINKS = [
   { label: 'Careers', href: '/contact' },
   { label: 'Blog', href: '/about' },
   { label: 'Press Kit', href: '/contact' },
+  { label: 'Legal Documents', href: '/legal' },
   { label: 'Privacy Policy', href: '/privacy-policy' },
   { label: 'Terms of Service', href: '/terms' },
 ]
@@ -151,6 +152,7 @@ export default function Footer() {
           style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <p>{copyright}</p>
           <div className="flex gap-5">
+            <Link href="/legal" className="hover:text-gray-400 transition-colors">Legal Docs</Link>
             <Link href="/privacy-policy" className="hover:text-gray-400 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-gray-400 transition-colors">Terms</Link>
             <Link href="/contact" className="hover:text-gray-400 transition-colors">Contact</Link>
