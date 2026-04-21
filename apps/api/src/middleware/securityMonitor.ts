@@ -7,18 +7,22 @@ const reqWindow   = new Map<string, { count: number; windowStart: number }>();
 const authFailures = new Map<string, { failures: number; windowStart: number }>();
 const blockedCache = new Map<string, number>(); // ip → expiresAt ms (Infinity = permanent)
 const geoCache    = new Map<string, { country: string; city: string }>();
+const trustedIps  = new Map<string, number>(); // ip → expiresAt ms (trusted after successful login)
 
 let logBatch: any[] = [];
 let batchTimer: any = null;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const RATE_WINDOW_MS   = 60 * 1000;
-const RATE_WARN_LIMIT  = 200;
-const RATE_BLOCK_LIMIT = 400;
+const RATE_WARN_LIMIT  = 300;
+const RATE_BLOCK_LIMIT = 600;
 const AUTH_FAIL_WINDOW = 15 * 60 * 1000;
-const AUTH_FAIL_LIMIT  = 10;
-const BLOCK_DURATION_MS = 60 * 60 * 1000;
+const AUTH_FAIL_LIMIT  = 25;
+const BLOCK_DURATION_MS = 30 * 60 * 1000; // 30 min (was 60 min)
 const BATCH_INTERVAL_MS = 2000;
+
+// Roles that should never be auto-blocked
+const TRUSTED_ROLES = ['superadmin', 'admin', 'manager', 'mentor', 'salesperson', 'partner_manager'];
 
 const AUTH_ENDPOINTS = ['/api/auth/login', '/api/auth/verify-otp', '/api/auth/resend-otp'];
 
@@ -154,6 +158,17 @@ async function blockIp(ip: string, reason: string, threat: string, country = '')
   sendTelegramAlert(`🚨 <b>IP BLOCKED</b>\nIP: <code>${ip}</code>\nReason: ${reason}\nThreat: ${threat}\nCountry: ${country}\nExpires: ${expiresAt.toISOString()}`);
 }
 
+export async function unblockIp(ip: string) {
+  blockedCache.delete(ip);
+  authFailures.delete(ip);
+  reqWindow.delete(ip);
+  // Trust this IP for 2 hours after successful auth
+  trustedIps.set(ip, Date.now() + 2 * 60 * 60 * 1000);
+  try {
+    await BlockedIp.updateOne({ ip }, { $set: { active: false } });
+  } catch {}
+}
+
 async function isBlocked(ip: string): Promise<boolean> {
   if (blockedCache.has(ip)) {
     const exp = blockedCache.get(ip)!;
@@ -200,8 +215,13 @@ export default async function securityMonitor(req: Request, res: Response, next:
   const isAuthenticated = !!(authHeader && authHeader.startsWith('Bearer ') && authHeader.split('.').length === 3);
   const isLocalhost = /^(::1|::ffff:127\.|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(ip);
 
-  // 1. Check blocked IP (skip for authenticated or internal requests)
-  if (!isAuthenticated && !isLocalhost) {
+  // Check if IP was recently trusted via successful login
+  const trustedExp = trustedIps.get(ip);
+  const isTrusted = !!(trustedExp && trustedExp > Date.now());
+  if (isTrusted && !trustedExp) trustedIps.delete(ip);
+
+  // 1. Check blocked IP (skip for authenticated, trusted, or internal requests)
+  if (!isAuthenticated && !isLocalhost && !isTrusted) {
     const blocked = await isBlocked(ip);
     if (blocked) {
       queueLog({ ip, method, endpoint: path, statusCode: 403, threat: 'none', severity: 'info', reason: 'Blocked IP attempted access', userAgent: ua.slice(0, 200), blocked: true, responseMs: Date.now() - startMs });
@@ -209,9 +229,9 @@ export default async function securityMonitor(req: Request, res: Response, next:
     }
   }
 
-  // 2. Rate limiting (skip for authenticated or internal requests)
+  // 2. Rate limiting (skip for authenticated, trusted, or internal requests)
   const now = Date.now();
-  if (!isAuthenticated && !isLocalhost) {
+  if (!isAuthenticated && !isLocalhost && !isTrusted) {
     const rw = reqWindow.get(ip);
     if (!rw || now - rw.windowStart > RATE_WINDOW_MS) {
       reqWindow.set(ip, { count: 1, windowStart: now });
@@ -250,9 +270,17 @@ export default async function securityMonitor(req: Request, res: Response, next:
     const responseMs = Date.now() - startMs;
     const statusCode = res.statusCode;
 
-    // 6. Brute force detection
+    // On successful auth — clear failures, unblock IP, mark trusted
+    if (AUTH_ENDPOINTS.some(e => path.startsWith(e)) && statusCode === 200) {
+      authFailures.delete(ip);
+      blockedCache.delete(ip);
+      trustedIps.set(ip, Date.now() + 2 * 60 * 60 * 1000);
+      try { await BlockedIp.updateOne({ ip }, { $set: { active: false } }); } catch {}
+    }
+
+    // 6. Brute force detection (skip for trusted/authenticated IPs)
     let authThreat: any = null;
-    if (AUTH_ENDPOINTS.some(e => path.startsWith(e)) && (statusCode === 401 || statusCode === 400)) {
+    if (!isTrusted && !isAuthenticated && AUTH_ENDPOINTS.some(e => path.startsWith(e)) && (statusCode === 401 || statusCode === 400)) {
       const af = authFailures.get(ip);
       if (!af || now - af.windowStart > AUTH_FAIL_WINDOW) {
         authFailures.set(ip, { failures: 1, windowStart: now });
@@ -289,6 +317,13 @@ export default async function securityMonitor(req: Request, res: Response, next:
 
     if (severity === 'critical' && !authThreat) {
       sendTelegramAlert(`⚠️ <b>${threat.toUpperCase()}</b>\nIP: <code>${ip}</code>\nEndpoint: ${path}\nReason: ${reason}\nCountry: ${geo.country}`);
+    }
+
+    // If user is a trusted role, mark their IP as trusted going forward
+    const userRole = (req as any).user?.role;
+    if (userRole && TRUSTED_ROLES.includes(userRole)) {
+      trustedIps.set(ip, Date.now() + 4 * 60 * 60 * 1000);
+      blockedCache.delete(ip);
     }
 
     let payloadSnip = '';

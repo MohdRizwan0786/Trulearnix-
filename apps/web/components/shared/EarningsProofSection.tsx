@@ -11,10 +11,11 @@ const DEFAULT_STEPS = [
   { num: '03', title: 'Earn Every Month', desc: 'Help others learn skills — earn 10–25% income on every successful enrollment, every month.',     color: '#fbbf24' },
 ]
 
-const tierConfig = {
-  Elite:   { bg: 'rgba(251,191,36,0.12)',  color: '#fbbf24', label: '👑 Elite'   },
-  Pro:     { bg: 'rgba(167,139,250,0.12)', color: '#a78bfa', label: '⚡ Pro'     },
-  Starter: { bg: 'rgba(96,165,250,0.12)',  color: '#60a5fa', label: '🚀 Starter' },
+const tierConfig: Record<string, { bg: string; color: string }> = {
+  elite:   { bg: 'rgba(251,191,36,0.12)',  color: '#fbbf24' },
+  supreme: { bg: 'rgba(251,191,36,0.12)',  color: '#fbbf24' },
+  pro:     { bg: 'rgba(167,139,250,0.12)', color: '#a78bfa' },
+  starter: { bg: 'rgba(96,165,250,0.12)',  color: '#60a5fa' },
 }
 
 const COLORS = ['#fbbf24','#34d399','#fb923c','#a78bfa','#f472b6','#60a5fa','#e879f9','#38bdf8','#4ade80','#facc15']
@@ -36,8 +37,9 @@ function formatINR(n: number) {
   return `₹${n.toLocaleString('en-IN')}`
 }
 
-function EarnerCard({ e, color }: { e: any; color: string }) {
-  const tier = tierConfig[e.tier as keyof typeof tierConfig] || tierConfig.Starter
+function EarnerCard({ e, color, tierNameMap = {} }: { e: any; color: string; tierNameMap?: Record<string, string> }) {
+  const getTierName = (t?: string) => t ? (tierNameMap[t.toLowerCase()] || t) : '—'
+  const tier = tierConfig[e.packageTier?.toLowerCase()] || tierConfig['starter']
   const earned = e.totalEarnings ?? e.monthlyEarnings ?? e.earned ?? 0
   const invites = e.invites ?? 0
   const barW = Math.min((invites / 220) * 100, 100)
@@ -50,7 +52,7 @@ function EarnerCard({ e, color }: { e: any; color: string }) {
       <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
         <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
           style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.color}44` }}>
-          {tier.label}
+          {getTierName(e.packageTier)}
         </span>
         {e.isIndustrialPartner && (
           <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
@@ -102,6 +104,7 @@ export default function EarningsProofSection({ initialEarners = [] }: { initialE
   const [subheading, setSubheading] = useState("Our Earn Program isn't a side hustle — students are replacing their salaries.")
   const [sectionHeading, setSectionHeading] = useState('How Earning Works')
   const [leaderboardHeading, setLeaderboardHeading] = useState('Top Earners This Month')
+  const [tierNameMap, setTierNameMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetchLeaderboard = () => {
@@ -115,7 +118,16 @@ export default function EarningsProofSection({ initialEarners = [] }: { initialE
     }
 
     fetchLeaderboard()
-    const interval = setInterval(fetchLeaderboard, 2 * 60 * 1000) // every 2 min
+    const interval = setInterval(fetchLeaderboard, 2 * 60 * 1000)
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages`)
+      .then(r => r.json())
+      .then(d => {
+        const map: Record<string, string> = {}
+        ;(d.packages || []).forEach((p: any) => { if (p.tier) map[p.tier.toLowerCase()] = p.name })
+        setTierNameMap(map)
+      })
+      .catch(() => {})
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/movement`)
       .then(r => r.json())
@@ -187,10 +199,10 @@ export default function EarningsProofSection({ initialEarners = [] }: { initialE
                 <div className="absolute inset-y-0 right-0 w-6 z-10 pointer-events-none"
                   style={{ background: 'linear-gradient(270deg, #060810, transparent)' }} />
                 <div className="overflow-hidden">
-                  <div className="marquee-fwd flex items-stretch" style={{ animationDuration: '24s' }}>
+                  <div className="marquee-fwd flex items-stretch" style={{ animationDuration: '60s' }}>
                     {[...earners, ...earners].map((e, i) => (
                       <div key={i} className="flex-shrink-0 w-[220px] mx-2 py-1">
-                        <EarnerCard e={e} color={getColor(e.rank ?? i+1)} />
+                        <EarnerCard e={e} color={getColor(e.rank ?? i+1)} tierNameMap={tierNameMap} />
                       </div>
                     ))}
                   </div>
@@ -201,7 +213,7 @@ export default function EarningsProofSection({ initialEarners = [] }: { initialE
               <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {earners.map((e, i) => (
                   <div key={e.rank ?? i}>
-                    <EarnerCard e={e} color={getColor(e.rank ?? i+1)} />
+                    <EarnerCard e={e} color={getColor(e.rank ?? i+1)} tierNameMap={tierNameMap} />
                   </div>
                 ))}
               </div>

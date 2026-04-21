@@ -4,7 +4,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import {
   Star, Users, DollarSign, Globe, BookOpen, Video,
-  CheckCircle, ArrowRight, Award, Zap, TrendingUp, Heart, Mail
+  CheckCircle, ArrowRight, Award, Zap, TrendingUp, Heart, Mail, ArrowLeft
 } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -82,9 +82,14 @@ export default function BecomeMentorPage() {
   return (
     <main className="bg-[#04050a] min-h-screen">
       <Navbar />
+      <div className="max-w-5xl mx-auto px-4 pt-24 pb-0">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
+          <ArrowLeft className="w-4 h-4" />Back to Home
+        </Link>
+      </div>
 
       {/* ── Hero ── */}
-      <section className="relative pt-28 pb-20 overflow-hidden">
+      <section className="relative pt-8 pb-20 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-radial from-violet-600/20 to-transparent rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-20 left-1/4 w-[300px] h-[300px] bg-gradient-radial from-indigo-600/10 to-transparent rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-5xl mx-auto px-4 text-center">

@@ -280,51 +280,13 @@ export default function WallOfLove() {
           </motion.div>
         </div>
 
-        {/* 3-column uniform card grid — hidden on mobile */}
-        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-          {videos.map((v, i) => (
-            <VideoCard key={v.id} v={v} onClick={() => setActive(v)} delay={i * 0.06} />
-          ))}
-        </div>
-
-        {/* Mobile: snap-scroll compact cards */}
-        <div className="sm:hidden mb-6 overflow-x-auto pb-2 -mx-4 px-4" style={{ scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', scrollbarWidth:'none' }}>
-          <div className="flex gap-3" style={{ width:'max-content' }}>
-            {videos.map((v, i) => (
-              <div key={v.id} className="flex-shrink-0 w-[260px] rounded-2xl overflow-hidden cursor-pointer"
-                style={{ scrollSnapAlign:'start', background:'#0d1020', border:'1px solid rgba(255,255,255,0.08)' }}
-                onClick={() => setActive(v)}>
-                <div className="relative" style={{ paddingTop:'52%', background: v.gradient }}>
-                  {v.avatarUrl && (
-                    <img src={v.avatarUrl} className="absolute inset-0 w-full h-full object-cover opacity-70" alt={v.name} />
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-11 h-11 rounded-full flex items-center justify-center"
-                      style={{ background:'rgba(255,255,255,0.95)', boxShadow:'0 0 0 8px rgba(255,255,255,0.12)' }}>
-                      <Play className="w-5 h-5 text-gray-900 ml-0.5" fill="currentColor" />
-                    </div>
-                  </div>
-                  <span className="absolute bottom-2 right-2 text-[10px] font-black text-white px-1.5 py-0.5 rounded"
-                    style={{ background:'rgba(0,0,0,0.65)' }}>{v.duration}</span>
-                </div>
-                <div className="p-3">
-                  <p className="text-white font-black text-xs truncate">{v.name}</p>
-                  <p className="text-gray-500 text-[10px] truncate mb-1.5">{v.role} · {v.company}</p>
-                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-                    style={{ background:`${v.resultColor}15`, color: v.resultColor }}>{v.result}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Auto-scroll marquee row */}
         <div className="relative overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-16 sm:w-28 z-10 pointer-events-none"
             style={{ background: 'linear-gradient(90deg, #060810 0%, transparent 100%)' }} />
           <div className="absolute inset-y-0 right-0 w-16 sm:w-28 z-10 pointer-events-none"
             style={{ background: 'linear-gradient(270deg, #060810 0%, transparent 100%)' }} />
-          <div className="marquee-fwd py-2" style={{ animationDuration: '26s' }}>
+          <div className="marquee-fwd py-2" style={{ animationDuration: '60s' }}>
             {marqueeVideos.map((v, i) => (
               <MarqueeCard key={i} v={v} onClick={() => setActive(v)} />
             ))}

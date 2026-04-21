@@ -116,7 +116,7 @@ export default function TestimonialsSection() {
           style={{ background: 'linear-gradient(90deg, #050709, transparent)' }} />
         <div className="absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none"
           style={{ background: 'linear-gradient(-90deg, #050709, transparent)' }} />
-        <div className="flex marquee-fwd">
+        <div className="flex marquee-fwd" style={{ animationDuration: '70s' }}>
           {doubled.map((t, i) => <TestCard key={i} t={t} />)}
         </div>
       </div>
@@ -127,7 +127,7 @@ export default function TestimonialsSection() {
           style={{ background: 'linear-gradient(90deg, #050709, transparent)' }} />
         <div className="absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none"
           style={{ background: 'linear-gradient(-90deg, #050709, transparent)' }} />
-        <div className="flex marquee-rev">
+        <div className="flex marquee-rev" style={{ animationDuration: '80s' }}>
           {[...doubled].reverse().map((t, i) => <TestCard key={i} t={t} />)}
         </div>
       </div>
