@@ -25,6 +25,9 @@ export const metadata: Metadata = {
     title: 'TruLearnix',
     images: ['/logo.png'],
   },
+  other: {
+    'facebook-domain-verification': 'gyc97lw61w8k26rs2xf5wp6c5ehcuc',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
