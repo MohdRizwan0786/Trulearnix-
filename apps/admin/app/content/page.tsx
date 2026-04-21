@@ -132,22 +132,86 @@ const DEFAULT_STEPS = [
 ]
 
 const DEFAULT_ABOUT = {
-  heroBadge: 'Our Story',
-  headingLine1: "Building India's Most",
-  headingLine2: 'Impactful Learning Platform',
-  heroDesc: "We started with a simple belief: quality education should be accessible, practical, and rewarding. Today, TruLearnix powers careers for 50,000+ learners across India.",
+  // Hero
+  heroBadge: 'Est. September 2025 · New Delhi, India',
+  headingLine1: 'Turning Vision',
+  headingLine2: 'into Excellence.',
+  heroDesc: "India's most practical digital skills platform. We don't just teach — we transform learners into earners.",
   heroStats: [
-    { n: '50K+', l: 'Active Learners' },
-    { n: '2019', l: 'Founded' },
-    { n: '₹2Cr+', l: 'Earned by Partners' },
+    { n: '10K+', l: 'Learners' },
+    { n: '50+', l: 'Courses' },
+    { n: '95%', l: 'Success Rate' },
+    { n: '3', l: 'Earning Paths' },
   ],
+  // Our Story
+  storyBadge: 'Our Story',
+  storyHeading: 'More than a platform —',
+  storySubheading: 'a career ecosystem.',
+  storyDesc: "TruLearnix was built with one belief: watching videos alone doesn't create careers. That's why every course is live, interactive, and mentor-guided — so you practice, build, and earn.",
+  storyFeatures: [
+    { icon: '🎯', title: 'Live Classes', desc: 'Real-time learning with expert mentors' },
+    { icon: '💸', title: 'Earn Fast', desc: 'From beginner to earner in months' },
+    { icon: '🌍', title: 'For Everyone', desc: 'Students, women, professionals' },
+    { icon: '🤲', title: 'Halal Income', desc: 'Ethical earning, always' },
+  ],
+  // Mission & Vision
   missionHeading: 'Our Mission',
-  missionText: "To democratize world-class education and create economic opportunities for every learner in India — by combining live interactive learning with a powerful income generation ecosystem.",
-  teamHeading: 'Meet the Team',
-  team: [
-    { name: 'Aryan Kapoor', role: 'Founder & CEO', bio: 'Ex-Infosys. Passionate about making education accessible.', avatarUrl: '' },
-    { name: 'Priya Sharma', role: 'Head of Learning', bio: 'EdTech veteran with 10+ years shaping curriculum.', avatarUrl: '' },
+  missionText: 'To provide high-quality digital skills education to every learner — empowering them to start freelancing careers, secure digital jobs, or generate income through affiliate marketing, in a practical, efficient, and result-oriented way.',
+  visionHeading: 'Our Vision',
+  visionText: 'A global digital hub where millions become financially independent — regardless of background, gender, or education.',
+  // Values
+  values: [
+    { icon: '⚡', title: 'Fast-Track Earning' },
+    { icon: '👩', title: 'Women Empowerment' },
+    { icon: '🏆', title: 'Community First' },
   ],
+  // Founders
+  foundersBadge: 'The Visionaries',
+  foundersHeading: 'Meet the Founders',
+  founders: [
+    {
+      name: 'Mohd Rizwan',
+      role: 'Founder & CEO',
+      subtitle: 'Founder · TruLearnix & RB Digi Solutions',
+      quote: 'My goal is simple — take someone with zero knowledge and turn them into a confident digital earner. That\'s the TruLearnix promise.',
+      bio: 'B.Tech (CS) from Jamia Millia Islamia & GGSIP University. 5+ years of corporate IT sales experience combined with deep expertise as a Meta Ads Specialist — helping businesses grow on Facebook & Instagram. Founded TruLearnix to democratize digital earning for all.',
+      skills: ['Meta Ads Expert', 'IT Sales', 'B.Tech CSE', 'Digital Marketing', 'Entrepreneur'],
+      expValue: '5+',
+      expLabel: 'Years in IT',
+      expertiseValue: 'Meta Ads',
+      expertiseLabel: 'Expert',
+      photoUrl: '/founder-rizwan.jpg',
+    },
+    {
+      name: 'Ashfana Razaksab Kolhar',
+      role: 'Co-Founder & Managing Director',
+      subtitle: 'Educator · Mentor · Women Empowerment Advocate',
+      quote: 'Every woman deserves the tools to build her own financial freedom. TruLearnix is that bridge.',
+      bio: 'M.Sc. Physics from Karnataka University. 2-3 years mentoring learners across online platforms, with 4 years of high-performance sales experience alongside top entrepreneurs. Ashfana champions practical education and financial independence — especially for women.',
+      skills: ['M.Sc. Physics', 'Online Mentor', 'Fashion Design', 'Sales Expert', "Women's Advocate"],
+      expValue: '3+',
+      expLabel: 'Yrs Mentoring',
+      expertiseValue: 'M.Sc.',
+      expertiseLabel: 'Physics',
+      photoUrl: '/founder-ashfana.jpg',
+    },
+  ],
+  // Earning Paths
+  pathsBadge: 'What We Teach',
+  pathsHeading: '3 Paths to Digital Income',
+  paths: [
+    { emoji: '💼', title: 'Freelancing', sub: 'Global client base', desc: 'Master Upwork, Fiverr & Freelancer. Build a profile that attracts clients worldwide and earns in dollars.' },
+    { emoji: '📱', title: 'Digital Jobs', sub: 'Career placement', desc: 'Land roles in digital marketing, social media management, graphic design & more at top companies.' },
+    { emoji: '💸', title: 'Affiliate Marketing', sub: 'Passive income', desc: 'Amazon Associates, ClickBank & more. Build systems that earn while you sleep.' },
+  ],
+  // CTA
+  ctaBadge: 'Start Today',
+  ctaHeading: 'Your Digital Career\nStarts Here.',
+  ctaDesc: 'Join 10,000+ learners already building their future with TruLearnix.',
+  ctaBtn1Text: 'Explore Courses →',
+  ctaBtn1Href: '/courses',
+  ctaBtn2Text: 'Contact Us',
+  ctaBtn2Href: '/contact',
 }
 
 const DEFAULT_CTA = {
@@ -1042,71 +1106,217 @@ function AboutTab() {
 
   const set = (key: string, val: any) => setData(d => ({ ...d, [key]: val }))
 
-  const updateTeam = (i: number, k: string, v: string) => {
-    setData(d => { const a = [...d.team]; a[i] = { ...a[i], [k]: v }; return { ...d, team: a } })
-  }
-  const addTeamMember = () => set('team', [...data.team, { name: '', role: '', bio: '', avatarUrl: '' }])
-  const removeTeamMember = (i: number) => set('team', data.team.filter((_, idx) => idx !== i))
-
   const updateHeroStat = (i: number, k: 'n' | 'l', v: string) => {
     const a = [...data.heroStats]; a[i] = { ...a[i], [k]: v }; set('heroStats', a)
+  }
+  const addHeroStat = () => set('heroStats', [...data.heroStats, { n: '', l: '' }])
+  const removeHeroStat = (i: number) => set('heroStats', data.heroStats.filter((_: any, idx: number) => idx !== i))
+
+  const updateStoryFeature = (i: number, k: string, v: string) => {
+    const a = [...data.storyFeatures]; a[i] = { ...a[i], [k]: v }; set('storyFeatures', a)
+  }
+  const addStoryFeature = () => set('storyFeatures', [...data.storyFeatures, { icon: '⭐', title: '', desc: '' }])
+  const removeStoryFeature = (i: number) => set('storyFeatures', data.storyFeatures.filter((_: any, idx: number) => idx !== i))
+
+  const updateValue = (i: number, k: string, v: string) => {
+    const a = [...data.values]; a[i] = { ...a[i], [k]: v }; set('values', a)
+  }
+  const addValue = () => set('values', [...data.values, { icon: '⭐', title: '' }])
+  const removeValue = (i: number) => set('values', data.values.filter((_: any, idx: number) => idx !== i))
+
+  const updateFounder = (i: number, k: string, v: any) => {
+    const a = [...data.founders]; a[i] = { ...a[i], [k]: v }; set('founders', a)
+  }
+  const updateFounderSkills = (i: number, raw: string) => {
+    updateFounder(i, 'skills', raw.split(',').map((s: string) => s.trim()).filter(Boolean))
+  }
+
+  const updatePath = (i: number, k: string, v: string) => {
+    const a = [...data.paths]; a[i] = { ...a[i], [k]: v }; set('paths', a)
+  }
+  const addPath = () => set('paths', [...data.paths, { emoji: '⭐', title: '', sub: '', desc: '' }])
+  const removePath = (i: number) => set('paths', data.paths.filter((_: any, idx: number) => idx !== i))
+
+  const uploadPhoto = async (i: number, file: File) => {
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const r = await adminAPI.uploadFile(fd)
+      updateFounder(i, 'photoUrl', r.data.url)
+      toast.success('Photo uploaded!')
+    } catch { toast.error('Upload failed') }
   }
 
   if (loading) return <Spinner />
 
   return (
     <div className="space-y-6">
+
+      {/* ── Hero ── */}
       <div className={cardCls}>
         <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Hero Section</h3>
         <label className={labelCls}>Badge Text</label>
         <input value={data.heroBadge} onChange={e => set('heroBadge', e.target.value)} className={inputCls} />
         <label className={labelCls}>Heading Line 1</label>
         <input value={data.headingLine1} onChange={e => set('headingLine1', e.target.value)} className={inputCls} />
-        <label className={labelCls}>Heading Line 2</label>
+        <label className={labelCls}>Heading Line 2 (gradient)</label>
         <input value={data.headingLine2} onChange={e => set('headingLine2', e.target.value)} className={inputCls} />
         <label className={labelCls}>Hero Description</label>
         <textarea value={data.heroDesc} onChange={e => set('heroDesc', e.target.value)} rows={3} className={`${inputCls} resize-none`} />
       </div>
 
+      {/* ── Hero Stats ── */}
       <div className={cardCls}>
         <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Hero Stats</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {data.heroStats.map((s: any, i: number) => (
+            <div key={i} className="p-3 bg-slate-700/40 rounded-xl space-y-2 relative">
+              <button type="button" onClick={() => removeHeroStat(i)} className="absolute top-2 right-2 p-1 text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 className="w-3 h-3" /></button>
+              <input value={s.n} onChange={e => updateHeroStat(i, 'n', e.target.value)} placeholder="10K+" className={inputCls} />
+              <input value={s.l} onChange={e => updateHeroStat(i, 'l', e.target.value)} placeholder="Learners" className={inputCls} />
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addHeroStat} className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 py-1.5 px-3 border border-dashed border-violet-500/40 rounded-xl w-full justify-center hover:border-violet-400 transition-colors mt-2">
+          <Plus className="w-3.5 h-3.5" /> Add Stat
+        </button>
+      </div>
+
+      {/* ── Our Story ── */}
+      <div className={cardCls}>
+        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Our Story Section</h3>
+        <label className={labelCls}>Badge Text</label>
+        <input value={data.storyBadge} onChange={e => set('storyBadge', e.target.value)} className={inputCls} />
+        <label className={labelCls}>Heading Line 1</label>
+        <input value={data.storyHeading} onChange={e => set('storyHeading', e.target.value)} className={inputCls} />
+        <label className={labelCls}>Heading Line 2 (gradient)</label>
+        <input value={data.storySubheading} onChange={e => set('storySubheading', e.target.value)} className={inputCls} />
+        <label className={labelCls}>Description</label>
+        <textarea value={data.storyDesc} onChange={e => set('storyDesc', e.target.value)} rows={3} className={`${inputCls} resize-none`} />
+        <h4 className="font-semibold text-gray-300 text-xs pt-2">Feature Cards (2×2 Grid)</h4>
+        <div className="grid grid-cols-2 gap-3">
+          {data.storyFeatures.map((f: any, i: number) => (
+            <div key={i} className="p-3 bg-slate-700/40 rounded-xl space-y-2 relative">
+              <button type="button" onClick={() => removeStoryFeature(i)} className="absolute top-2 right-2 p-1 text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 className="w-3 h-3" /></button>
+              <input value={f.icon} onChange={e => updateStoryFeature(i, 'icon', e.target.value)} placeholder="🎯" className={inputCls} />
+              <input value={f.title} onChange={e => updateStoryFeature(i, 'title', e.target.value)} placeholder="Title" className={inputCls} />
+              <input value={f.desc} onChange={e => updateStoryFeature(i, 'desc', e.target.value)} placeholder="Description" className={inputCls} />
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addStoryFeature} className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 py-1.5 px-3 border border-dashed border-violet-500/40 rounded-xl w-full justify-center hover:border-violet-400 transition-colors mt-2">
+          <Plus className="w-3.5 h-3.5" /> Add Feature Card
+        </button>
+      </div>
+
+      {/* ── Mission & Vision ── */}
+      <div className={cardCls}>
+        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Mission & Vision</h3>
+        <label className={labelCls}>Mission Heading</label>
+        <input value={data.missionHeading} onChange={e => set('missionHeading', e.target.value)} className={inputCls} />
+        <label className={labelCls}>Mission Text</label>
+        <textarea value={data.missionText} onChange={e => set('missionText', e.target.value)} rows={3} className={`${inputCls} resize-none`} />
+        <label className={labelCls}>Vision Heading</label>
+        <input value={data.visionHeading} onChange={e => set('visionHeading', e.target.value)} className={inputCls} />
+        <label className={labelCls}>Vision Text</label>
+        <textarea value={data.visionText} onChange={e => set('visionText', e.target.value)} rows={2} className={`${inputCls} resize-none`} />
+      </div>
+
+      {/* ── Values ── */}
+      <div className={cardCls}>
+        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Values Cards</h3>
         <div className="grid grid-cols-3 gap-3">
-          {data.heroStats.map((s, i) => (
-            <div key={i} className="p-3 bg-slate-700/40 rounded-xl space-y-2">
-              <input value={s.n} onChange={e => updateHeroStat(i, 'n', e.target.value)} placeholder="50K+" className={inputCls} />
-              <input value={s.l} onChange={e => updateHeroStat(i, 'l', e.target.value)} placeholder="Active Learners" className={inputCls} />
+          {data.values.map((v: any, i: number) => (
+            <div key={i} className="p-3 bg-slate-700/40 rounded-xl space-y-2 relative">
+              <button type="button" onClick={() => removeValue(i)} className="absolute top-2 right-2 p-1 text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 className="w-3 h-3" /></button>
+              <input value={v.icon} onChange={e => updateValue(i, 'icon', e.target.value)} placeholder="⭐" className={inputCls} />
+              <input value={v.title} onChange={e => updateValue(i, 'title', e.target.value)} placeholder="Title" className={inputCls} />
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addValue} className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 py-1.5 px-3 border border-dashed border-violet-500/40 rounded-xl w-full justify-center hover:border-violet-400 transition-colors mt-2">
+          <Plus className="w-3.5 h-3.5" /> Add Value
+        </button>
+      </div>
+
+      {/* ── Founders ── */}
+      <div className={cardCls}>
+        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Founders Section</h3>
+        <label className={labelCls}>Section Badge</label>
+        <input value={data.foundersBadge} onChange={e => set('foundersBadge', e.target.value)} className={inputCls} />
+        <label className={labelCls}>Section Heading</label>
+        <input value={data.foundersHeading} onChange={e => set('foundersHeading', e.target.value)} className={inputCls} />
+        <div className="space-y-6 mt-4">
+          {data.founders.map((f: any, i: number) => (
+            <div key={i} className="p-5 bg-slate-700/40 rounded-2xl space-y-3 border border-white/10">
+              <p className="text-white font-bold text-sm">Founder {i + 1}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={labelCls}>Name</label><input value={f.name} onChange={e => updateFounder(i, 'name', e.target.value)} className={inputCls} /></div>
+                <div><label className={labelCls}>Role (pill)</label><input value={f.role} onChange={e => updateFounder(i, 'role', e.target.value)} className={inputCls} /></div>
+              </div>
+              <div><label className={labelCls}>Subtitle</label><input value={f.subtitle} onChange={e => updateFounder(i, 'subtitle', e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>Quote</label><textarea value={f.quote} onChange={e => updateFounder(i, 'quote', e.target.value)} rows={2} className={`${inputCls} resize-none`} /></div>
+              <div><label className={labelCls}>Bio</label><textarea value={f.bio} onChange={e => updateFounder(i, 'bio', e.target.value)} rows={3} className={`${inputCls} resize-none`} /></div>
+              <div><label className={labelCls}>Skills (comma separated)</label><input value={Array.isArray(f.skills) ? f.skills.join(', ') : f.skills} onChange={e => updateFounderSkills(i, e.target.value)} placeholder="Meta Ads, IT Sales, B.Tech CSE" className={inputCls} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={labelCls}>Badge 1 Value</label><input value={f.expValue} onChange={e => updateFounder(i, 'expValue', e.target.value)} placeholder="5+" className={inputCls} /></div>
+                <div><label className={labelCls}>Badge 1 Label</label><input value={f.expLabel} onChange={e => updateFounder(i, 'expLabel', e.target.value)} placeholder="Years in IT" className={inputCls} /></div>
+                <div><label className={labelCls}>Badge 2 Value</label><input value={f.expertiseValue} onChange={e => updateFounder(i, 'expertiseValue', e.target.value)} placeholder="Meta Ads" className={inputCls} /></div>
+                <div><label className={labelCls}>Badge 2 Label</label><input value={f.expertiseLabel} onChange={e => updateFounder(i, 'expertiseLabel', e.target.value)} placeholder="Expert" className={inputCls} /></div>
+              </div>
+              <div>
+                <label className={labelCls}>Photo</label>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all">
+                    <Upload className="w-4 h-4" /> Upload Photo
+                    <input type="file" hidden accept="image/*" onChange={e => e.target.files?.[0] && uploadPhoto(i, e.target.files[0])} />
+                  </label>
+                  <input value={f.photoUrl} onChange={e => updateFounder(i, 'photoUrl', e.target.value)} placeholder="/founder-rizwan.jpg or URL" className={`${inputCls} flex-1`} />
+                </div>
+                {f.photoUrl && <img src={f.photoUrl} className="mt-2 w-20 h-20 rounded-xl object-cover border border-white/20" />}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
+      {/* ── Earning Paths ── */}
       <div className={cardCls}>
-        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Mission</h3>
-        <label className={labelCls}>Mission Heading</label>
-        <input value={data.missionHeading} onChange={e => set('missionHeading', e.target.value)} className={inputCls} />
-        <label className={labelCls}>Mission Text</label>
-        <textarea value={data.missionText} onChange={e => set('missionText', e.target.value)} rows={4} className={`${inputCls} resize-none`} />
-      </div>
-
-      <div className={cardCls}>
-        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Team</h3>
-        <label className={labelCls}>Team Section Heading</label>
-        <input value={data.teamHeading} onChange={e => set('teamHeading', e.target.value)} className={inputCls} />
-        <div className="space-y-4 mt-4">
-          {data.team.map((m, i) => (
-            <TeamMemberCard
-              key={i}
-              index={i}
-              member={m}
-              onUpdate={(k, v) => updateTeam(i, k, v)}
-              onRemove={() => removeTeamMember(i)}
-            />
+        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">Earning Paths Section</h3>
+        <label className={labelCls}>Badge Text</label>
+        <input value={data.pathsBadge} onChange={e => set('pathsBadge', e.target.value)} className={inputCls} />
+        <label className={labelCls}>Section Heading</label>
+        <input value={data.pathsHeading} onChange={e => set('pathsHeading', e.target.value)} className={inputCls} />
+        <div className="grid sm:grid-cols-3 gap-3 mt-2">
+          {data.paths.map((p: any, i: number) => (
+            <div key={i} className="p-3 bg-slate-700/40 rounded-xl space-y-2 relative">
+              <button type="button" onClick={() => removePath(i)} className="absolute top-2 right-2 p-1 text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 className="w-3 h-3" /></button>
+              <input value={p.emoji} onChange={e => updatePath(i, 'emoji', e.target.value)} placeholder="💼" className={inputCls} />
+              <input value={p.title} onChange={e => updatePath(i, 'title', e.target.value)} placeholder="Title" className={inputCls} />
+              <input value={p.sub} onChange={e => updatePath(i, 'sub', e.target.value)} placeholder="Sub label" className={inputCls} />
+              <textarea value={p.desc} onChange={e => updatePath(i, 'desc', e.target.value)} rows={2} placeholder="Description" className={`${inputCls} resize-none`} />
+            </div>
           ))}
         </div>
-        <button type="button" onClick={addTeamMember}
-          className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 py-1.5 px-3 border border-dashed border-violet-500/40 rounded-xl w-full justify-center hover:border-violet-400 transition-colors">
-          <Plus className="w-3.5 h-3.5" /> Add Team Member
+        <button type="button" onClick={addPath} className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 py-1.5 px-3 border border-dashed border-violet-500/40 rounded-xl w-full justify-center hover:border-violet-400 transition-colors mt-2">
+          <Plus className="w-3.5 h-3.5" /> Add Path
         </button>
+      </div>
+
+      {/* ── CTA ── */}
+      <div className={cardCls}>
+        <h3 className="font-bold text-white text-sm border-b border-white/10 pb-3">CTA Section</h3>
+        <label className={labelCls}>Badge Text</label>
+        <input value={data.ctaBadge} onChange={e => set('ctaBadge', e.target.value)} className={inputCls} />
+        <label className={labelCls}>Heading</label>
+        <textarea value={data.ctaHeading} onChange={e => set('ctaHeading', e.target.value)} rows={2} className={`${inputCls} resize-none`} />
+        <label className={labelCls}>Description</label>
+        <textarea value={data.ctaDesc} onChange={e => set('ctaDesc', e.target.value)} rows={2} className={`${inputCls} resize-none`} />
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={labelCls}>Button 1 Text</label><input value={data.ctaBtn1Text} onChange={e => set('ctaBtn1Text', e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Button 1 Link</label><input value={data.ctaBtn1Href} onChange={e => set('ctaBtn1Href', e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Button 2 Text</label><input value={data.ctaBtn2Text} onChange={e => set('ctaBtn2Text', e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Button 2 Link</label><input value={data.ctaBtn2Href} onChange={e => set('ctaBtn2Href', e.target.value)} className={inputCls} /></div>
+        </div>
       </div>
 
       <SaveBtn onClick={save} saving={saving} label="Save About Page" />
