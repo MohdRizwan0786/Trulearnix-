@@ -174,6 +174,9 @@ function MarqueeCard({ v, onClick }: { v: Video; onClick: () => void }) {
       style={{ background: '#0d1020', border: '1px solid rgba(255,255,255,0.07)' }}
       onClick={onClick}>
       <div className="relative aspect-video" style={{ background: v.gradient }}>
+        {v.avatarUrl && (
+          <img src={v.avatarUrl} className="absolute inset-0 w-full h-full object-cover opacity-70" alt={v.name} />
+        )}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
             style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 0 0 6px rgba(255,255,255,0.12)' }}>
@@ -292,6 +295,9 @@ export default function WallOfLove() {
                 style={{ scrollSnapAlign:'start', background:'#0d1020', border:'1px solid rgba(255,255,255,0.08)' }}
                 onClick={() => setActive(v)}>
                 <div className="relative" style={{ paddingTop:'52%', background: v.gradient }}>
+                  {v.avatarUrl && (
+                    <img src={v.avatarUrl} className="absolute inset-0 w-full h-full object-cover opacity-70" alt={v.name} />
+                  )}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-11 h-11 rounded-full flex items-center justify-center"
                       style={{ background:'rgba(255,255,255,0.95)', boxShadow:'0 0 0 8px rgba(255,255,255,0.12)' }}>
