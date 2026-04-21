@@ -47,7 +47,7 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
 
     // Load the user's own package to get their package _id for matrix lookup
     const userPkg = user?.packageTier
-      ? await Package.findOne({ $or: [{ tier: user.packageTier }, { name: user.packageTier }], isActive: true })
+      ? await Package.findOne({ $or: [{ tier: new RegExp(`^${user.packageTier}$`, 'i') }, { name: user.packageTier }], isActive: true })
           .select('_id commissionRate commissionRateType commissionLevel2 commissionLevel2Type commissionLevel3 commissionLevel3Type')
       : null;
 
@@ -95,7 +95,7 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
       const matrixEntry = pkg.partnerEarnings?.find(
         (r: any) => userPkg && (
           r.earnerTier?.toString() === userPkg._id?.toString() ||
-          r.earnerTier === user?.packageTier
+          r.earnerTier?.toLowerCase() === user?.packageTier?.toLowerCase()
         )
       );
       const hasMatrix = matrixEntry && (matrixEntry.value > 0);
