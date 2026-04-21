@@ -5,7 +5,7 @@ import redisClient from '../config/redis';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { sendWhatsAppText } from '../services/whatsappMetaService';
-import { sendReferralWelcomeEmail, sendSponsorJoinAlert, sendPasswordResetEmail } from '../services/emailService';
+import { sendReferralWelcomeEmail, sendSponsorJoinAlert, sendPasswordResetEmail, sendOTPEmail } from '../services/emailService';
 
 function generateAutoPassword(): string {
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -40,13 +40,14 @@ export const register = async (req: Request, res: Response) => {
     await redisClient.setEx(`pending-reg:${tempId}`, 1800, regData);
     await redisClient.setEx(`otp:${tempId}`, 600, otp);
 
-    // Send OTP via WhatsApp
+    // Send OTP via WhatsApp and Email
     const waMsg = `🔐 Your TruLearnix OTP is: *${otp}*\n\nValid for 10 minutes. Do not share this with anyone.`;
     try { await sendWhatsAppText(phone, waMsg); } catch {}
+    try { await sendOTPEmail(email.toLowerCase().trim(), otp, name); } catch {}
 
     const response: any = {
       success: true,
-      message: 'OTP sent to your WhatsApp. Please verify to continue.',
+      message: 'OTP sent to your WhatsApp and email. Please verify to continue.',
       tempId,
     };
     if (process.env.NODE_ENV !== 'production') response._devOtp = otp;
@@ -175,7 +176,8 @@ export const resendOTP = async (req: Request, res: Response) => {
       const reg = JSON.parse(pendingRaw);
       const waMsg = `🔐 Your TruLearnix OTP is: *${otp}*\n\nValid for 10 minutes.`;
       try { await sendWhatsAppText(reg.phone, waMsg); } catch {}
-      const r: any = { success: true, message: 'OTP resent to WhatsApp' };
+      try { await sendOTPEmail(reg.email, otp, reg.name); } catch {}
+      const r: any = { success: true, message: 'OTP resent to WhatsApp and email' };
       if (process.env.NODE_ENV !== 'production') r._devOtp = otp;
       return res.json(r);
     }
@@ -185,6 +187,7 @@ export const resendOTP = async (req: Request, res: Response) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const waMsg = `🔐 Your TruLearnix OTP is: *${otp}*\n\nValid for 10 minutes.`;
     try { await sendWhatsAppText(user.phone, waMsg); } catch {}
+    try { await sendOTPEmail(user.email, otp, user.name); } catch {}
 
     const r2: any = { success: true, message: 'OTP resent' };
     if (process.env.NODE_ENV !== 'production') r2._devOtp = otp;
