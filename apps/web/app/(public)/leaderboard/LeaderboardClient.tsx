@@ -60,6 +60,7 @@ export default function LeaderboardClient({ initialData }: { initialData: any[] 
   const [filter, setFilter] = useState<FilterVal>('All')
   const [all, setAll] = useState<any[]>(initialData)
   const [loading, setLoading] = useState(false)
+  const [tierNameMap, setTierNameMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetchData = () => {
@@ -69,12 +70,24 @@ export default function LeaderboardClient({ initialData }: { initialData: any[] 
         .catch(() => {})
         .finally(() => setLoading(false))
     }
-
+    const fetchPkgs = () => {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages`)
+        .then(r => r.json())
+        .then(d => {
+          const map: Record<string, string> = {}
+          ;(d.packages || []).forEach((p: any) => { if (p.tier) map[p.tier.toLowerCase()] = p.name })
+          setTierNameMap(map)
+        })
+        .catch(() => {})
+    }
     if (initialData.length === 0) setLoading(true)
     fetchData()
-    const interval = setInterval(fetchData, 2 * 60 * 1000) // every 2 min
+    fetchPkgs()
+    const interval = setInterval(fetchData, 2 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
+
+  const getTierName = (t?: string) => t ? (tierNameMap[t.toLowerCase()] || t) : '—'
 
   const list = filter === 'All' ? all
     : filter === 'Industrial' ? all.filter((a: any) => a.isIndustrialPartner)
@@ -254,7 +267,7 @@ export default function LeaderboardClient({ initialData }: { initialData: any[] 
                     <div className="col-span-3 sm:col-span-2 flex flex-col gap-1.5">
                       <span className="text-[10px] font-black px-2.5 py-1 rounded-full w-fit"
                         style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.color}44` }}>
-                        {tier.label}
+                        {getTierName(e.tier)}
                       </span>
                       {e.isIndustrialPartner && (
                         <span className="text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 w-fit"

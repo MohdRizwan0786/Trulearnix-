@@ -79,7 +79,8 @@ function EmptyState({ period }: { period: string }) {
 }
 
 /* ── Podium Section ── */
-function PodiumSection({ top3, periodCfg }: { top3: any[]; periodCfg: typeof PERIODS[0] }) {
+function PodiumSection({ top3, periodCfg, tierNameMap }: { top3: any[]; periodCfg: typeof PERIODS[0]; tierNameMap?: Record<string, string> }) {
+  const getTierName = (t?: string) => t ? ((tierNameMap || {})[t.toLowerCase()] || t) : '—'
   if (top3.length < 1) return null
 
   // podium order: 2nd | 1st | 3rd
@@ -182,7 +183,7 @@ function PodiumSection({ top3, periodCfg }: { top3: any[]; periodCfg: typeof PER
                   <p className="text-white text-xs font-bold truncate leading-tight">{entry.name?.split(' ')[0]}</p>
                   <p className={`text-sm font-black ${cfg.color} mt-0.5`}>{fmtMoney(earnings)}</p>
                   <span className={`inline-flex text-[9px] font-semibold px-1.5 py-0.5 rounded-full border mt-1 ${t.badge}`}>
-                    {t.emoji} {t.label}
+                    {t.emoji} {getTierName(entry?.packageTier)}
                   </span>
                   {rank === 1 && (
                     <div className="flex items-center justify-center gap-1 mt-1">
@@ -217,6 +218,14 @@ export default function LeaderboardPage() {
     queryFn: () => partnerAPI.leaderboard(period).then(r => r.data),
     staleTime: 60000,
   })
+  const { data: pkgsData } = useQuery({
+    queryKey: ['packages-list'],
+    queryFn: () => fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages`).then(r => r.json()),
+    staleTime: 10 * 60 * 1000,
+  })
+  const tierNameMap: Record<string, string> = {}
+  ;(pkgsData?.packages || []).forEach((p: any) => { if (p.tier) tierNameMap[p.tier.toLowerCase()] = p.name })
+  const getTierName = (t?: string) => t ? (tierNameMap[t.toLowerCase()] || t) : '—'
 
   const leaderboard: any[] = data?.leaderboard || []
   const myRank: number = data?.myRank || 0
@@ -378,7 +387,7 @@ export default function LeaderboardPage() {
         <>
           {/* ── Podium ── */}
           {top3.length >= 1 && (
-            <PodiumSection top3={top3} periodCfg={periodCfg} />
+            <PodiumSection top3={top3} periodCfg={periodCfg} tierNameMap={tierNameMap} />
           )}
 
           {/* ── Full Rankings List ── */}
@@ -485,7 +494,7 @@ export default function LeaderboardPage() {
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${t.badge}`}>
-                            {t.emoji} {t.label}
+                            {t.emoji} {getTierName(p?.packageTier)}
                           </span>
                           {(p.totalReferrals || 0) > 0 && (
                             <span className="text-dark-500 text-[10px]">{p.totalReferrals} referrals</span>
