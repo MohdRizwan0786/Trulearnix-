@@ -90,7 +90,7 @@ router.delete('/media/:id', protect, authorize('admin', 'superadmin'), async (re
   try {
     const file = await MediaFile.findByIdAndDelete(req.params.id);
     if (file?.filename) {
-      const filePath = `/var/www/trulearnix/uploads/${file.filename}`;
+      const filePath = `/var/www/trulearnix-qa/uploads/${file.filename}`;
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
     res.json({ success: true, message: 'File deleted' });

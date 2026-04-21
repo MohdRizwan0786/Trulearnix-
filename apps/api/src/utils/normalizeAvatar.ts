@@ -1,4 +1,4 @@
-const UPLOADS_BASE = 'https://api.trulearnix.com/uploads';
+const UPLOADS_BASE = `${process.env.API_URL || 'https://api.trulearnix.com'}/uploads`;
 
 export function normalizeAvatar(avatar: string | null | undefined): string {
   if (!avatar) return '';

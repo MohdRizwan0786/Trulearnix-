@@ -10,7 +10,7 @@ import { EgressClient, EncodedFileType, RoomServiceClient } from 'livekit-server
 import Course from '../models/Course';
 import Webinar from '../models/Webinar';
 
-const recordingsDir = '/var/www/trulearnix/uploads/recordings';
+const recordingsDir = '/var/www/trulearnix-qa/uploads/recordings';
 if (!fs.existsSync(recordingsDir)) fs.mkdirSync(recordingsDir, { recursive: true });
 
 const recordingUpload = multer({
@@ -196,7 +196,7 @@ const stopClassEgress = async (cls: any) => {
     try {
       await Course.updateOne(
         { _id: cls.course, 'modules.lessons._id': (cls as any).lessonId },
-        { $set: { 'modules.$[].lessons.$[l].videoUrl': `${process.env.API_BASE_URL || 'https://api.trulearnix.com'}${recordingUrl}` } },
+        { $set: { 'modules.$[].lessons.$[l].videoUrl': `${process.env.API_URL || 'https://api.trulearnix.com'}${recordingUrl}` } },
         { arrayFilters: [{ 'l._id': (cls as any).lessonId }] }
       );
     } catch (linkErr) {
