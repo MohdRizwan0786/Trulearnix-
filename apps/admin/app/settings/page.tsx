@@ -29,7 +29,7 @@ export default function SettingsPage() {
     }).finally(() => setLoading(false))
   }, [])
 
-  const toggle = async (key: 'maintenanceMode' | 'trulanceMaintenance' | 'earlyAccessEnabled') => {
+  const toggle = async (key: 'maintenanceMode' | 'trulanceMaintenance' | 'earlyAccessEnabled' | 'emiEnabled') => {
     if (!settings) return
     const newVal = !settings[key]
     setSaving(key)
@@ -41,6 +41,7 @@ export default function SettingsPage() {
           maintenanceMode: newVal ? 'Maintenance ON' : 'Maintenance OFF',
           trulanceMaintenance: newVal ? 'Trulancer Maintenance ON' : 'Trulancer Maintenance OFF',
           earlyAccessEnabled: newVal ? 'Early Access enabled' : 'Early Access disabled',
+          emiEnabled: newVal ? 'EMI enabled' : 'EMI disabled',
         }
         toast.success(labels[key])
       }
@@ -169,6 +170,17 @@ export default function SettingsPage() {
           color="blue"
         />
 
+        {/* EMI */}
+        <MaintenanceCard
+          icon={<span className="text-base">📅</span>}
+          title="EMI / Installments"
+          subtitle="Show EMI payment option on checkout and sales order pages"
+          active={!!settings?.emiEnabled}
+          loading={saving === 'emiEnabled'}
+          onToggle={() => toggle('emiEnabled')}
+          color="green"
+        />
+
         {/* Early Access */}
         <div className={`border rounded-2xl p-5 transition-all duration-300 ${settings?.earlyAccessEnabled ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-white/10 bg-slate-800/60'}`}>
           <div className="flex items-center justify-between">
@@ -290,11 +302,12 @@ function MaintenanceCard({ icon, title, subtitle, active, loading, onToggle, col
   active: boolean
   loading: boolean
   onToggle: () => void
-  color: 'orange' | 'blue'
+  color: 'orange' | 'blue' | 'green'
 }) {
   const colors = {
     orange: { border: active ? 'border-orange-500/40' : 'border-white/10', bg: active ? 'bg-orange-500/10' : 'bg-slate-800/60', dot: 'bg-orange-400', badge: 'bg-orange-500/20 text-orange-400', toggle: 'text-orange-400' },
     blue: { border: active ? 'border-blue-500/40' : 'border-white/10', bg: active ? 'bg-blue-500/10' : 'bg-slate-800/60', dot: 'bg-blue-400', badge: 'bg-blue-500/20 text-blue-400', toggle: 'text-blue-400' },
+    green: { border: active ? 'border-green-500/40' : 'border-white/10', bg: active ? 'bg-green-500/10' : 'bg-slate-800/60', dot: 'bg-green-400', badge: 'bg-green-500/20 text-green-400', toggle: 'text-green-400' },
   }
   const c = colors[color]
 
