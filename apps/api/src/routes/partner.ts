@@ -93,7 +93,10 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
     // Build per-package commission for this partner's tier using partnerEarnings matrix
     const packageCommissions = allPackages.map((pkg: any) => {
       const matrixEntry = pkg.partnerEarnings?.find(
-        (r: any) => userPkg && r.earnerTier?.toString() === userPkg._id?.toString()
+        (r: any) => userPkg && (
+          r.earnerTier?.toString() === userPkg._id?.toString() ||
+          r.earnerTier === user?.packageTier
+        )
       );
       const hasMatrix = matrixEntry && (matrixEntry.value > 0);
       let commission = 0;

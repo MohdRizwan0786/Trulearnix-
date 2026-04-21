@@ -223,8 +223,10 @@ function IncomeMatrix({ packages }: { packages: any[] }) {
                     </span>
                   </td>
                   {packages.map((sold, si) => {
-                    // find earner's commission row in this sold package
-                    const row = (sold.partnerEarnings || []).find((pe: any) => pe.earnerTier === earner._id)
+                    // find earner's commission row in this sold package (earnerTier may be _id or tier slug)
+                    const row = (sold.partnerEarnings || []).find((pe: any) =>
+                      pe.earnerTier === earner._id || pe.earnerTier === earner.tier || pe.earnerTier === earner.name
+                    )
                     const amount = row ? calcComm(sold.price, row.type, row.value) : 0
                     const sp = getPalette(si)
                     return (
