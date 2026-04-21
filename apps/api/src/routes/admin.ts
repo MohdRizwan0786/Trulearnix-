@@ -863,7 +863,7 @@ router.patch('/withdrawals/:id/hr-approve', async (req: any, res) => {
               `🔖 *Transaction ID:* ${txId}\n` +
               `📅 *Date & Time:* ${dateStr}\n` +
               `📊 TDS (2%): ₹${w.tdsAmount.toLocaleString('en-IN')} | Gateway: ₹${w.gatewayFee.toFixed(2)}\n\n` +
-              `Amount credited to your registered bank account.\n\nFor queries: support@peptly.in`;
+              `Amount credited to your registered bank account.\n\nFor queries: support@trulearnix.com`;
             await sendWhatsAppText(partner.phone, msg).catch(() => {});
           }
         }
@@ -946,7 +946,7 @@ router.patch('/withdrawals/:id/complete', async (req: any, res) => {
             `🔖 *Transaction ID:* ${txId}\n` +
             `📅 *Date & Time:* ${dateStr}\n` +
             `📊 TDS (2%): ₹${withdrawal.tdsAmount.toLocaleString('en-IN')} | Gateway: ₹${withdrawal.gatewayFee.toFixed(2)}\n\n` +
-            `Amount credited to your registered bank account.\n\nFor queries: support@peptly.in`;
+            `Amount credited to your registered bank account.\n\nFor queries: support@trulearnix.com`;
           await sendWhatsAppText(partner.phone, msg).catch(() => {});
         }
       } catch {}
@@ -2337,7 +2337,7 @@ router.patch('/mentor-salaries/:id/mark-paid', async (req: any, res) => {
             `💰 *Net Amount:* ₹${salary.netAmount.toLocaleString('en-IN')}\n` +
             `📊 Gross: ₹${salary.amount.toLocaleString('en-IN')} | TDS (${salary.tdsRate}%): ₹${salary.tds.toLocaleString('en-IN')}\n` +
             (salary.workingDays > 0 ? `📅 Attendance: Present ${salary.presentDays} | Absent ${salary.absentDays} | Half-day ${salary.halfDays} | Holiday ${salary.holidayDays}\n` : '') +
-            `🗓️ Slip: ${salary.slipNo}\n\nFor queries: hr@peptly.in`;
+            `🗓️ Slip: ${salary.slipNo}\n\nFor queries: hr@trulearnix.com`;
           await sendWhatsAppText(mentor.phone, msg).catch(() => {});
         }
       } catch {}
@@ -2508,7 +2508,7 @@ router.patch('/employee-salaries/:id/mark-paid', async (req: any, res) => {
             `💰 *Net Amount:* ₹${salary.netAmount.toLocaleString('en-IN')}\n` +
             `📊 Gross: ₹${salary.grossAmount.toLocaleString('en-IN')} | TDS (${salary.tdsRate}%): ₹${salary.tds.toLocaleString('en-IN')}\n` +
             (salary.workingDays > 0 ? `📅 Attendance: Present ${salary.presentDays} | Absent ${salary.absentDays} | Half-day ${salary.halfDays} | Holiday ${salary.holidayDays}\n` : '') +
-            `🗓️ Slip: ${salary.slipNo}\n\nFor queries: hr@peptly.in`;
+            `🗓️ Slip: ${salary.slipNo}\n\nFor queries: hr@trulearnix.com`;
           await sendWhatsAppText(emp.phone, msg).catch(() => {});
         }
       } catch {}

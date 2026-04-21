@@ -46,7 +46,7 @@ export async function activateOrder(order: any, paymentMethod = 'manual', mercha
     const emiBase = order.totalAmount - tokenPaid;
     const instAmt = Math.ceil(emiBase / emiTotal);
     const perInstComm = order.commissionAmount > 0 ? Math.floor(order.commissionAmount / emiTotal) : 0;
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const purchaseDate = new Date();
 
     let managerUserId: any = null;
@@ -125,13 +125,13 @@ export async function activateOrder(order: any, paymentMethod = 'manual', mercha
     const cust = await User.findById(order.userId).select('name email phone');
     if (cust) {
       const pkgName = pkg.name || pkg.tier || 'Package';
-      const loginEmail = (cust as any).email?.endsWith('@sales.peptly.in') ? `Phone: ${(cust as any).phone}` : (cust as any).email;
+      const loginEmail = (cust as any).email?.endsWith('@sales.trulearnix.com') ? `Phone: ${(cust as any).phone}` : (cust as any).email;
       const tempPass = order.customerTempPassword || '';
       try { await sendPurchaseWelcomeEmail((cust as any).email, (cust as any).name, pkgName, loginEmail, tempPass); } catch {}
       if (tempPass) await SalesOrder.findByIdAndUpdate(order._id, { $unset: { customerTempPassword: 1 } });
       try {
         const passLine = tempPass ? `\nPassword: ${tempPass}` : '';
-        const msg = `Hi ${(cust as any).name}! 🎉 Your ${pkgName} at TruLearnix is now active.\nLogin: peptly.in/login\nEmail: ${loginEmail}${passLine}\n- Team TruLearnix`;
+        const msg = `Hi ${(cust as any).name}! 🎉 Your ${pkgName} at TruLearnix is now active.\nLogin: trulearnix.com/login\nEmail: ${loginEmail}${passLine}\n- Team TruLearnix`;
         await sendWhatsAppText((cust as any).phone, msg);
       } catch {}
     }

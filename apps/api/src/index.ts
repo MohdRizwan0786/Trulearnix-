@@ -61,9 +61,9 @@ const app = express();
 const server = http.createServer(app);
 
 const allowedOrigins = [
-  process.env.WEB_URL || 'https://peptly.in',
-  process.env.ADMIN_URL || 'https://admin.peptly.in',
-  'https://trulance.peptly.in',
+  process.env.WEB_URL || 'https://trulearnix.com',
+  process.env.ADMIN_URL || 'https://admin.trulearnix.com',
+  'https://trulancer.trulearnix.com',
   'http://localhost:3000',
   'http://localhost:3002',
   'http://localhost:3003',

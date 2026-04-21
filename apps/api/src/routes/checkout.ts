@@ -514,7 +514,7 @@ router.post('/verify', protect, async (req: any, res) => {
             : purchase.amount + purchase.gstAmount;
           const totalAmt = emiBase;
           const installmentAmt = Math.ceil(totalAmt / EMI_TOTAL);
-          const webUrl = process.env.WEB_URL || 'https://peptly.in';
+          const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
           const now = new Date();
 
           let partnerUserId: any = null;

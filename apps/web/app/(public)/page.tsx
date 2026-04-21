@@ -16,7 +16,7 @@ import Footer from '@/components/layout/Footer'
 
 async function fetchLeaderboard() {
   try {
-    const res = await fetch('http://localhost:5000/api/affiliate/leaderboard', { next: { revalidate: 1800 } })
+    const res = await fetch(`${process.env.INTERNAL_API_URL || 'http://localhost:5010'}/api/affiliate/leaderboard`, { next: { revalidate: 1800 } })
     const data = await res.json()
     return data.leaderboard?.slice(0, 6) || []
   } catch {

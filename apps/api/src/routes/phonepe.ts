@@ -204,7 +204,7 @@ router.post('/guest-course', async (req: any, res) => {
 
     // PhonePe order
     const merchantOrderId = `TL_${Date.now()}_${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const redirectUrl = `${webUrl}/checkout/phonepe-status?orderId=${merchantOrderId}&type=course&courseId=${courseId}&isEmi=false`;
 
     const client = getClient();
@@ -342,7 +342,7 @@ router.post('/guest-package', async (req: any, res) => {
     }
 
     const merchantOrderId = `TL_${Date.now()}_${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const redirectUrl = `${webUrl}/checkout/phonepe-status?orderId=${merchantOrderId}&type=package&tier=${pkgTier}&isEmi=${isEmiOrder}&paymentType=${paymentType}`;
 
     const msgSuffix = paymentType === 'emi' ? ` — Installment 1 of ${EMI_MONTHS}` : paymentType.startsWith('token') ? ' — Token/Advance' : '';
@@ -467,7 +467,7 @@ router.post('/create-order', protect, async (req: any, res) => {
     }
 
     const merchantOrderId = `TL_${Date.now()}_${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const resolvedTier = (req as any)._resolvedTier || tier;
     const redirectUrl = `${webUrl}/checkout/phonepe-status?orderId=${merchantOrderId}&type=${type}${resolvedTier ? `&tier=${resolvedTier}` : ''}${courseId ? `&courseId=${courseId}` : ''}&isEmi=${isEmiOrder2}&paymentType=${paymentType2}`;
 
@@ -575,7 +575,7 @@ router.get('/status/:merchantOrderId', protect, async (req: any, res) => {
           ? Math.max(0, ((purchase as any).fullPackagePrice || 0) - ((purchase as any).tokenAmount || 0))
           : purchase.amount + purchase.gstAmount;
         emiInstallmentAmt = Math.ceil(emiBase / EMI_MONTHS);
-        const webUrl = process.env.WEB_URL || 'https://peptly.in';
+        const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
         const now = new Date();
 
         const promoCodeStr = purchase.affiliateCode || (promoCode as string) || '';
@@ -831,7 +831,7 @@ router.post('/emi/pay', protect, async (req: any, res) => {
     }
 
     const merchantOrderId = `TL_EMI_${installmentId}_${Date.now()}`;
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const redirectUrl = `${webUrl}/checkout/phonepe-emi-status?installmentId=${installmentId}&orderId=${merchantOrderId}`;
 
     const client = getClient();
@@ -948,7 +948,7 @@ router.post('/emi/pay-wallet', protect, async (req: any, res) => {
     await installment.save();
 
     const merchantOrderId = `TL_EMI_${installmentId}_${Date.now()}`;
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const redirectUrl = `${webUrl}/checkout/phonepe-emi-status?installmentId=${installmentId}&orderId=${merchantOrderId}`;
 
     const client = getClient();
@@ -1052,7 +1052,7 @@ router.get('/emi/pay-link/:installmentId', async (req: any, res) => {
 
     // Create a fresh PhonePe order for this installment
     const merchantOrderId = `TL_EMI_${installmentId}_${Date.now()}`;
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const redirectUrl = `${webUrl}/checkout/phonepe-emi-status?installmentId=${installmentId}&orderId=${merchantOrderId}`;
 
     const client = getClient();

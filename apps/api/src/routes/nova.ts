@@ -639,7 +639,7 @@ async function runEmiReminders() {
   try {
     const EmiInstallment = (await import('../models/EmiInstallment')).default;
     const { sendPurchaseWelcomeEmail } = await import('../services/emailService');
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
 
     const now = new Date();
 

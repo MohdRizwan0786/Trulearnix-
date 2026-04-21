@@ -99,7 +99,7 @@ export const deleteFromS3 = async (key: string) => {
 
 export const getSignedVideoUrl = async (key: string, _expiresIn = 3600): Promise<string> => {
   if (R2_PUBLIC_URL) return `${R2_PUBLIC_URL}/${key}`;
-  return `${process.env.API_URL || 'https://api.peptly.in'}/uploads/${key}`;
+  return `${process.env.API_URL || 'https://api.trulearnix.com'}/uploads/${key}`;
 };
 
 const RECORDINGS_DIR = '/var/www/trulearnix/uploads/recordings';
