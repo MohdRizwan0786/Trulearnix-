@@ -219,6 +219,7 @@ export const adminAPI = {
   addExpense: (data: any) => api.post('/finance/expenses', data),
   deleteExpense: (id: string) => api.delete(`/finance/expenses/${id}`),
   financeChart: (period?: string) => api.get('/finance/revenue-chart', { params: { period } }),
+  financeCommissions: (params?: any) => api.get('/finance/commissions', { params }),
 
   // Marketing
   marketingOverview: () => api.get('/marketing/overview'),

@@ -5,7 +5,7 @@ import { uploadToS3, processAndSaveUpload } from '../services/s3Service';
 import MediaFile from '../models/MediaFile';
 
 const router = Router();
-const API_URL = process.env.API_URL || 'https://api.peptly.in';
+const API_URL = process.env.API_URL || 'https://api.trulearnix.com';
 
 function getType(mime: string): 'image' | 'video' | 'document' {
   if (mime.startsWith('image/')) return 'image';

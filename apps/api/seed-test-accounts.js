@@ -11,8 +11,8 @@ const fs       = require('fs');
 const path     = require('path');
 
 const MONGO_URI = 'mongodb://localhost:27017/trulearnix';
-const WEB_URL   = 'https://peptly.in';
-const ADMIN_URL = 'https://admin.peptly.in';
+const WEB_URL   = 'https://trulearnix.com';
+const ADMIN_URL = 'https://admin.trulearnix.com';
 
 // ── User Schema (minimal for seeding) ────────────────────────────────────────
 const UserSchema = new mongoose.Schema({

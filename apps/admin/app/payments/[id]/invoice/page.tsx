@@ -10,7 +10,7 @@ const COMPANY = {
   address: '891/E 22, Second Floor, F/S Zakir Nagar,\nJamia Nagar, New Delhi – 110025, Delhi, India',
   email: 'official@trulearnix.com',
   phone: '+91 8979616798',
-  website: 'peptly.in',
+  website: 'trulearnix.com',
 }
 
 function fmt(n: number) {

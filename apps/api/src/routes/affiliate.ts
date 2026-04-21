@@ -148,6 +148,7 @@ router.get('/leaderboard', async (_req, res) => {
       User.find({
         $or: [{ isAffiliate: true }, { isIndustrialPartner: true }],
         isActive: true,
+        role: { $nin: ['admin', 'superadmin', 'manager', 'mentor', 'salesperson'] },
       })
         .select('name packageTier totalEarnings industrialEarning isIndustrialPartner industrialEarningSource streak xpPoints level')
         .limit(200),

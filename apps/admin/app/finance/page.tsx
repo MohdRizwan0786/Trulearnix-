@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 
-type Tab = 'overview' | 'pnl' | 'gst' | 'tds' | 'expenses' | 'purchases'
+type Tab = 'overview' | 'pnl' | 'gst' | 'tds' | 'expenses' | 'purchases' | 'commissions'
 
 const fmt = (n: number) => `₹${Math.abs(n).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
 const fmtShort = (n: number) => {
@@ -129,7 +129,7 @@ export default function FinanceDashboard() {
   const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>(() => {
     const t = searchParams?.get('tab') as Tab
-    return (['overview','pnl','gst','tds','expenses','purchases'] as Tab[]).includes(t) ? t : 'overview'
+    return (['overview','pnl','gst','tds','expenses','purchases','commissions'] as Tab[]).includes(t) ? t : 'overview'
   })
   const [period, setPeriod] = useState('all')
   const [chartPeriod, setChartPeriod] = useState('30d')
@@ -144,6 +144,11 @@ export default function FinanceDashboard() {
   const [purchaseFrom, setPurchaseFrom] = useState('')
   const [purchaseTo, setPurchaseTo] = useState('')
   const [exportingCsv, setExportingCsv] = useState(false)
+  const [commPage, setCommPage] = useState(1)
+  const [commStatus, setCommStatus] = useState('')
+  const [commSearch, setCommSearch] = useState('')
+  const [commFrom, setCommFrom] = useState('')
+  const [commTo, setCommTo] = useState('')
   const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [expForm, setExpForm] = useState({
     title:'', category:'server', amount:'', gstPaid:'',
@@ -195,6 +200,12 @@ export default function FinanceDashboard() {
     queryKey: ['admin-purchases-finance', purchaseParams],
     queryFn: () => adminAPI.purchases(purchaseParams).then(r => r.data),
     enabled: tab === 'purchases',
+  })
+  const commParams = { page: commPage, limit: 20, status: commStatus || undefined, from: commFrom || undefined, to: commTo || undefined, search: commSearch || undefined }
+  const { data: commData, isLoading: loadingComm } = useQuery({
+    queryKey: ['finance-commissions', commParams],
+    queryFn: () => adminAPI.financeCommissions(commParams).then(r => r.data),
+    enabled: tab === 'commissions',
   })
 
   const exportCsv = async () => {
@@ -292,6 +303,7 @@ export default function FinanceDashboard() {
     { id: 'tds', label: 'TDS', icon: ShieldCheck },
     { id: 'expenses', label: 'Expenses', icon: Receipt },
     { id: 'purchases', label: 'Purchases', icon: ShoppingCart },
+    { id: 'commissions', label: 'Commissions', icon: Coins },
   ]
 
   return (
@@ -845,6 +857,134 @@ export default function FinanceDashboard() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* ── COMMISSIONS TAB ─────────────────────────────────────────────────── */}
+        {tab === 'commissions' && (
+          <div className="space-y-4">
+            {/* Summary Cards */}
+            {commData?.summary && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="bg-gray-900 border border-white/10 rounded-2xl p-4">
+                  <p className="text-gray-500 text-xs">Total Commission</p>
+                  <p className="text-white font-bold text-lg mt-1">{fmtShort(commData.summary.totalCommission)}</p>
+                  <p className="text-gray-600 text-xs">{commData.summary.count} records</p>
+                </div>
+                <div className="bg-gray-900 border border-white/10 rounded-2xl p-4">
+                  <p className="text-gray-500 text-xs">Approved Amount</p>
+                  <p className="text-emerald-400 font-bold text-lg mt-1">{fmtShort(commData.summary.approvedAmount)}</p>
+                </div>
+                <div className="bg-gray-900 border border-white/10 rounded-2xl p-4">
+                  <p className="text-gray-500 text-xs">Pending Amount</p>
+                  <p className="text-amber-400 font-bold text-lg mt-1">{fmtShort(commData.summary.pendingAmount)}</p>
+                </div>
+                <div className="bg-gray-900 border border-white/10 rounded-2xl p-4">
+                  <p className="text-gray-500 text-xs">TDS (2%)</p>
+                  <p className="text-red-400 font-bold text-lg mt-1">{fmtShort(commData.summary.tdsAmount)}</p>
+                </div>
+                <div className="bg-gray-900 border border-white/10 rounded-2xl p-4">
+                  <p className="text-gray-500 text-xs">Net Payable</p>
+                  <p className="text-violet-400 font-bold text-lg mt-1">{fmtShort(commData.summary.netPayable)}</p>
+                </div>
+              </div>
+            )}
+            {/* Filters */}
+            <div className="bg-gray-900 border border-white/10 rounded-2xl p-4">
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="relative flex-1 min-w-48">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input type="text" placeholder="Search partner or buyer..." value={commSearch}
+                    onChange={e => { setCommSearch(e.target.value); setCommPage(1) }}
+                    className="w-full bg-gray-800 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500" />
+                </div>
+                <select value={commStatus} onChange={e => { setCommStatus(e.target.value); setCommPage(1) }}
+                  className="bg-gray-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500">
+                  <option value="">All Status</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+                <input type="date" value={commFrom} onChange={e => { setCommFrom(e.target.value); setCommPage(1) }}
+                  className="bg-gray-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500" />
+                <input type="date" value={commTo} onChange={e => { setCommTo(e.target.value); setCommPage(1) }}
+                  className="bg-gray-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500" />
+                {(commStatus || commFrom || commTo || commSearch) && (
+                  <button onClick={() => { setCommStatus(''); setCommFrom(''); setCommTo(''); setCommSearch(''); setCommPage(1) }}
+                    className="flex items-center gap-1 px-3 py-2 bg-red-500/15 border border-red-500/25 text-red-400 text-xs rounded-xl">
+                    <X className="w-3.5 h-3.5" /> Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            {/* Table */}
+            <div className="bg-gray-900 border border-white/10 rounded-2xl overflow-hidden">
+              {loadingComm ? (
+                <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-violet-400" /></div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="px-4 py-3 text-left text-gray-500 text-xs font-medium">Partner (Earner)</th>
+                          <th className="px-4 py-3 text-left text-gray-500 text-xs font-medium">Buyer</th>
+                          <th className="px-4 py-3 text-left text-gray-500 text-xs font-medium">Package</th>
+                          <th className="px-4 py-3 text-right text-gray-500 text-xs font-medium">Sale Amt</th>
+                          <th className="px-4 py-3 text-right text-gray-500 text-xs font-medium">Commission</th>
+                          <th className="px-4 py-3 text-center text-gray-500 text-xs font-medium">Rate</th>
+                          <th className="px-4 py-3 text-center text-gray-500 text-xs font-medium">Status</th>
+                          <th className="px-4 py-3 text-right text-gray-500 text-xs font-medium">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {(commData?.commissions || []).map((c: any) => (
+                          <tr key={c._id} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-white text-xs">{c.earner?.name || '—'}</div>
+                              <div className="text-gray-500 text-xs">{c.earner?.email}</div>
+                              <div className="text-violet-400 text-xs">{c.earner?.packageTier}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-white text-xs">{c.buyer?.name || '—'}</div>
+                              <div className="text-gray-500 text-xs">{c.buyer?.email}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded-full">{c.buyerPackageTier || c.earnerTier || '—'}</span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-white text-xs">{fmt(c.saleAmount || 0)}</td>
+                            <td className="px-4 py-3 text-right text-emerald-400 font-semibold text-xs">{fmt(c.commissionAmount || 0)}</td>
+                            <td className="px-4 py-3 text-center text-xs text-amber-300">{c.earnerCommissionRate || c.levelRate || 0}%</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${c.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300' : c.status === 'paid' ? 'bg-blue-500/20 text-blue-300' : c.status === 'pending' ? 'bg-amber-500/20 text-amber-300' : 'bg-red-500/20 text-red-300'}`}>
+                                {c.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-500 text-xs">{c.createdAt ? format(new Date(c.createdAt), 'dd MMM yy') : '—'}</td>
+                          </tr>
+                        ))}
+                        {(commData?.commissions || []).length === 0 && (
+                          <tr><td colSpan={8} className="text-center py-12 text-gray-600">No commissions found</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {commData?.total > 0 && (
+                    <div className="flex items-center justify-between px-5 py-3 border-t border-white/10">
+                      <p className="text-gray-500 text-xs">Showing {Math.min((commPage-1)*20+1, commData.total)}–{Math.min(commPage*20, commData.total)} of {commData.total}</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => setCommPage(p => Math.max(1,p-1))} disabled={commPage===1}
+                          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 text-xs disabled:opacity-40 hover:bg-white/10">Prev</button>
+                        <span className="px-3 py-1.5 text-gray-400 text-xs">Page {commPage} / {Math.ceil(commData.total/20)}</span>
+                        <button onClick={() => setCommPage(p => p+1)} disabled={commPage*20 >= commData.total}
+                          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 text-xs disabled:opacity-40 hover:bg-white/10">Next</button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
 

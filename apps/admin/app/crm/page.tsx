@@ -42,7 +42,7 @@ const scoreColor = (score: number) => {
 const scoreLabel = (score: number) => score >= 70 ? 'Hot' : score >= 40 ? 'Warm' : 'Cold'
 
 const META_WEBHOOK_URL = 'https://api.trulearnix.com/api/crm/webhook/meta'
-const META_VERIFY_TOKEN = 'peptly_meta_crm_2024'
+const META_VERIFY_TOKEN = 'trulearnix_meta_crm_2024'
 
 export default function CRMPage() {
   const qc = useQueryClient()

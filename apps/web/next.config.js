@@ -3,7 +3,10 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.amazonaws.com' },
-      { protocol: 'https', hostname: 'trulearnix-media.s3.ap-south-1.amazonaws.com' }
+      { protocol: 'https', hostname: 'trulearnix-media.s3.ap-south-1.amazonaws.com' },
+      { protocol: 'https', hostname: 'api.trulearnix.com' },
+      { protocol: 'https', hostname: 'qa-api.trulearnix.com' },
+      { protocol: 'https', hostname: '*.r2.dev' }
     ]
   },
   env: {

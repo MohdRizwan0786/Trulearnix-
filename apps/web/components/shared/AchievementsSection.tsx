@@ -126,7 +126,7 @@ export default function AchievementsSection() {
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/achievements`)
       .then(r => r.json())
-      .then(r => { if (r.success && r.data?.data) setData(r.data.data) })
+      .then(r => { if (r.success && r.data) setData(r.data) })
       .catch(() => {})
   }, [])
 
@@ -136,10 +136,12 @@ export default function AchievementsSection() {
   const photos = data.photos || []
   const stats = data.stats || []
 
-  // Duplicate for marquee
-  const row1 = [...awards.slice(0, Math.ceil(awards.length / 2)), ...awards.slice(0, Math.ceil(awards.length / 2))]
-  const row2 = [...awards.slice(Math.ceil(awards.length / 2)), ...awards.slice(Math.ceil(awards.length / 2))]
-  const photoLoop = [...photos, ...photos]
+  // Duplicate for marquee — only when enough items to fill screen
+  const half1 = awards.slice(0, Math.ceil(awards.length / 2))
+  const half2 = awards.slice(Math.ceil(awards.length / 2))
+  const row1 = half1.length >= 3 ? [...half1, ...half1] : half1
+  const row2 = half2.length >= 3 ? [...half2, ...half2] : half2
+  const photoLoop = photos.length >= 3 ? [...photos, ...photos] : photos
 
   return (
     <section className="relative py-8 sm:py-12 overflow-hidden" style={{ background: '#04050a' }}>
@@ -219,15 +221,21 @@ export default function AchievementsSection() {
             <div className="h-px flex-1 max-w-[80px]" style={{ background: 'linear-gradient(270deg, transparent, rgba(255,255,255,0.1))' }} />
           </div>
 
-          <div className="relative overflow-hidden">
-            <div className="absolute inset-y-0 left-0 w-20 sm:w-32 z-20 pointer-events-none"
-              style={{ background: 'linear-gradient(90deg, #04050a 0%, transparent 100%)' }} />
-            <div className="absolute inset-y-0 right-0 w-20 sm:w-32 z-20 pointer-events-none"
-              style={{ background: 'linear-gradient(270deg, #04050a 0%, transparent 100%)' }} />
-            <div className="marquee-fwd py-3" style={{ animationDuration: '30s' }}>
-              {photoLoop.map((photo, i) => <PhotoCard key={i} photo={photo} />)}
+          {photos.length >= 3 ? (
+            <div className="relative overflow-hidden">
+              <div className="absolute inset-y-0 left-0 w-20 sm:w-32 z-20 pointer-events-none"
+                style={{ background: 'linear-gradient(90deg, #04050a 0%, transparent 100%)' }} />
+              <div className="absolute inset-y-0 right-0 w-20 sm:w-32 z-20 pointer-events-none"
+                style={{ background: 'linear-gradient(270deg, #04050a 0%, transparent 100%)' }} />
+              <div className="marquee-fwd py-3" style={{ animationDuration: '30s' }}>
+                {photoLoop.map((photo, i) => <PhotoCard key={i} photo={photo} />)}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex justify-center gap-6 px-4 py-3 flex-wrap">
+              {photos.map((photo, i) => <PhotoCard key={i} photo={photo} />)}
+            </div>
+          )}
         </motion.div>
       )}
 

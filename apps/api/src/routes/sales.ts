@@ -233,7 +233,7 @@ router.post('/orders', ...guard, async (req: any, res) => {
 
       customerUser = new User({
         name: customer.name,
-        email: customer.email || `${customer.phone}@sales.peptly.in`,
+        email: customer.email || `${customer.phone}@sales.trulearnix.com`,
         phone: customer.phone,
         password: tempPass,
         role: 'student',
@@ -355,7 +355,7 @@ router.post('/orders/:id/payment-link', ...guard, async (req: any, res) => {
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
     // Generate a simple shareable link (can be enhanced with Razorpay payment links)
-    const baseUrl = process.env.WEB_URL || 'https://peptly.in';
+    const baseUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const paymentLink = `${baseUrl}/pay/order/${order._id}`;
     const expiry = new Date();
     expiry.setDate(expiry.getDate() + 7);
@@ -376,7 +376,7 @@ router.get('/link', ...guard, async (req: any, res) => {
     const user = await User.findById(req.user._id).select('affiliateCode name');
     const packages = await Package.find({ isActive: true }).select('name tier price promoDiscountPercent').sort('displayOrder');
 
-    const baseUrl = process.env.WEB_URL || 'https://peptly.in';
+    const baseUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const code = (user as any)?.affiliateCode || '';
 
     const packageLinks = packages.map(pkg => ({
@@ -462,7 +462,7 @@ router.post('/public/order/:id/phonepe', async (req, res) => {
       amountToPay = Math.ceil(order.totalAmount / emiDaysArr.length);
     }
     const merchantOrderId = `SO_${Date.now()}_${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const redirectUrl = `${webUrl}/pay/order/${order._id}?merchantOrderId=${merchantOrderId}`;
 
     const client = getPhonePeClient();
@@ -546,7 +546,7 @@ router.post('/public/order/:id/phonepe-remaining', async (req, res) => {
     }
 
     const merchantOrderId = `SR_${Date.now()}_${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
-    const webUrl = process.env.WEB_URL || 'https://peptly.in';
+    const webUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const redirectUrl = `${webUrl}/pay/order/${order._id}?merchantOrderId=${merchantOrderId}&mode=remaining&paymentType=${paymentType}`;
 
     const ppResponse = await getPhonePeClient().pay(

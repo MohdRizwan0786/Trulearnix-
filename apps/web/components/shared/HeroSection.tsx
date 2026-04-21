@@ -39,6 +39,7 @@ export default function HeroSection() {
   const [features, setFeatures]               = useState(DEFAULT_FEATURES)
   const [tickerItems, setTickerItems]         = useState(DEFAULT_TICKER)
   const [heroStats, setHeroStats]             = useState(DEFAULT_HERO_STATS)
+  const [heroVideoUrl, setHeroVideoUrl]       = useState('/hero-video.mp4')
   const [liveClassTitle, setLiveClassTitle]   = useState('')
   const [liveClassMentor, setLiveClassMentor] = useState('')
   const [liveClassViewers, setLiveClassViewers] = useState('')
@@ -65,6 +66,7 @@ export default function HeroSection() {
             iconColor: COLOR_CYCLE[i] || 'text-violet-400',
           })))
         }
+        if (d.heroVideoUrl)     setHeroVideoUrl(d.heroVideoUrl)
         if (d.liveClassTitle)   setLiveClassTitle(d.liveClassTitle)
         if (d.liveClassMentor)  setLiveClassMentor(d.liveClassMentor)
         if (d.liveClassViewers) setLiveClassViewers(d.liveClassViewers)
@@ -212,7 +214,7 @@ export default function HeroSection() {
                 <div className="relative aspect-video" style={{ background: '#000' }}>
                   <video
                     className="absolute inset-0 w-full h-full object-cover"
-                    src="/hero-video.mp4"
+                    src={heroVideoUrl}
                     autoPlay
                     muted
                     loop
@@ -272,7 +274,7 @@ export default function HeroSection() {
                   <div className="relative aspect-video" style={{ background: '#000' }}>
                     <video
                       className="absolute inset-0 w-full h-full object-cover"
-                      src="/hero-video.mp4"
+                      src={heroVideoUrl}
                       autoPlay
                       muted
                       loop

@@ -84,7 +84,7 @@ export const sendPurchaseWelcomeEmail = async (to: string, name: string, package
         </div>
 
         <div style="border-top:1px solid #2d2d4e;padding-top:20px;margin-top:8px">
-          <p style="color:#a0a0b8;font-size:13px;margin:0">Need help? Contact us at <a href="mailto:support@peptly.in" style="color:#6366f1">support@peptly.in</a></p>
+          <p style="color:#a0a0b8;font-size:13px;margin:0">Need help? Contact us at <a href="mailto:support@trulearnix.com" style="color:#6366f1">support@trulearnix.com</a></p>
         </div>
       </div>
     </div>
@@ -118,7 +118,7 @@ export const sendReferralWelcomeEmail = async (to: string, name: string, email: 
         </div>
 
         <div style="border-top:1px solid #2d2d4e;padding-top:20px;margin-top:8px">
-          <p style="color:#a0a0b8;font-size:13px;margin:0">Need help? Contact us at <a href="mailto:support@peptly.in" style="color:#6366f1">support@peptly.in</a></p>
+          <p style="color:#a0a0b8;font-size:13px;margin:0">Need help? Contact us at <a href="mailto:support@trulearnix.com" style="color:#6366f1">support@trulearnix.com</a></p>
         </div>
       </div>
     </div>
@@ -337,7 +337,7 @@ export const sendInvoiceEmail = async (to: string, data: InvoiceData) => {
         </div>
 
         <div style="border-top:1px solid #2d2d4e;padding-top:16px;margin-top:16px">
-          <p style="color:#a0a0b8;font-size:12px;margin:0;text-align:center">Need help? <a href="mailto:support@peptly.in" style="color:#6366f1">support@peptly.in</a></p>
+          <p style="color:#a0a0b8;font-size:12px;margin:0;text-align:center">Need help? <a href="mailto:support@trulearnix.com" style="color:#6366f1">support@trulearnix.com</a></p>
         </div>
       </div>
     </div>
@@ -447,7 +447,7 @@ export const sendSalaryPaidEmail = async (to: string, data: SalaryPaidData) => {
         ${remarks ? `<p style="color:#a0a0b8;font-size:13px;font-style:italic;margin:0 0 16px">Note: ${remarks}</p>` : ''}
 
         <div style="border-top:1px solid #2d2d4e;padding-top:16px">
-          <p style="color:#a0a0b8;font-size:12px;margin:0;text-align:center">For queries: <a href="mailto:hr@peptly.in" style="color:${accentColor}">hr@peptly.in</a> | TruLearnix</p>
+          <p style="color:#a0a0b8;font-size:12px;margin:0;text-align:center">For queries: <a href="mailto:hr@trulearnix.com" style="color:${accentColor}">hr@trulearnix.com</a> | TruLearnix</p>
         </div>
       </div>
     </div>
@@ -512,7 +512,7 @@ export const sendWithdrawalSuccessEmail = async (to: string, data: WithdrawalSuc
         </div>
 
         <div style="border-top:1px solid #2d2d4e;padding-top:16px">
-          <p style="color:#a0a0b8;font-size:12px;margin:0;text-align:center">Queries? <a href="mailto:support@peptly.in" style="color:#10b981">support@peptly.in</a> | TruLearnix</p>
+          <p style="color:#a0a0b8;font-size:12px;margin:0;text-align:center">Queries? <a href="mailto:support@trulearnix.com" style="color:#10b981">support@trulearnix.com</a> | TruLearnix</p>
         </div>
       </div>
     </div>
