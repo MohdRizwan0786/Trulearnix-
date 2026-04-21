@@ -39,7 +39,7 @@ export const uploadToS3 = multer({
  * - Videos/PDFs/ZIP → upload as-is
  * Returns { filename, filepath, url }
  */
-export async function processAndSaveUpload(file: Express.Multer.File): Promise<{ filename: string; filepath: string; url?: string }> {
+export async function processAndSaveUpload(file: Express.Multer.File): Promise<{ filename: string; filepath: string; cdnUrl?: string }> {
   const isImage = file.mimetype.startsWith('image/');
   const ext = isImage ? getImageExt(file.mimetype) : path.extname(file.originalname).toLowerCase();
   const filename = `${Date.now()}-${Math.random().toString(36).substring(2)}${ext}`;
@@ -72,7 +72,8 @@ export async function processAndSaveUpload(file: Express.Multer.File): Promise<{
   const filepath = path.join(UPLOAD_DIR, filename);
   try { fs.writeFileSync(filepath, buffer); } catch {}
 
-  return { filename, filepath };
+  const cdnUrl = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/${filename}` : undefined;
+  return { filename, filepath, cdnUrl };
 }
 
 function getImageExt(mime: string): string {
