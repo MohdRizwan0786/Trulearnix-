@@ -818,7 +818,7 @@ export default function PartnerDashboard() {
                     border:`1px solid ${tierCfg.color}40`,
                     boxShadow:`0 0 12px ${tierCfg.glow}`,
                   }}>
-                    {tierCfg.icon} {tierCfg.label} Partner
+                    {tierCfg.icon} {packageComm.find((p: any) => p.tier?.toLowerCase() === tier)?.name || tierCfg.label} Partner
                   </span>
                   {rank && (
                     <span style={{
