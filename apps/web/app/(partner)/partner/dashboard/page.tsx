@@ -423,6 +423,7 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
   const selectedCfg = TIER_CFG[selected]
   const isUpgrade = selectedCfg.order > currentOrder
   const isCurrent = selected === currentTier
+  const hasHigherTier = TIERS.some(t => TIER_CFG[t].order > currentOrder)
 
   // Build actual price map from real package data
   const tierPriceMap: Partial<Record<Tier, string>> = {}
@@ -462,13 +463,15 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
             </span>
           </p>
         </div>
-        <div style={{
-          marginLeft:'auto',
-          background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.22)',
-          borderRadius:100, padding:'4px 12px',
-        }}>
-          <span style={{ color:'#fcd34d', fontSize:11, fontWeight:700 }}>✨ Upgrade to Earn More</span>
-        </div>
+        {hasHigherTier && (
+          <div style={{
+            marginLeft:'auto',
+            background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.22)',
+            borderRadius:100, padding:'4px 12px',
+          }}>
+            <span style={{ color:'#fcd34d', fontSize:11, fontWeight:700 }}>✨ Upgrade to Earn More</span>
+          </div>
+        )}
       </div>
 
       {/* Tier pills */}
