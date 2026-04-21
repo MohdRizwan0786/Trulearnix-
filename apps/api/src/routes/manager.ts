@@ -28,21 +28,18 @@ router.get('/stats', ...guard, async (req: any, res) => {
       createdAt: { $gte: startOfMonth },
     });
 
-    const totalGoals     = await PartnerGoal.countDocuments({ manager: managerId, status: 'active' });
-    const completedGoals = await PartnerGoal.countDocuments({ manager: managerId, status: 'completed' });
-    const unreadTips     = await PartnerTip.countDocuments({ manager: managerId, isRead: false });
-
-    // Manager's own earnings (from managerCommission credited to their wallet)
-    const managerUser = await User.findById(managerId).select('totalEarnings wallet');
+    const [totalGoals, completedGoals, unreadTips, managerUser, myMonthlyCommissions] = await Promise.all([
+      PartnerGoal.countDocuments({ manager: managerId, status: 'active' }),
+      PartnerGoal.countDocuments({ manager: managerId, status: 'completed' }),
+      PartnerTip.countDocuments({ manager: managerId, isRead: false }),
+      User.findById(managerId).select('totalEarnings wallet'),
+      Commission.aggregate([
+        { $match: { earner: managerId, createdAt: { $gte: startOfMonth }, status: 'approved' } },
+        { $group: { _id: null, total: { $sum: '$commissionAmount' } } },
+      ]),
+    ]);
     const myEarnings = (managerUser as any)?.totalEarnings || 0;
     const myWallet   = (managerUser as any)?.wallet || 0;
-
-    // Manager earnings this month
-    const Commission = (await import('../models/Commission')).default;
-    const myMonthlyCommissions = await Commission.aggregate([
-      { $match: { earner: managerId, createdAt: { $gte: startOfMonth }, status: 'approved' } },
-      { $group: { _id: null, total: { $sum: '$commissionAmount' } } },
-    ]);
     const myMonthlyEarnings = myMonthlyCommissions[0]?.total || 0;
 
     res.json({ success: true, stats: {
@@ -73,15 +70,23 @@ router.get('/partners', ...guard, async (req: any, res) => {
       User.countDocuments(filter),
     ]);
 
-    // Enrich each partner with referral count
-    const enriched = await Promise.all(partners.map(async (p: any) => {
-      const [l1Count, goalsCount, activeGoals] = await Promise.all([
-        User.countDocuments({ referredBy: p._id }),
-        PartnerGoal.countDocuments({ partner: p._id, manager: req.user._id }),
-        PartnerGoal.countDocuments({ partner: p._id, manager: req.user._id, status: 'active' }),
-      ]);
-      return { ...p.toObject(), l1Count, goalsCount, activeGoals };
-    }));
+    const partnerIds = partners.map(p => p._id);
+    const [refCounts, goalCounts] = await Promise.all([
+      User.aggregate([
+        { $match: { referredBy: { $in: partnerIds } } },
+        { $group: { _id: '$referredBy', l1Count: { $sum: 1 } } },
+      ]),
+      PartnerGoal.aggregate([
+        { $match: { partner: { $in: partnerIds }, manager: req.user._id } },
+        { $group: { _id: '$partner', goalsCount: { $sum: 1 }, activeGoals: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } } } },
+      ]),
+    ]);
+    const refMap  = new Map(refCounts.map((r: any) => [r._id.toString(), r.l1Count]));
+    const goalMap = new Map(goalCounts.map((g: any) => [g._id.toString(), g]));
+    const enriched = partners.map((p: any) => {
+      const gd = goalMap.get(p._id.toString()) || {};
+      return { ...p.toObject(), l1Count: refMap.get(p._id.toString()) || 0, goalsCount: (gd as any).goalsCount || 0, activeGoals: (gd as any).activeGoals || 0 };
+    });
 
     res.json({ success: true, partners: enriched, total, pages: Math.ceil(total / Number(limit)) });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
@@ -197,11 +202,16 @@ router.get('/leaderboard', ...guard, async (req: any, res) => {
       .select('name avatar affiliateCode packageTier totalEarnings wallet commissionRate')
       .sort('-totalEarnings').limit(20);
 
-    const enriched = await Promise.all(partners.map(async p => {
-      const l1Count = await User.countDocuments({ referredBy: p._id });
-      const l1Paid  = await User.countDocuments({ referredBy: p._id, packageTier: { $ne: 'free' } });
-      return { ...p.toObject(), l1Count, l1Paid };
-    }));
+    const lbIds = partners.map(p => p._id);
+    const lbRefCounts = await User.aggregate([
+      { $match: { referredBy: { $in: lbIds } } },
+      { $group: { _id: '$referredBy', l1Count: { $sum: 1 }, l1Paid: { $sum: { $cond: [{ $ne: ['$packageTier', 'free'] }, 1, 0] } } } },
+    ]);
+    const lbMap = new Map(lbRefCounts.map((r: any) => [r._id.toString(), r]));
+    const enriched = partners.map(p => {
+      const rc = lbMap.get(p._id.toString()) || {};
+      return { ...p.toObject(), l1Count: (rc as any).l1Count || 0, l1Paid: (rc as any).l1Paid || 0 };
+    });
 
     res.json({ success: true, leaderboard: enriched });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
