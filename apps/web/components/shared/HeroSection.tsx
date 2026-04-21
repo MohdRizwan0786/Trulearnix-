@@ -1,8 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Play, Star, Users, Award, BookOpen, Video, Zap, TrendingUp, CheckCircle2, ArrowRight, Sparkles, Flame, Shield } from 'lucide-react'
+import { Play, Star, Users, Award, BookOpen, Video, Zap, TrendingUp, CheckCircle2, ArrowRight, Sparkles, Flame, Shield, Volume2, VolumeX } from 'lucide-react'
 
 const DEFAULT_FEATURES = [
   'Live Interactive Classes Daily',
@@ -40,6 +40,9 @@ export default function HeroSection() {
   const [tickerItems, setTickerItems]         = useState(DEFAULT_TICKER)
   const [heroStats, setHeroStats]             = useState(DEFAULT_HERO_STATS)
   const [heroVideoUrl, setHeroVideoUrl]       = useState('/hero-video.mp4')
+  const [muted, setMuted]                     = useState(true)
+  const videoRef1 = useRef<HTMLVideoElement>(null)
+  const videoRef2 = useRef<HTMLVideoElement>(null)
   const [liveClassTitle, setLiveClassTitle]   = useState('')
   const [liveClassMentor, setLiveClassMentor] = useState('')
   const [liveClassViewers, setLiveClassViewers] = useState('')
@@ -77,6 +80,13 @@ export default function HeroSection() {
       })
       .catch(() => {})
   }, [])
+
+  const toggleMute = () => {
+    const next = !muted
+    setMuted(next)
+    if (videoRef1.current) videoRef1.current.muted = next
+    if (videoRef2.current) videoRef2.current.muted = next
+  }
 
   const ticker = [...tickerItems, ...tickerItems]
 
@@ -213,6 +223,7 @@ export default function HeroSection() {
                 </div>
                 <div className="relative aspect-video" style={{ background: '#000' }}>
                   <video
+                    ref={videoRef1}
                     className="absolute inset-0 w-full h-full object-cover"
                     src={heroVideoUrl}
                     autoPlay
@@ -224,6 +235,11 @@ export default function HeroSection() {
                     style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)' }}>
                     <Users className="w-3 h-3 text-violet-400" />{liveClassViewers}
                   </div>
+                  <button onClick={toggleMute}
+                    className="absolute bottom-3 right-3 z-10 w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                    style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)' }}>
+                    {muted ? <VolumeX className="w-3.5 h-3.5 text-gray-400" /> : <Volume2 className="w-3.5 h-3.5 text-violet-400" />}
+                  </button>
                 </div>
                 <div className="grid grid-cols-3 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   {[
@@ -273,6 +289,7 @@ export default function HeroSection() {
 
                   <div className="relative aspect-video" style={{ background: '#000' }}>
                     <video
+                      ref={videoRef2}
                       className="absolute inset-0 w-full h-full object-cover"
                       src={heroVideoUrl}
                       autoPlay
@@ -284,6 +301,11 @@ export default function HeroSection() {
                       style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)' }}>
                       <Users className="w-3.5 h-3.5 text-violet-400" />{liveClassViewers}
                     </div>
+                    <button onClick={toggleMute}
+                      className="absolute bottom-4 right-4 z-10 w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:scale-105"
+                      style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)' }}>
+                      {muted ? <VolumeX className="w-4 h-4 text-gray-400" /> : <Volume2 className="w-4 h-4 text-violet-400" />}
+                    </button>
                     <div className="absolute top-4 right-4 flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs text-gray-400 z-10"
                       style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)' }}>
                       <Flame className="w-3 h-3 text-orange-400" />Trending
