@@ -134,7 +134,7 @@ app.use(mongoSanitize({ replaceWith: '_' }));
 app.use(hpp());
 
 // Serve uploaded files as static assets
-app.use('/uploads', express.static('/var/www/trulearnix-qa/uploads'));
+app.use('/uploads', express.static('/var/www/trulearnix/uploads'));
 
 // General rate limit — 1000 req/15min per IP (high enough for normal usage)
 const limiter = rateLimit({
@@ -220,14 +220,15 @@ app.use('/api/announcements', announcementsRouter);
 app.get('/api/public/maintenance', async (_req, res) => {
   try {
     const PlatformSettings = (await import('./models/PlatformSettings')).default;
-    const settings = await PlatformSettings.findOne().select('maintenanceMode trulanceMaintenance maintenanceMessage earlyAccessEnabled').lean();
+    const settings = await PlatformSettings.findOne().select('maintenanceMode trulanceMaintenance maintenanceMessage earlyAccessEnabled emiEnabled').lean();
     res.json({
       maintenanceMode: settings?.maintenanceMode ?? false,
       trulanceMaintenance: settings?.trulanceMaintenance ?? false,
       message: settings?.maintenanceMessage ?? 'We are performing scheduled maintenance. We will be back shortly.',
       earlyAccessEnabled: settings?.earlyAccessEnabled ?? false,
+      emiEnabled: settings?.emiEnabled ?? false,
     });
-  } catch { res.json({ maintenanceMode: false, trulanceMaintenance: false, message: '', earlyAccessEnabled: false }); }
+  } catch { res.json({ maintenanceMode: false, trulanceMaintenance: false, message: '', earlyAccessEnabled: false, emiEnabled: false }); }
 });
 
 // Validate early access token — no auth required

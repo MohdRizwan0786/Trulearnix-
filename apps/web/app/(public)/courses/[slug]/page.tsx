@@ -1,6 +1,6 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
-import api, { courseAPI, paymentAPI } from '@/lib/api'
+import api, { courseAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -107,48 +107,20 @@ export default function CourseDetailPage({ params }: { params: { slug: string } 
         return router.push(`/login?redirect=${encodeURIComponent(`/courses/${params.slug}${affiliate ? `?ref=${affiliate}` : ''}`)}`)
       }
     }
-    try {
-      setEnrolling(true)
-      const price = course.discountPrice || course.price
-      if (price === 0) {
+    const price = course.discountPrice || course.price
+    if (price === 0) {
+      try {
+        setEnrolling(true)
         toast.success('Enrolled successfully!')
         router.push(`/student/courses/${course._id}`)
-        return
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || 'Something went wrong')
+        setEnrolling(false)
       }
-      const orderRes = await paymentAPI.createOrder({ courseId: course._id, affiliateCode: affiliate || undefined })
-      const { orderId, amount, currency, keyId } = orderRes.data
-      const script = document.createElement('script')
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-      document.body.appendChild(script)
-      script.onload = () => {
-        const rzp = new window.Razorpay({
-          key: keyId, amount, currency, order_id: orderId,
-          name: 'TruLearnix', description: course.title,
-          prefill: { name: user?.name, email: user?.email },
-          theme: { color: '#7c3aed' },
-          handler: async (response: any) => {
-            try {
-              await paymentAPI.verify({
-                razorpayOrderId: orderId,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature
-              })
-              // Refresh user so isAffiliate + enrollmentCount are current before navigating
-              const me = await api.get('/users/me')
-              if (me.data?.user) updateUser(me.data.user)
-              if (typeof me.data?.enrollmentCount === 'number') updateUser({ enrollmentCount: me.data.enrollmentCount })
-              toast.success('Enrolled! 🎉')
-              router.push(`/student/courses/${course._id}`)
-            } catch { toast.error('Payment verification failed') }
-          },
-          modal: { ondismiss: () => setEnrolling(false) }
-        })
-        rzp.open()
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Something went wrong')
-      setEnrolling(false)
+      return
     }
+    // Paid course → redirect to checkout (PhonePe)
+    router.push(`/checkout?type=course&id=${course._id}${affiliate ? `&promo=${affiliate}` : ''}`)
   }
 
   if (isLoading) return (

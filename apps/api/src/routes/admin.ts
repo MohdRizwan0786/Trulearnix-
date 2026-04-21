@@ -102,31 +102,18 @@ router.get('/users/:id/referrals', async (req, res) => {
       User.countDocuments(filter),
     ]);
 
+    // For each referral, also count their own downline (sub-referrals)
     const ids = referrals.map((r: any) => r._id);
-    const Commission = (await import('../models/Commission')).default;
-
-    // Downline count + commission earned FROM each referral
-    const [downlineAgg, commAgg] = await Promise.all([
-      User.aggregate([
-        { $match: { referredBy: { $in: ids } } },
-        { $group: { _id: '$referredBy', count: { $sum: 1 } } },
-      ]),
-      Commission.aggregate([
-        { $match: { earner: referrer._id, buyer: { $in: ids } } },
-        { $group: { _id: '$buyer', commAmount: { $sum: '$commissionAmount' }, commCount: { $sum: 1 }, status: { $last: '$status' } } },
-      ]),
+    const downlineAgg = await User.aggregate([
+      { $match: { referredBy: { $in: ids } } },
+      { $group: { _id: '$referredBy', count: { $sum: 1 } } },
     ]);
-
     const downlineMap: Record<string, number> = {};
     downlineAgg.forEach((d: any) => { downlineMap[d._id.toString()] = d.count; });
-
-    const commMap: Record<string, any> = {};
-    commAgg.forEach((c: any) => { commMap[c._id.toString()] = { commAmount: c.commAmount, commCount: c.commCount }; });
 
     const enriched = referrals.map((r: any) => ({
       ...r.toObject(),
       downlineCount: downlineMap[r._id.toString()] || 0,
-      commission: commMap[r._id.toString()] || null,
     }));
 
     res.json({ success: true, referrer, referrals: enriched, total, pages: Math.ceil(total / Number(limit)) });
@@ -209,16 +196,16 @@ router.get('/partners', async (req, res) => {
         .sort('-totalEarnings').skip(skip).limit(Number(limit)),
       User.countDocuments(filter),
     ]);
-    // Enrich with referral count + commission data
+    // Enrich with referral count + commission count
     const ids = partners.map((p: any) => p._id);
     const Commission = (await import('../models/Commission')).default;
     const [refAgg, commAgg] = await Promise.all([
       User.aggregate([{ $match: { referredBy: { $in: ids } } }, { $group: { _id: '$referredBy', referralCount: { $sum: 1 } } }]),
-      Commission.aggregate([{ $match: { earner: { $in: ids } } }, { $group: { _id: '$earner', commCount: { $sum: 1 }, commAmount: { $sum: '$commissionAmount' }, pendingAmount: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, '$commissionAmount', 0] } }, paidAmount: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, '$commissionAmount', 0] } } } }]),
+      Commission.aggregate([{ $match: { earner: { $in: ids } } }, { $group: { _id: '$earner', commCount: { $sum: 1 } } }]),
     ]);
     const perfMap: any = {};
-    refAgg.forEach((r: any) => { perfMap[r._id.toString()] = { referralCount: r.referralCount }; });
-    commAgg.forEach((r: any) => { if (!perfMap[r._id.toString()]) perfMap[r._id.toString()] = {}; Object.assign(perfMap[r._id.toString()], { commCount: r.commCount, commAmount: r.commAmount, pendingAmount: r.pendingAmount, paidAmount: r.paidAmount }); });
+    refAgg.forEach((r: any) => { perfMap[r._id] = { referralCount: r.referralCount }; });
+    commAgg.forEach((r: any) => { if (!perfMap[r._id]) perfMap[r._id] = {}; perfMap[r._id].commCount = r.commCount; });
     const enriched = partners.map((p: any) => ({ ...p.toObject(), _perf: perfMap[p._id.toString()] || {} }));
     res.json({ success: true, partners: enriched, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
@@ -625,10 +612,10 @@ router.get('/platform-settings', async (_req, res) => {
 });
 router.put('/platform-settings', async (req, res) => {
   try {
-    const { tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled } = req.body;
+    const { tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled, emiEnabled } = req.body;
     let settings = await PlatformSettings.findOne();
     if (!settings) {
-      settings = await PlatformSettings.create({ tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled });
+      settings = await PlatformSettings.create({ tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled, emiEnabled });
     } else {
       if (tdsRate !== undefined) settings.tdsRate = tdsRate;
       if (gstRate !== undefined) settings.gstRate = gstRate;
@@ -642,6 +629,7 @@ router.put('/platform-settings', async (req, res) => {
       if (trulanceMaintenance !== undefined) settings.trulanceMaintenance = trulanceMaintenance;
       if (maintenanceMessage !== undefined) settings.maintenanceMessage = maintenanceMessage;
       if (earlyAccessEnabled !== undefined) settings.earlyAccessEnabled = earlyAccessEnabled;
+      if (emiEnabled !== undefined) settings.emiEnabled = emiEnabled;
       await settings.save();
     }
     res.json({ success: true, settings });
