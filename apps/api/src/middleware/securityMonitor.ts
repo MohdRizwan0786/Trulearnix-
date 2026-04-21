@@ -194,25 +194,35 @@ export default async function securityMonitor(req: Request, res: Response, next:
   const path = req.path || req.url || '/';
   const method = req.method;
 
-  // 1. Check blocked IP
-  const blocked = await isBlocked(ip);
-  if (blocked) {
-    queueLog({ ip, method, endpoint: path, statusCode: 403, threat: 'none', severity: 'info', reason: 'Blocked IP attempted access', userAgent: ua.slice(0, 200), blocked: true, responseMs: Date.now() - startMs });
-    return res.status(403).json({ success: false, message: 'Access denied. Your IP has been blocked.' });
+  // Authenticated requests (valid Bearer JWT) and internal/local IPs are exempt from
+  // IP blocking and rate abuse. This mirrors the express-rate-limit skip for auth'd users.
+  const authHeader = req.headers.authorization;
+  const isAuthenticated = !!(authHeader && authHeader.startsWith('Bearer ') && authHeader.split('.').length === 3);
+  const isLocalhost = /^(::1|::ffff:127\.|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(ip);
+
+  // 1. Check blocked IP (skip for authenticated or internal requests)
+  if (!isAuthenticated && !isLocalhost) {
+    const blocked = await isBlocked(ip);
+    if (blocked) {
+      queueLog({ ip, method, endpoint: path, statusCode: 403, threat: 'none', severity: 'info', reason: 'Blocked IP attempted access', userAgent: ua.slice(0, 200), blocked: true, responseMs: Date.now() - startMs });
+      return res.status(403).json({ success: false, message: 'Access denied. Your IP has been blocked.' });
+    }
   }
 
-  // 2. Rate limiting
+  // 2. Rate limiting (skip for authenticated or internal requests)
   const now = Date.now();
-  const rw = reqWindow.get(ip);
-  if (!rw || now - rw.windowStart > RATE_WINDOW_MS) {
-    reqWindow.set(ip, { count: 1, windowStart: now });
-  } else {
-    rw.count++;
-    if (rw.count >= RATE_BLOCK_LIMIT) {
-      const geo = await getGeo(ip);
-      await blockIp(ip, `Rate limit exceeded: ${rw.count} req/min`, 'rate_abuse', geo.country);
-      queueLog({ ip, method, endpoint: path, statusCode: 429, threat: 'rate_abuse', severity: 'high', reason: `Rate abuse: ${rw.count} req/min`, userAgent: ua.slice(0, 200), country: geo.country, city: geo.city, blocked: true, responseMs: Date.now() - startMs });
-      return res.status(429).json({ success: false, message: 'Too many requests. You have been temporarily blocked.' });
+  if (!isAuthenticated && !isLocalhost) {
+    const rw = reqWindow.get(ip);
+    if (!rw || now - rw.windowStart > RATE_WINDOW_MS) {
+      reqWindow.set(ip, { count: 1, windowStart: now });
+    } else {
+      rw.count++;
+      if (rw.count >= RATE_BLOCK_LIMIT) {
+        const geo = await getGeo(ip);
+        await blockIp(ip, `Rate limit exceeded: ${rw.count} req/min`, 'rate_abuse', geo.country);
+        queueLog({ ip, method, endpoint: path, statusCode: 429, threat: 'rate_abuse', severity: 'high', reason: `Rate abuse: ${rw.count} req/min`, userAgent: ua.slice(0, 200), country: geo.country, city: geo.city, blocked: true, responseMs: Date.now() - startMs });
+        return res.status(429).json({ success: false, message: 'Too many requests. You have been temporarily blocked.' });
+      }
     }
   }
 
