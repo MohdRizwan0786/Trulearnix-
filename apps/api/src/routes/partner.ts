@@ -111,13 +111,24 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
           : Math.round((pkg.price || 0) * Math.min(pkg.commissionRate || 0, 100) / 100);
       }
 
-      // L2 & L3 earn amounts
-      const l2Earn = pkg.commissionLevel2Type === 'flat'
-        ? Math.round(pkg.commissionLevel2 || 0)
-        : Math.round((pkg.price || 0) * (pkg.commissionLevel2 || 0) / 100);
-      const l3Earn = pkg.commissionLevel3Type === 'flat'
-        ? Math.round(pkg.commissionLevel3 || 0)
-        : Math.round((pkg.price || 0) * (pkg.commissionLevel3 || 0) / 100);
+      // L2 & L3 earn amounts — use matrix if available, fallback to legacy fields
+      const hasMatrixL2 = matrixEntry && (matrixEntry.l2Value > 0);
+      const l2Earn = hasMatrixL2
+        ? (matrixEntry.l2Type === 'flat'
+          ? Math.round(matrixEntry.l2Value)
+          : Math.round((pkg.price || 0) * matrixEntry.l2Value / 100))
+        : (pkg.commissionLevel2Type === 'flat'
+          ? Math.round(pkg.commissionLevel2 || 0)
+          : Math.round((pkg.price || 0) * (pkg.commissionLevel2 || 0) / 100));
+
+      const hasMatrixL3 = matrixEntry && (matrixEntry.l3Value > 0);
+      const l3Earn = hasMatrixL3
+        ? (matrixEntry.l3Type === 'flat'
+          ? Math.round(matrixEntry.l3Value)
+          : Math.round((pkg.price || 0) * matrixEntry.l3Value / 100))
+        : (pkg.commissionLevel3Type === 'flat'
+          ? Math.round(pkg.commissionLevel3 || 0)
+          : Math.round((pkg.price || 0) * (pkg.commissionLevel3 || 0) / 100));
 
       return {
         packageId: pkg._id,
