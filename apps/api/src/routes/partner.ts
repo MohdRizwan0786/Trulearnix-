@@ -223,9 +223,20 @@ router.get('/earnings', protect, affiliateGuard, async (req: any, res) => {
       l3: byLevel.find((r: any) => r._id === 3)?.total || 0,
     };
 
-    // Convert byTier array to {tier: amount} object expected by frontend
+    // Convert byTier array to {tier: amount} object, normalizing tier name variants to slug
+    const TIER_SLUGS = ['supreme', 'elite', 'pro', 'starter'];
+    const normalizeTierKey = (val: string) => {
+      if (!val) return val;
+      const lower = val.toLowerCase();
+      if (TIER_SLUGS.includes(lower)) return lower;
+      return TIER_SLUGS.find(s => lower.includes(s)) || val;
+    };
     const byTierObj: Record<string, number> = {};
-    byTier.forEach((r: any) => { if (r._id) byTierObj[r._id] = r.total || 0; });
+    byTier.forEach((r: any) => {
+      if (!r._id) return;
+      const key = normalizeTierKey(r._id);
+      byTierObj[key] = (byTierObj[key] || 0) + (r.total || 0);
+    });
 
     // Format recent commissions for frontend
     const recentFormatted = recent.map((c: any) => ({
