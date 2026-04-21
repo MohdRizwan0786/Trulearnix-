@@ -422,14 +422,16 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
   const activeTiersSet = new Set<Tier>()
   const tierPriceMap: Partial<Record<Tier, string>> = {}
   packageComm.forEach((pkg: any) => {
-    if (pkg.tier && TIERS.includes(pkg.tier as Tier)) {
-      const t = pkg.tier as Tier
-      activeTiersSet.add(t)
-      if (pkg.price) {
-        const existing = tierPriceMap[t]
-        const existingNum = existing ? parseInt(existing.replace(/[^\d]/g, '')) : Infinity
-        if (pkg.price < existingNum) {
-          tierPriceMap[t] = `₹${Number(pkg.price).toLocaleString('en-IN')}`
+    if (pkg.tier) {
+      const t = pkg.tier.toLowerCase() as Tier
+      if (TIERS.includes(t)) {
+        activeTiersSet.add(t)
+        if (pkg.price) {
+          const existing = tierPriceMap[t]
+          const existingNum = existing ? parseInt(existing.replace(/[^\d]/g, '')) : Infinity
+          if (pkg.price < existingNum) {
+            tierPriceMap[t] = `₹${Number(pkg.price).toLocaleString('en-IN')}`
+          }
         }
       }
     }
@@ -1208,8 +1210,8 @@ export default function PartnerDashboard() {
                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                           <div style={{
                             width:10, height:10, borderRadius:'50%',
-                            background: TIER_CFG[pkg.tier as Tier]?.color || '#4b5563',
-                            boxShadow:`0 0 8px ${TIER_CFG[pkg.tier as Tier]?.glow || 'transparent'}`,
+                            background: TIER_CFG[(pkg.tier?.toLowerCase()) as Tier]?.color || '#4b5563',
+                            boxShadow:`0 0 8px ${TIER_CFG[(pkg.tier?.toLowerCase()) as Tier]?.glow || 'transparent'}`,
                             flexShrink:0,
                           }} />
                           <div>
