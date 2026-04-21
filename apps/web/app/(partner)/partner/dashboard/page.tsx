@@ -418,25 +418,32 @@ function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon
 
 // ─── Plan Section ─────────────────────────────────────────────────────────────
 function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageComm: any[] }) {
-  const [selected, setSelected] = useState<Tier>(currentTier)
+  // Derive active tiers from real package data only (+ current user tier if not in DB)
+  const activeTiersSet = new Set<Tier>()
+  const tierPriceMap: Partial<Record<Tier, string>> = {}
+  packageComm.forEach((pkg: any) => {
+    if (pkg.tier && TIERS.includes(pkg.tier as Tier)) {
+      const t = pkg.tier as Tier
+      activeTiersSet.add(t)
+      if (pkg.price) {
+        const existing = tierPriceMap[t]
+        const existingNum = existing ? parseInt(existing.replace(/[^\d]/g, '')) : Infinity
+        if (pkg.price < existingNum) {
+          tierPriceMap[t] = `₹${Number(pkg.price).toLocaleString('en-IN')}`
+        }
+      }
+    }
+  })
+  const activeTiers = TIERS.filter(t => activeTiersSet.has(t))
+
+  const defaultSelected = activeTiersSet.has(currentTier) ? currentTier : (activeTiers[0] || currentTier)
+  const [selected, setSelected] = useState<Tier>(defaultSelected)
   const currentOrder = TIER_CFG[currentTier].order
   const selectedCfg = TIER_CFG[selected]
   const isUpgrade = selectedCfg.order > currentOrder
   const isCurrent = selected === currentTier
-  const hasHigherTier = TIERS.some(t => TIER_CFG[t].order > currentOrder)
+  const hasHigherTier = activeTiers.some(t => TIER_CFG[t].order > currentOrder)
 
-  // Build actual price map from real package data
-  const tierPriceMap: Partial<Record<Tier, string>> = {}
-  packageComm.forEach((pkg: any) => {
-    if (pkg.tier && pkg.price && TIERS.includes(pkg.tier as Tier)) {
-      const t = pkg.tier as Tier
-      const existing = tierPriceMap[t]
-      const existingNum = existing ? parseInt(existing.replace(/[^\d]/g, '')) : Infinity
-      if (pkg.price < existingNum) {
-        tierPriceMap[t] = `₹${Number(pkg.price).toLocaleString('en-IN')}`
-      }
-    }
-  })
   const getPrice = (t: Tier) => tierPriceMap[t] || TIER_CFG[t].price
 
   return (
@@ -476,7 +483,7 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
 
       {/* Tier pills */}
       <div style={{ padding:'16px 20px 0', display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
-        {TIERS.map(t => {
+        {activeTiers.map(t => {
           const cfg = TIER_CFG[t]
           const isActive = t === selected
           const isCur = t === currentTier
@@ -586,7 +593,7 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
 
       {/* Tier progress bar */}
       <div style={{ padding:'0 16px 16px', display:'flex', alignItems:'center', gap:4 }}>
-        {TIERS.map((t, i) => {
+        {activeTiers.map((t, i) => {
           const cfg = TIER_CFG[t]
           const isC = t === currentTier
           const isPast = cfg.order < currentOrder
