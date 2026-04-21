@@ -1705,6 +1705,10 @@ function WallVideoCard({ v, i, onChange, onDelete }: { v: any; i: number; onChan
           <label className={labelCls}>Result Badge</label>
           <input value={v.result} onChange={e => set('result', e.target.value)} placeholder="e.g. Got placed in 6 weeks" className={inputCls} />
         </div>
+        <div>
+          <label className={labelCls}>Duration (shown on slider)</label>
+          <input value={v.duration || ''} onChange={e => set('duration', e.target.value)} placeholder="e.g. 1:42" className={inputCls} />
+        </div>
       </div>
       <div>
         <label className={labelCls}>Quote</label>
@@ -1712,11 +1716,11 @@ function WallVideoCard({ v, i, onChange, onDelete }: { v: any; i: number; onChan
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className={labelCls}>Photo (direct upload)</label>
+          <label className={labelCls}>Photo (shown on slider)</label>
           <UploadBtn accept="image/*" label="Upload Photo" currentUrl={v.avatarUrl} type="image" onUploaded={url => set('avatarUrl', url)} />
         </div>
         <div>
-          <label className={labelCls}>Video (direct upload)</label>
+          <label className={labelCls}>Video (plays on click)</label>
           <UploadBtn accept="video/*" label="Upload Video" currentUrl={v.videoUrl} type="video" onUploaded={url => set('videoUrl', url)} />
         </div>
       </div>

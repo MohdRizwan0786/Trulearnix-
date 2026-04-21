@@ -8,9 +8,10 @@ import {
   Star, Users, Clock, Award, CheckCircle, Play, Lock,
   ShoppingCart, Loader2, BookOpen, Zap, Globe, BarChart2,
   ChevronDown, ChevronUp, Shield, Tv, Download, Infinity as InfinityIcon,
-  ArrowRight, BadgeCheck, Flame
+  ArrowRight, ArrowLeft, BadgeCheck, Flame
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
@@ -169,9 +170,14 @@ export default function CourseDetailPage({ params }: { params: { slug: string } 
   return (
     <div style={{ background: '#04050a' }} className="min-h-screen">
       <Navbar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-0">
+        <Link href="/courses" className="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
+          <ArrowLeft className="w-4 h-4" />Back to Courses
+        </Link>
+      </div>
 
       {/* ── HERO ── */}
-      <div className="pt-16 relative overflow-hidden">
+      <div className="pt-4 relative overflow-hidden">
         <div className="absolute inset-0" style={{ background: heroGrad, opacity: 0.9 }} />
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at 70% 50%,rgba(0,0,0,0) 0%,rgba(0,0,0,0.6) 70%)' }} />

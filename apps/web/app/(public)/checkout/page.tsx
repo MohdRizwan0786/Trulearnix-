@@ -142,6 +142,8 @@ function CheckoutInner() {
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
+  const [guestAge, setGuestAge] = useState('')
+  const [guestState, setGuestState] = useState('')
   const [guestPaying, setGuestPaying] = useState(false)
 
   useEffect(() => {
@@ -238,6 +240,8 @@ function CheckoutInner() {
         promoCode: promoStatus === 'valid' ? promoCode : undefined,
         couponCode: couponStatus === 'valid' ? couponCode : undefined,
         isEmi: payMode === 'emi',
+        age: guestAge.trim() || undefined,
+        state: guestState.trim() || undefined,
       })
       if (data.redirectUrl) window.location.href = data.redirectUrl
       else { toast.error('Could not get payment URL'); setPaying(false) }
@@ -248,7 +252,7 @@ function CheckoutInner() {
   }
 
   const handleGuestPay = async () => {
-    if (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim()) {
+    if (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim() || !guestAge.trim() || !guestState.trim()) {
       return toast.error('Please fill all fields')
     }
     setGuestPaying(true)
@@ -258,6 +262,8 @@ function CheckoutInner() {
         name: guestName.trim(),
         email: guestEmail.trim(),
         phone: guestPhone.trim(),
+        age: guestAge.trim(),
+        state: guestState.trim(),
         promoCode: promoStatus === 'valid' ? promoCode : undefined,
         couponCode: couponStatus === 'valid' ? couponCode : undefined,
       }
@@ -346,17 +352,53 @@ function CheckoutInner() {
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-white/40 mb-1.5">Age</label>
+                      <input value={guestAge} onChange={e => setGuestAge(e.target.value)} placeholder="e.g. 22" type="number" min="10" max="80"
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-white/40 mb-1.5">State</label>
+                      <select value={guestState} onChange={e => setGuestState(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#0d0f1c] border border-white/10 text-white text-sm focus:outline-none focus:border-white/30 transition-all">
+                        <option value="">Select state</option>
+                        {['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Andaman & Nicobar','Chandigarh','Dadra & Nagar Haveli','Daman & Diu','Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry'].map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                   <p className="text-white/25 text-xs">Your account & login credentials will be sent to your WhatsApp after payment.</p>
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-white/40 mb-1.5">Full Name</label>
-                    <input value={user!.name} readOnly className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm cursor-not-allowed opacity-60" />
+                <div className="space-y-3">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-white/40 mb-1.5">Full Name</label>
+                      <input value={user!.name} readOnly className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm cursor-not-allowed opacity-60" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-white/40 mb-1.5">Email</label>
+                      <input value={user!.email} readOnly className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm cursor-not-allowed opacity-60" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs text-white/40 mb-1.5">Email</label>
-                    <input value={user!.email} readOnly className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm cursor-not-allowed opacity-60" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-white/40 mb-1.5">Age</label>
+                      <input value={guestAge} onChange={e => setGuestAge(e.target.value)} placeholder="e.g. 22" type="number" min="10" max="80"
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-white/40 mb-1.5">State</label>
+                      <select value={guestState} onChange={e => setGuestState(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#0d0f1c] border border-white/10 text-white text-sm focus:outline-none focus:border-white/30 transition-all">
+                        <option value="">Select state</option>
+                        {['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Andaman & Nicobar','Chandigarh','Dadra & Nagar Haveli','Daman & Diu','Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry'].map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               )}

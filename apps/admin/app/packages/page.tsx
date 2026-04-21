@@ -294,7 +294,7 @@ export default function PackagesPage() {
       commissionLevel3Type: pkg.commissionLevel3Type || 'percentage',
       partnerEarnings: packages
         .map((p: any) => {
-          const existing = (pkg.partnerEarnings || []).find((r: any) => r.earnerTier === p._id || r.earnerTier === p.name)
+          const existing = (pkg.partnerEarnings || []).find((r: any) => r.earnerTier === p._id || r.earnerTier === p.name || r.earnerTier === p.tier)
           return existing
             ? { ...existing, earnerTier: p._id, earnerName: p.name }
             : { earnerTier: p._id, earnerName: p.name, type: 'percentage', value: 0, l2Type: 'percentage', l2Value: 0, l3Type: 'percentage', l3Value: 0 }
@@ -309,7 +309,7 @@ export default function PackagesPage() {
     // Load "my earnings" — what this package's tier partner earns when selling each other package
     const earnings = packages.map((soldPkg: any) => {
       const entry = (soldPkg.partnerEarnings || []).find(
-        (r: any) => r.earnerTier?.toString() === pkg._id?.toString()
+        (r: any) => r.earnerTier?.toString() === pkg._id?.toString() || r.earnerTier === pkg.tier
       )
       return {
         soldPkgId: soldPkg._id,

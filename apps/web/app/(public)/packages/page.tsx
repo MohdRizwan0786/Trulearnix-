@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { packageAPI } from '@/lib/api'
-import { Check, Zap, Shield, Sparkles, Crown, Flame, Rocket, Star, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Check, Zap, Shield, Sparkles, Crown, Flame, Rocket, Star, ChevronLeft, ChevronRight, Loader2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 /* ── Palette assigned by index ── */
@@ -223,8 +223,10 @@ function IncomeMatrix({ packages }: { packages: any[] }) {
                     </span>
                   </td>
                   {packages.map((sold, si) => {
-                    // find earner's commission row in this sold package
-                    const row = (sold.partnerEarnings || []).find((pe: any) => pe.earnerTier === earner._id)
+                    // find earner's commission row in this sold package (earnerTier may be _id or tier slug)
+                    const row = (sold.partnerEarnings || []).find((pe: any) =>
+                      pe.earnerTier === earner._id || pe.earnerTier === earner.tier || pe.earnerTier === earner.name
+                    )
                     const amount = row ? calcComm(sold.price, row.type, row.value) : 0
                     const sp = getPalette(si)
                     return (
@@ -275,6 +277,12 @@ export default function PackagesPage() {
         style={{ background: 'radial-gradient(circle, #d946ef, transparent)' }} />
 
       <div className="max-w-6xl mx-auto relative z-10">
+        <div className="mb-6">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
+            <ArrowLeft className="w-4 h-4" />Back to Home
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-10 sm:mb-16 px-2">
           <span className="section-label mb-4 inline-flex">

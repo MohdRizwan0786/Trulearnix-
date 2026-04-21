@@ -47,7 +47,7 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
 
     // Load the user's own package to get their package _id for matrix lookup
     const userPkg = user?.packageTier
-      ? await Package.findOne({ $or: [{ tier: user.packageTier }, { name: user.packageTier }], isActive: true })
+      ? await Package.findOne({ $or: [{ tier: new RegExp(`^${user.packageTier}$`, 'i') }, { name: user.packageTier }], isActive: true })
           .select('_id commissionRate commissionRateType commissionLevel2 commissionLevel2Type commissionLevel3 commissionLevel3Type')
       : null;
 
@@ -93,7 +93,10 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
     // Build per-package commission for this partner's tier using partnerEarnings matrix
     const packageCommissions = allPackages.map((pkg: any) => {
       const matrixEntry = pkg.partnerEarnings?.find(
-        (r: any) => userPkg && r.earnerTier?.toString() === userPkg._id?.toString()
+        (r: any) => userPkg && (
+          r.earnerTier?.toString() === userPkg._id?.toString() ||
+          r.earnerTier?.toLowerCase() === user?.packageTier?.toLowerCase()
+        )
       );
       const hasMatrix = matrixEntry && (matrixEntry.value > 0);
       let commission = 0;
@@ -108,13 +111,24 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
           : Math.round((pkg.price || 0) * Math.min(pkg.commissionRate || 0, 100) / 100);
       }
 
-      // L2 & L3 earn amounts
-      const l2Earn = pkg.commissionLevel2Type === 'flat'
-        ? Math.round(pkg.commissionLevel2 || 0)
-        : Math.round((pkg.price || 0) * (pkg.commissionLevel2 || 0) / 100);
-      const l3Earn = pkg.commissionLevel3Type === 'flat'
-        ? Math.round(pkg.commissionLevel3 || 0)
-        : Math.round((pkg.price || 0) * (pkg.commissionLevel3 || 0) / 100);
+      // L2 & L3 earn amounts — use matrix if available, fallback to legacy fields
+      const hasMatrixL2 = matrixEntry && (matrixEntry.l2Value > 0);
+      const l2Earn = hasMatrixL2
+        ? (matrixEntry.l2Type === 'flat'
+          ? Math.round(matrixEntry.l2Value)
+          : Math.round((pkg.price || 0) * matrixEntry.l2Value / 100))
+        : (pkg.commissionLevel2Type === 'flat'
+          ? Math.round(pkg.commissionLevel2 || 0)
+          : Math.round((pkg.price || 0) * (pkg.commissionLevel2 || 0) / 100));
+
+      const hasMatrixL3 = matrixEntry && (matrixEntry.l3Value > 0);
+      const l3Earn = hasMatrixL3
+        ? (matrixEntry.l3Type === 'flat'
+          ? Math.round(matrixEntry.l3Value)
+          : Math.round((pkg.price || 0) * matrixEntry.l3Value / 100))
+        : (pkg.commissionLevel3Type === 'flat'
+          ? Math.round(pkg.commissionLevel3 || 0)
+          : Math.round((pkg.price || 0) * (pkg.commissionLevel3 || 0) / 100));
 
       return {
         packageId: pkg._id,
@@ -220,9 +234,20 @@ router.get('/earnings', protect, affiliateGuard, async (req: any, res) => {
       l3: byLevel.find((r: any) => r._id === 3)?.total || 0,
     };
 
-    // Convert byTier array to {tier: amount} object expected by frontend
+    // Convert byTier array to {tier: amount} object, normalizing tier name variants to slug
+    const TIER_SLUGS = ['supreme', 'elite', 'pro', 'starter'];
+    const normalizeTierKey = (val: string) => {
+      if (!val) return val;
+      const lower = val.toLowerCase();
+      if (TIER_SLUGS.includes(lower)) return lower;
+      return TIER_SLUGS.find(s => lower.includes(s)) || val;
+    };
     const byTierObj: Record<string, number> = {};
-    byTier.forEach((r: any) => { if (r._id) byTierObj[r._id] = r.total || 0; });
+    byTier.forEach((r: any) => {
+      if (!r._id) return;
+      const key = normalizeTierKey(r._id);
+      byTierObj[key] = (byTierObj[key] || 0) + (r.total || 0);
+    });
 
     // Format recent commissions for frontend
     const recentFormatted = recent.map((c: any) => ({

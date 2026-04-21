@@ -50,7 +50,7 @@ function CourseCard({ c, i }: { c: any; i: number }) {
     >
       <Link href={`/courses/${c.slug || c._id}`} className="flex flex-col flex-1 overflow-hidden">
       {/* ── HEADER ── */}
-      <div className="relative overflow-hidden" style={{ height:'clamp(110px, 18vw, 170px)', background:`linear-gradient(135deg,${gradColors})` }}>
+      <div className="relative aspect-video overflow-hidden" style={{ background:`linear-gradient(135deg,${gradColors})` }}>
 
         {/* Thumbnail image (real courses) */}
         {c.thumbnail && (

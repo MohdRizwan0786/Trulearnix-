@@ -289,10 +289,12 @@ function GlassStatCard({ label, value, icon: Icon, color, glow, sub, trend }: {
 }
 
 // ─── Leaderboard Mini ─────────────────────────────────────────────────────────
-function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon, resetLabel }: {
+function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon, resetLabel, tierNameMap }: {
   title: string; data: any[]; myRank: number; myEarnings: number
   userId?: string; accent: string; icon: string; resetLabel?: string
+  tierNameMap?: Record<string, string>
 }) {
+  const getTierName = (t?: string) => t ? ((tierNameMap || {})[t.toLowerCase()] || t) : '—'
   const MEDALS = ['🥇', '🥈', '🥉']
   const top5 = data.slice(0, 5)
   const myEntry = data.find((u: any) => String(u._id) === String(userId))
@@ -373,7 +375,7 @@ function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon
                   <p style={{ color: isMe ? 'white' : 'rgba(255,255,255,0.75)', fontSize:12, fontWeight: isMe ? 700 : 500, margin:0 }} className="truncate">
                     {u.name} {isMe && <span style={{ color:accent, fontSize:10 }}>(You)</span>}
                   </p>
-                  <p style={{ color:'#374151', fontSize:10, textTransform:'capitalize', margin:0 }}>{u.packageTier} · {u.totalReferrals || 0} refs</p>
+                  <p style={{ color:'#374151', fontSize:10, margin:0 }}>{getTierName(u.packageTier)} · {u.totalReferrals || 0} refs</p>
                 </div>
                 <span style={{ color:accent, fontWeight:800, fontSize:12, flexShrink:0 }}>
                   ₹{(u.periodEarnings || u.totalEarnings || 0).toLocaleString()}
@@ -396,7 +398,7 @@ function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon
               )}
               <div style={{ flex:1, minWidth:0 }}>
                 <p style={{ color:'white', fontSize:12, fontWeight:700, margin:0 }}>{myEntry.name} <span style={{ color:accent, fontSize:10 }}>(You)</span></p>
-                <p style={{ color:'#4b5563', fontSize:10, margin:0 }}>{myEntry.packageTier}</p>
+                <p style={{ color:'#4b5563', fontSize:10, margin:0 }}>{getTierName(myEntry.packageTier)}</p>
               </div>
               <span style={{ color:accent, fontWeight:800, fontSize:12 }}>₹{myEarnings.toLocaleString()}</span>
             </div>
@@ -418,11 +420,18 @@ function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon
 
 // ─── Plan Section ─────────────────────────────────────────────────────────────
 function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageComm: any[] }) {
-  const [selected, setSelected] = useState<Tier>(currentTier)
-  const currentOrder = TIER_CFG[currentTier].order
-  const selectedCfg = TIER_CFG[selected]
-  const isUpgrade = selectedCfg.order > currentOrder
-  const isCurrent = selected === currentTier
+  const [selectedId, setSelectedId] = useState<string>(
+    packageComm.find((p: any) => p.tier?.toLowerCase() === currentTier)?.packageId || packageComm[0]?.packageId || ''
+  )
+  const selectedPkg = packageComm.find((p: any) => p.packageId === selectedId) || packageComm[0]
+  const tierKey = (selectedPkg?.tier?.toLowerCase() || 'free') as Tier
+  const cfg = TIER_CFG[tierKey] || TIER_CFG['free']
+  const currentPkgTier = currentTier
+  const isUpgrade = (TIER_CFG[tierKey]?.order || 0) > (TIER_CFG[currentPkgTier]?.order || 0)
+  const isCurrent = tierKey === currentPkgTier
+  const hasHigherPkg = packageComm.some((p: any) => (TIER_CFG[p.tier?.toLowerCase() as Tier]?.order || 0) > (TIER_CFG[currentPkgTier]?.order || 0))
+
+  if (!packageComm.length) return null
 
   return (
     <div style={{
@@ -443,148 +452,108 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
         <div>
           <h3 style={{ color:'white', fontWeight:800, fontSize:15, margin:0 }}>Plans & Benefits</h3>
           <p style={{ color:'#4b5563', fontSize:12, margin:0 }}>
-            Current: <span style={{ color:TIER_CFG[currentTier].color, fontWeight:700, textTransform:'capitalize' }}>
-              {TIER_CFG[currentTier].icon} {TIER_CFG[currentTier].label}
+            Current: <span style={{ color:TIER_CFG[currentTier]?.color || '#6b7280', fontWeight:700 }}>
+              {packageComm.find((p: any) => p.tier?.toLowerCase() === currentTier)?.name || currentTier}
             </span>
           </p>
         </div>
-        <div style={{
-          marginLeft:'auto',
-          background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.22)',
-          borderRadius:100, padding:'4px 12px',
-        }}>
-          <span style={{ color:'#fcd34d', fontSize:11, fontWeight:700 }}>✨ Upgrade to Earn More</span>
-        </div>
+        {hasHigherPkg && (
+          <div style={{
+            marginLeft:'auto',
+            background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.22)',
+            borderRadius:100, padding:'4px 12px',
+          }}>
+            <span style={{ color:'#fcd34d', fontSize:11, fontWeight:700 }}>✨ Upgrade to Earn More</span>
+          </div>
+        )}
       </div>
 
-      {/* Tier pills */}
+      {/* Package pills — actual names from admin */}
       <div style={{ padding:'16px 20px 0', display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
-        {TIERS.map(t => {
-          const cfg = TIER_CFG[t]
-          const isActive = t === selected
-          const isCur = t === currentTier
+        {packageComm.map((pkg: any) => {
+          const pkgTier = (pkg.tier?.toLowerCase() || 'free') as Tier
+          const pkgCfg = TIER_CFG[pkgTier] || TIER_CFG['free']
+          const isActive = pkg.packageId === selectedId
+          const isCur = pkgTier === currentPkgTier
           return (
-            <button key={t} onClick={() => setSelected(t)} style={{
+            <button key={pkg.packageId} onClick={() => setSelectedId(pkg.packageId)} style={{
               flexShrink:0, padding:'8px 14px', borderRadius:100, cursor:'pointer',
-              border: isActive ? `1.5px solid ${cfg.color}` : '1.5px solid rgba(255,255,255,0.07)',
-              background: isActive ? `${cfg.color}18` : 'rgba(255,255,255,0.02)',
+              border: isActive ? `1.5px solid ${pkgCfg.color}` : '1.5px solid rgba(255,255,255,0.07)',
+              background: isActive ? `${pkgCfg.color}18` : 'rgba(255,255,255,0.02)',
               display:'flex', alignItems:'center', gap:6, transition:'all 0.2s',
-              boxShadow: isActive ? `0 0 20px ${cfg.glow}` : 'none',
+              boxShadow: isActive ? `0 0 20px ${pkgCfg.glow}` : 'none',
             }}>
-              <span style={{ fontSize:13 }}>{cfg.icon}</span>
-              <span style={{ color: isActive ? cfg.color : '#4b5563', fontSize:12, fontWeight:700 }}>{cfg.label}</span>
-              {isCur && <span style={{ background:cfg.color, color:'white', fontSize:9, fontWeight:800, padding:'1px 6px', borderRadius:100 }}>YOU</span>}
+              <span style={{ color: isActive ? pkgCfg.color : '#4b5563', fontSize:12, fontWeight:700 }}>{pkg.name}</span>
+              {isCur && <span style={{ background:pkgCfg.color, color:'white', fontSize:9, fontWeight:800, padding:'1px 6px', borderRadius:100 }}>YOU</span>}
             </button>
           )
         })}
       </div>
 
-      {/* Selected plan detail */}
-      <div style={{ margin:'16px', borderRadius:20, overflow:'hidden', border:`1.5px solid ${selectedCfg.color}28`, boxShadow:`0 6px 40px ${selectedCfg.glow}` }}>
-        <div style={{ padding:'20px', background:selectedCfg.bg, position:'relative', overflow:'hidden' }}>
-          <div style={{ position:'absolute', top:-50, right:-50, width:180, height:180, borderRadius:'50%', background:'rgba(255,255,255,0.06)' }} />
-          <div style={{ position:'absolute', bottom:-35, left:-25, width:120, height:120, borderRadius:'50%', background:'rgba(255,255,255,0.03)' }} />
-          <div style={{ position:'relative', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-            <div style={{ fontSize:38 }}>{selectedCfg.icon}</div>
-            <div>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <h4 style={{ color:'white', fontWeight:900, fontSize:22, margin:0 }}>{selectedCfg.label}</h4>
-                {isCurrent && (
-                  <span style={{ background:'rgba(255,255,255,0.22)', color:'white', fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:100 }}>
-                    ✓ ACTIVE
-                  </span>
-                )}
-                {isUpgrade && (
-                  <span style={{ background:'rgba(0,0,0,0.3)', color:'#fcd34d', fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:100 }}>
-                    ↑ UPGRADE
-                  </span>
-                )}
-              </div>
-              <p style={{ color:'rgba(255,255,255,0.65)', fontSize:13, margin:0 }}>{selectedCfg.tagline}</p>
-            </div>
-            <div style={{ marginLeft:'auto', textAlign:'right' }}>
-              <p style={{ color:'rgba(255,255,255,0.45)', fontSize:10, textTransform:'uppercase', letterSpacing:1, margin:0 }}>One-time</p>
-              <p style={{ color:'white', fontWeight:900, fontSize:24, margin:0 }}>{selectedCfg.price}</p>
-            </div>
-          </div>
-        </div>
-        <div style={{ background:'rgba(10,10,18,0.95)', padding:'18px 20px' }}>
-          <p style={{ color:'#374151', fontSize:11, textTransform:'uppercase', letterSpacing:1, marginBottom:12, margin:0 }}>What you get</p>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:12 }}>
-            {TIER_BENEFITS[selected].map((b, i) => (
-              <div key={i} style={{
-                display:'flex', alignItems:'flex-start', gap:8,
-                padding:'8px 10px', borderRadius:12,
-                background: b.highlight ? `${selectedCfg.color}10` : 'rgba(255,255,255,0.02)',
-                border: b.highlight ? `1px solid ${selectedCfg.color}20` : '1px solid rgba(255,255,255,0.04)',
-              }}>
-                <div style={{
-                  width:18, height:18, borderRadius:'50%', flexShrink:0, marginTop:1,
-                  background: b.highlight ? `${selectedCfg.color}22` : 'rgba(255,255,255,0.05)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                }}>
-                  <span style={{ color: b.highlight ? selectedCfg.color : '#374151', fontSize:10 }}>✓</span>
+      {/* Selected package detail */}
+      {selectedPkg && (
+        <div style={{ margin:'16px', borderRadius:20, overflow:'hidden', border:`1.5px solid ${cfg.color}28`, boxShadow:`0 6px 40px ${cfg.glow}` }}>
+          <div style={{ padding:'20px', background:cfg.bg, position:'relative', overflow:'hidden' }}>
+            <div style={{ position:'absolute', top:-50, right:-50, width:180, height:180, borderRadius:'50%', background:'rgba(255,255,255,0.06)' }} />
+            <div style={{ position:'absolute', bottom:-35, left:-25, width:120, height:120, borderRadius:'50%', background:'rgba(255,255,255,0.03)' }} />
+            <div style={{ position:'relative', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+              <div style={{ fontSize:32 }}>{cfg.icon}</div>
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <h4 style={{ color:'white', fontWeight:900, fontSize:20, margin:0 }}>{selectedPkg.name}</h4>
+                  {isCurrent && (
+                    <span style={{ background:'rgba(255,255,255,0.22)', color:'white', fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:100 }}>
+                      ✓ ACTIVE
+                    </span>
+                  )}
+                  {isUpgrade && (
+                    <span style={{ background:'rgba(0,0,0,0.3)', color:'#fcd34d', fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:100 }}>
+                      ↑ UPGRADE
+                    </span>
+                  )}
                 </div>
-                <span style={{ color: b.highlight ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)', fontSize:11.5, lineHeight:1.4, fontWeight: b.highlight ? 600 : 400 }}>{b.text}</span>
+                <p style={{ color:'rgba(255,255,255,0.65)', fontSize:13, margin:0 }}>{cfg.tagline}</p>
               </div>
-            ))}
+              <div style={{ marginLeft:'auto', textAlign:'right' }}>
+                <p style={{ color:'rgba(255,255,255,0.45)', fontSize:10, textTransform:'uppercase', letterSpacing:1, margin:0 }}>One-time</p>
+                <p style={{ color:'white', fontWeight:900, fontSize:24, margin:0 }}>₹{(selectedPkg.price || 0).toLocaleString('en-IN')}</p>
+              </div>
+            </div>
           </div>
+          <div style={{ background:'rgba(10,10,18,0.95)', padding:'18px 20px' }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {[
+                { label:'L1 Commission', value: selectedPkg.l1Earn, color:'#a78bfa', bg:'rgba(139,92,246,0.1)' },
+                { label:'L2 Commission', value: selectedPkg.l2Earn, color:'#67e8f9', bg:'rgba(6,182,212,0.1)' },
+                { label:'L3 Commission', value: selectedPkg.l3Earn, color:'#fcd34d', bg:'rgba(245,158,11,0.1)' },
+              ].map(row => (
+                <div key={row.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderRadius:12, background:row.bg, border:`1px solid ${row.color}20` }}>
+                  <span style={{ color:'rgba(255,255,255,0.6)', fontSize:12, fontWeight:600 }}>{row.label}</span>
+                  <span style={{ color:row.color, fontWeight:800, fontSize:14 }}>{row.value > 0 ? `₹${row.value.toLocaleString()}` : '—'}</span>
+                </div>
+              ))}
+            </div>
 
-          {packageComm.length > 0 && (
-            <div style={{ marginTop:16, padding:'14px', borderRadius:14, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)' }}>
-              <p style={{ color:'#374151', fontSize:11, textTransform:'uppercase', letterSpacing:1, marginBottom:10, margin:0 }}>Commission Preview</p>
-              <div style={{ display:'flex', flexDirection:'column', gap:6, marginTop:10 }}>
-                {packageComm.slice(0, 3).map((pkg: any) => (
-                  <div key={pkg.packageId} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                    <span style={{ color:'rgba(255,255,255,0.55)', fontSize:12 }}>{pkg.name}</span>
-                    <div style={{ display:'flex', gap:10 }}>
-                      <span style={{ color:'#a78bfa', fontWeight:700, fontSize:12 }}>L1 ₹{pkg.l1Earn > 0 ? pkg.l1Earn.toLocaleString() : '—'}</span>
-                      <span style={{ color:'#67e8f9', fontWeight:700, fontSize:12 }}>L2 ₹{pkg.l2Earn > 0 ? pkg.l2Earn.toLocaleString() : '—'}</span>
-                    </div>
-                  </div>
-                ))}
+            {isUpgrade && (
+              <Link href="/student/upgrade" style={{
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                marginTop:16, padding:'14px', borderRadius:14,
+                background:cfg.bg, color:'white', fontWeight:800, fontSize:14,
+                textDecoration:'none', boxShadow:`0 6px 24px ${cfg.glow}`,
+              }}>
+                <Sparkles style={{ width:16, height:16 }} />
+                Upgrade — ₹{(selectedPkg.price || 0).toLocaleString('en-IN')}
+                <ArrowRight style={{ width:15, height:15 }} />
+              </Link>
+            )}
+            {isCurrent && (
+              <div style={{ marginTop:14, padding:'12px', borderRadius:12, background:`${cfg.color}08`, border:`1px solid ${cfg.color}22`, textAlign:'center' }}>
+                <span style={{ color:cfg.color, fontSize:13, fontWeight:700 }}>✓ This is your active plan</span>
               </div>
-            </div>
-          )}
-
-          {isUpgrade && (
-            <Link href="/student/upgrade" style={{
-              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-              marginTop:16, padding:'14px', borderRadius:14,
-              background:selectedCfg.bg, color:'white', fontWeight:800, fontSize:14,
-              textDecoration:'none', boxShadow:`0 6px 24px ${selectedCfg.glow}`,
-            }}>
-              <Sparkles style={{ width:16, height:16 }} />
-              Upgrade to {selectedCfg.label} — {selectedCfg.price}
-              <ArrowRight style={{ width:15, height:15 }} />
-            </Link>
-          )}
-          {isCurrent && (
-            <div style={{ marginTop:14, padding:'12px', borderRadius:12, background:`${selectedCfg.color}08`, border:`1px solid ${selectedCfg.color}22`, textAlign:'center' }}>
-              <span style={{ color:selectedCfg.color, fontSize:13, fontWeight:700 }}>✓ This is your active plan</span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Tier progress bar */}
-      <div style={{ padding:'0 16px 16px', display:'flex', alignItems:'center', gap:4 }}>
-        {TIERS.map((t, i) => {
-          const cfg = TIER_CFG[t]
-          const isC = t === currentTier
-          const isPast = cfg.order < currentOrder
-          return (
-            <div key={t} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
-              <div style={{
-                height:4, width:'100%', borderRadius:2,
-                background: isC ? cfg.color : isPast ? `${cfg.color}50` : 'rgba(255,255,255,0.05)',
-                boxShadow: isC ? `0 0 8px ${cfg.glow}` : 'none',
-              }} />
-              <span style={{ fontSize:9, color: isC ? cfg.color : '#1f2937', fontWeight: isC ? 800 : 400 }}>{cfg.icon}</span>
-            </div>
-          )
-        })}
-      </div>
+      )}
     </div>
   )
 }
@@ -695,6 +664,9 @@ export default function PartnerDashboard() {
 
   const tier = (user?.packageTier || 'free') as Tier
   const tierCfg = TIER_CFG[tier]
+  const tierNameMap: Record<string, string> = {}
+  packageComm.forEach((p: any) => { if (p.tier) tierNameMap[p.tier.toLowerCase()] = p.name })
+  const getTierName = (t?: string) => t ? (tierNameMap[t.toLowerCase()] || t) : '—'
   const l1 = stats?.l1Count || 0
   const l2 = stats?.l2Count || 0
   const l3 = stats?.l3Count || 0
@@ -851,7 +823,7 @@ export default function PartnerDashboard() {
                     border:`1px solid ${tierCfg.color}40`,
                     boxShadow:`0 0 12px ${tierCfg.glow}`,
                   }}>
-                    {tierCfg.icon} {tierCfg.label} Partner
+                    {tierCfg.icon} {packageComm.find((p: any) => p.tier?.toLowerCase() === tier)?.name || tierCfg.label} Partner
                   </span>
                   {rank && (
                     <span style={{
@@ -1139,6 +1111,7 @@ export default function PartnerDashboard() {
               myRank={lb24Data?.myRank || 0}
               myEarnings={lb24Data?.myPeriodEarnings || 0}
               userId={(user as any)?._id || user?.id}
+              tierNameMap={tierNameMap}
             />
             <LeaderboardMini
               title="All Time" icon="👑" accent="#8b5cf6"
@@ -1146,6 +1119,7 @@ export default function PartnerDashboard() {
               myRank={lbAllData?.myRank || 0}
               myEarnings={lbAllData?.myPeriodEarnings || 0}
               userId={(user as any)?._id || user?.id}
+              tierNameMap={tierNameMap}
             />
           </div>
         </div>
@@ -1184,8 +1158,8 @@ export default function PartnerDashboard() {
                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                           <div style={{
                             width:10, height:10, borderRadius:'50%',
-                            background: TIER_CFG[pkg.tier as Tier]?.color || '#4b5563',
-                            boxShadow:`0 0 8px ${TIER_CFG[pkg.tier as Tier]?.glow || 'transparent'}`,
+                            background: TIER_CFG[(pkg.tier?.toLowerCase()) as Tier]?.color || '#4b5563',
+                            boxShadow:`0 0 8px ${TIER_CFG[(pkg.tier?.toLowerCase()) as Tier]?.glow || 'transparent'}`,
                             flexShrink:0,
                           }} />
                           <div>
@@ -1275,7 +1249,7 @@ export default function PartnerDashboard() {
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <p style={{ color:'rgba(255,255,255,0.9)', fontSize:13, fontWeight:600, margin:0 }} className="truncate">{r.name}</p>
-                      <p style={{ color:'#4b5563', fontSize:11, textTransform:'capitalize', margin:0 }}>{r.packageTier} tier</p>
+                      <p style={{ color:'#4b5563', fontSize:11, margin:0 }}>{getTierName(r.packageTier)}</p>
                     </div>
                     <div style={{ textAlign:'right', flexShrink:0 }}>
                       <p style={{ color:'#4ade80', fontSize:14, fontWeight:900, margin:0 }}>+₹{(r.contribution || 0).toLocaleString()}</p>
@@ -1399,7 +1373,7 @@ export default function PartnerDashboard() {
                 <p style={{ color:'white', fontWeight:700, fontSize:15, margin:0 }}>{sponsor.name}</p>
                 <p style={{ color:'#6b7280', fontSize:12, margin:0 }}>
                   {sponsor.phone}
-                  {sponsor.packageTier && <> · <span style={{ color:'#a78bfa', textTransform:'capitalize' }}>{sponsor.packageTier} tier</span></>}
+                  {sponsor.packageTier && <> · <span style={{ color:'#a78bfa' }}>{getTierName(sponsor.packageTier)}</span></>}
                 </p>
               </div>
             </div>

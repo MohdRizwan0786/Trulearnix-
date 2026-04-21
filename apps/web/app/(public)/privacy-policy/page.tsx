@@ -1,7 +1,8 @@
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { Metadata } from 'next'
-import { Shield, Lock, Eye, Database, UserCheck, Bell, Globe, Mail } from 'lucide-react'
+import { Shield, Lock, Eye, Database, UserCheck, Bell, Globe, Mail, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | TruLearnix',
@@ -87,9 +88,14 @@ export default function PrivacyPolicyPage() {
   return (
     <main className="bg-[#04050a] min-h-screen">
       <Navbar />
+      <div className="max-w-4xl mx-auto px-4 pt-24 pb-0">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
+          <ArrowLeft className="w-4 h-4" />Back to Home
+        </Link>
+      </div>
 
       {/* ── Hero ── */}
-      <section className="relative pt-28 pb-16 overflow-hidden">
+      <section className="relative pt-8 pb-16 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-radial from-violet-600/15 to-transparent rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-4xl mx-auto px-4 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium mb-6">

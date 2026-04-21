@@ -64,6 +64,16 @@ export default function EarningsPage() {
     queryFn: () => partnerAPI.earnings(queryParams || { period: '30' }).then(r => r.data),
     enabled: period !== 'custom' || !!(from && to),
   })
+  const { data: pkgsData } = useQuery({
+    queryKey: ['packages-list'],
+    queryFn: () => fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages`).then(r => r.json()),
+    staleTime: 10 * 60 * 1000,
+  })
+  const tierNameMap: Record<string, string> = {}
+  ;(pkgsData?.packages || pkgsData?.data || []).forEach((p: any) => {
+    if (p.tier) tierNameMap[p.tier.toLowerCase()] = p.name
+  })
+  const getTierName = (t?: string) => t ? (tierNameMap[t.toLowerCase()] || t) : '—'
   const { data: emiData, isLoading: emiLoading } = useQuery({
     queryKey: ['partner-emi-commissions'],
     queryFn: () => partnerAPI.emiCommissions().then(r => r.data),
@@ -83,7 +93,8 @@ export default function EarningsPage() {
 
   const levelMax = Math.max(byLevel.l1 || 0, byLevel.l2 || 0, byLevel.l3 || 0, 1)
   const monthlyMax = Math.max(...monthly.map((m: any) => m.total || 0), 1)
-  const tierMax = Math.max(...(['supreme','elite','pro','starter'].map(t => (byTier as any)[t] || 0)), 1)
+  const activeTierKeys = Object.keys(byTier).filter(t => (byTier as any)[t] > 0)
+  const tierMax = Math.max(...(activeTierKeys.length ? activeTierKeys.map(t => (byTier as any)[t]) : [0]), 1)
 
   const emiInstallments: any[] = emiData?.installments || []
   const emiStats = emiData?.stats || {}
@@ -249,14 +260,13 @@ export default function EarningsPage() {
           <Package className="w-4 h-4 text-amber-400" /> Revenue by Package Tier
         </h3>
         <div className="space-y-3">
-          {(['supreme','elite','pro','starter'] as const).map((tier) => {
-            const val = (byTier as any)[tier] || 0
-            const cfg = TIER_CFG[tier]
+          {Object.entries(byTier as Record<string, number>).map(([tier, val]) => {
+            const cfg = TIER_CFG[tier.toLowerCase()] || { grad: 'from-gray-500 to-gray-600', text: 'text-gray-300', emoji: '📦' }
             const pct = tierMax > 0 ? (val / tierMax) * 100 : 0
             return (
               <div key={tier}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-dark-300 text-sm">{cfg.emoji} <span className="capitalize">{tier}</span></span>
+                  <span className="text-dark-300 text-sm">{cfg.emoji} {getTierName(tier)}</span>
                   <span className="text-white text-sm font-semibold">₹{val.toLocaleString()}</span>
                 </div>
                 <div className="w-full bg-dark-700 rounded-full h-2 overflow-hidden">
@@ -358,7 +368,7 @@ export default function EarningsPage() {
                         L{c.level}
                       </span>
                       {c.from?.packageTier && (
-                        <span className="text-[10px] text-dark-400 capitalize">{c.from.packageTier}</span>
+                        <span className="text-[10px] text-dark-400">{getTierName(c.from.packageTier)}</span>
                       )}
                     </div>
                   </div>
@@ -417,8 +427,8 @@ export default function EarningsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">{buyer?.name || 'Unknown'}</p>
-                    <p className="text-dark-400 text-xs capitalize">
-                      {pp?.packageTier || 'Package'} · EMI {inst.installmentNumber}/{inst.totalInstallments}
+                    <p className="text-dark-400 text-xs">
+                      {getTierName(pp?.packageTier) || 'Package'} · EMI {inst.installmentNumber}/{inst.totalInstallments}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
