@@ -17,6 +17,7 @@ const DEFAULT_COMPANY_LINKS = [
   { label: 'Careers', href: '/contact' },
   { label: 'Blog', href: '/about' },
   { label: 'Press Kit', href: '/contact' },
+  { label: 'Legal Documents', href: '/legal' },
   { label: 'Privacy Policy', href: '/privacy-policy' },
   { label: 'Terms of Service', href: '/terms' },
 ]
