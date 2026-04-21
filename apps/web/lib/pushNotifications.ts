@@ -10,7 +10,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 function getToken() {
-  try { return localStorage.getItem('token') || '' } catch { return '' }
+  try { return localStorage.getItem('accessToken') || '' } catch { return '' }
 }
 
 export async function registerServiceWorker() {

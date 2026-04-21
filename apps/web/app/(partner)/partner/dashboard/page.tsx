@@ -424,6 +424,20 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
   const isUpgrade = selectedCfg.order > currentOrder
   const isCurrent = selected === currentTier
 
+  // Build actual price map from real package data
+  const tierPriceMap: Partial<Record<Tier, string>> = {}
+  packageComm.forEach((pkg: any) => {
+    if (pkg.tier && pkg.price && TIERS.includes(pkg.tier as Tier)) {
+      const t = pkg.tier as Tier
+      const existing = tierPriceMap[t]
+      const existingNum = existing ? parseInt(existing.replace(/[^\d]/g, '')) : Infinity
+      if (pkg.price < existingNum) {
+        tierPriceMap[t] = `₹${Number(pkg.price).toLocaleString('en-IN')}`
+      }
+    }
+  })
+  const getPrice = (t: Tier) => tierPriceMap[t] || TIER_CFG[t].price
+
   return (
     <div style={{
       background:'rgba(13,13,20,0.95)',
@@ -504,7 +518,7 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
             </div>
             <div style={{ marginLeft:'auto', textAlign:'right' }}>
               <p style={{ color:'rgba(255,255,255,0.45)', fontSize:10, textTransform:'uppercase', letterSpacing:1, margin:0 }}>One-time</p>
-              <p style={{ color:'white', fontWeight:900, fontSize:24, margin:0 }}>{selectedCfg.price}</p>
+              <p style={{ color:'white', fontWeight:900, fontSize:24, margin:0 }}>{getPrice(selected)}</p>
             </div>
           </div>
         </div>
@@ -555,7 +569,7 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
               textDecoration:'none', boxShadow:`0 6px 24px ${selectedCfg.glow}`,
             }}>
               <Sparkles style={{ width:16, height:16 }} />
-              Upgrade to {selectedCfg.label} — {selectedCfg.price}
+              Upgrade to {selectedCfg.label} — {getPrice(selected)}
               <ArrowRight style={{ width:15, height:15 }} />
             </Link>
           )}
