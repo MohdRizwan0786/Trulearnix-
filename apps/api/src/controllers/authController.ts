@@ -281,6 +281,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     user.password = newPassword;
+    user.isVerified = true;
     await user.save();
     await redisClient.del(`reset:${userId}`);
 
