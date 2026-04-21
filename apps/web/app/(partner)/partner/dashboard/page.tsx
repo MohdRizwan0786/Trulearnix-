@@ -289,10 +289,12 @@ function GlassStatCard({ label, value, icon: Icon, color, glow, sub, trend }: {
 }
 
 // ─── Leaderboard Mini ─────────────────────────────────────────────────────────
-function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon, resetLabel }: {
+function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon, resetLabel, tierNameMap }: {
   title: string; data: any[]; myRank: number; myEarnings: number
   userId?: string; accent: string; icon: string; resetLabel?: string
+  tierNameMap?: Record<string, string>
 }) {
+  const getTierName = (t?: string) => t ? ((tierNameMap || {})[t.toLowerCase()] || t) : '—'
   const MEDALS = ['🥇', '🥈', '🥉']
   const top5 = data.slice(0, 5)
   const myEntry = data.find((u: any) => String(u._id) === String(userId))
@@ -373,7 +375,7 @@ function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon
                   <p style={{ color: isMe ? 'white' : 'rgba(255,255,255,0.75)', fontSize:12, fontWeight: isMe ? 700 : 500, margin:0 }} className="truncate">
                     {u.name} {isMe && <span style={{ color:accent, fontSize:10 }}>(You)</span>}
                   </p>
-                  <p style={{ color:'#374151', fontSize:10, textTransform:'capitalize', margin:0 }}>{u.packageTier} · {u.totalReferrals || 0} refs</p>
+                  <p style={{ color:'#374151', fontSize:10, margin:0 }}>{getTierName(u.packageTier)} · {u.totalReferrals || 0} refs</p>
                 </div>
                 <span style={{ color:accent, fontWeight:800, fontSize:12, flexShrink:0 }}>
                   ₹{(u.periodEarnings || u.totalEarnings || 0).toLocaleString()}
@@ -396,7 +398,7 @@ function LeaderboardMini({ title, data, myRank, myEarnings, userId, accent, icon
               )}
               <div style={{ flex:1, minWidth:0 }}>
                 <p style={{ color:'white', fontSize:12, fontWeight:700, margin:0 }}>{myEntry.name} <span style={{ color:accent, fontSize:10 }}>(You)</span></p>
-                <p style={{ color:'#4b5563', fontSize:10, margin:0 }}>{myEntry.packageTier}</p>
+                <p style={{ color:'#4b5563', fontSize:10, margin:0 }}>{getTierName(myEntry.packageTier)}</p>
               </div>
               <span style={{ color:accent, fontWeight:800, fontSize:12 }}>₹{myEarnings.toLocaleString()}</span>
             </div>
@@ -662,6 +664,9 @@ export default function PartnerDashboard() {
 
   const tier = (user?.packageTier || 'free') as Tier
   const tierCfg = TIER_CFG[tier]
+  const tierNameMap: Record<string, string> = {}
+  packageComm.forEach((p: any) => { if (p.tier) tierNameMap[p.tier.toLowerCase()] = p.name })
+  const getTierName = (t?: string) => t ? (tierNameMap[t.toLowerCase()] || t) : '—'
   const l1 = stats?.l1Count || 0
   const l2 = stats?.l2Count || 0
   const l3 = stats?.l3Count || 0
@@ -1106,6 +1111,7 @@ export default function PartnerDashboard() {
               myRank={lb24Data?.myRank || 0}
               myEarnings={lb24Data?.myPeriodEarnings || 0}
               userId={(user as any)?._id || user?.id}
+              tierNameMap={tierNameMap}
             />
             <LeaderboardMini
               title="All Time" icon="👑" accent="#8b5cf6"
@@ -1113,6 +1119,7 @@ export default function PartnerDashboard() {
               myRank={lbAllData?.myRank || 0}
               myEarnings={lbAllData?.myPeriodEarnings || 0}
               userId={(user as any)?._id || user?.id}
+              tierNameMap={tierNameMap}
             />
           </div>
         </div>
@@ -1242,7 +1249,7 @@ export default function PartnerDashboard() {
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <p style={{ color:'rgba(255,255,255,0.9)', fontSize:13, fontWeight:600, margin:0 }} className="truncate">{r.name}</p>
-                      <p style={{ color:'#4b5563', fontSize:11, textTransform:'capitalize', margin:0 }}>{r.packageTier} tier</p>
+                      <p style={{ color:'#4b5563', fontSize:11, margin:0 }}>{getTierName(r.packageTier)}</p>
                     </div>
                     <div style={{ textAlign:'right', flexShrink:0 }}>
                       <p style={{ color:'#4ade80', fontSize:14, fontWeight:900, margin:0 }}>+₹{(r.contribution || 0).toLocaleString()}</p>
@@ -1366,7 +1373,7 @@ export default function PartnerDashboard() {
                 <p style={{ color:'white', fontWeight:700, fontSize:15, margin:0 }}>{sponsor.name}</p>
                 <p style={{ color:'#6b7280', fontSize:12, margin:0 }}>
                   {sponsor.phone}
-                  {sponsor.packageTier && <> · <span style={{ color:'#a78bfa', textTransform:'capitalize' }}>{sponsor.packageTier} tier</span></>}
+                  {sponsor.packageTier && <> · <span style={{ color:'#a78bfa' }}>{getTierName(sponsor.packageTier)}</span></>}
                 </p>
               </div>
             </div>
