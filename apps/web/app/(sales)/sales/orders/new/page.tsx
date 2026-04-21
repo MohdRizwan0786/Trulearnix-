@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { salesAPI } from '@/lib/api'
 import { useRouter } from 'next/navigation'
@@ -69,6 +69,12 @@ export default function NewOrderPage() {
   const [paymentType, setPaymentType] = useState<'full' | 'emi' | 'token'>('full')
   const [tokenAmount, setTokenAmount] = useState('')
   const [notes, setNotes] = useState('')
+  const [emiEnabled, setEmiEnabled] = useState(false)
+
+  useEffect(() => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+    fetch(`${apiBase}/public/maintenance`).then(r => r.json()).then(d => setEmiEnabled(!!d.emiEnabled)).catch(() => {})
+  }, [])
 
   const { data: packagesData } = useQuery({
     queryKey: ['sales-packages'],
@@ -328,7 +334,7 @@ export default function NewOrderPage() {
             <div>
               <label className={labelCls}>Payment Type</label>
               <div className="grid grid-cols-3 gap-2">
-                {(['full', 'emi', 'token'] as const).map(pt => (
+                {(['full', 'emi', 'token'] as const).filter(pt => pt !== 'emi' || emiEnabled).map(pt => (
                   <button key={pt} onClick={() => setPaymentType(pt)}
                     className={`px-3 py-3 rounded-xl text-sm font-bold transition-all border ${
                       paymentType === pt

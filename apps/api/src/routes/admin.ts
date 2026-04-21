@@ -612,10 +612,10 @@ router.get('/platform-settings', async (_req, res) => {
 });
 router.put('/platform-settings', async (req, res) => {
   try {
-    const { tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled } = req.body;
+    const { tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled, emiEnabled } = req.body;
     let settings = await PlatformSettings.findOne();
     if (!settings) {
-      settings = await PlatformSettings.create({ tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled });
+      settings = await PlatformSettings.create({ tdsRate, gstRate, gstNumber, minWithdrawalAmount, webinarLink, webinarTitle, webinarDate, presentationVideoLink, maintenanceMode, trulanceMaintenance, maintenanceMessage, earlyAccessEnabled, emiEnabled });
     } else {
       if (tdsRate !== undefined) settings.tdsRate = tdsRate;
       if (gstRate !== undefined) settings.gstRate = gstRate;
@@ -629,6 +629,7 @@ router.put('/platform-settings', async (req, res) => {
       if (trulanceMaintenance !== undefined) settings.trulanceMaintenance = trulanceMaintenance;
       if (maintenanceMessage !== undefined) settings.maintenanceMessage = maintenanceMessage;
       if (earlyAccessEnabled !== undefined) settings.earlyAccessEnabled = earlyAccessEnabled;
+      if (emiEnabled !== undefined) settings.emiEnabled = emiEnabled;
       await settings.save();
     }
     res.json({ success: true, settings });

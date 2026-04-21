@@ -122,6 +122,7 @@ function CheckoutInner() {
   const [item, setItem] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [payMode, setPayMode] = useState<'full' | 'emi'>('full')
+  const [emiEnabled, setEmiEnabled] = useState(false)
 
   const [promoCode, setPromoCode] = useState(searchParams.get('promo') || '')
   const [promoStatus, setPromoStatus] = useState<'idle' | 'valid' | 'invalid'>('idle')
@@ -142,6 +143,11 @@ function CheckoutInner() {
   const [guestEmail, setGuestEmail] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
   const [guestPaying, setGuestPaying] = useState(false)
+
+  useEffect(() => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+    fetch(`${apiBase}/public/maintenance`).then(r => r.json()).then(d => setEmiEnabled(!!d.emiEnabled)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     // For guest checkout (no auth), load item details publicly
@@ -191,7 +197,7 @@ function CheckoutInner() {
   const totalPayable = afterDiscount + gstAmount
   const emiAmount = Math.ceil(totalPayable / EMI_INSTALLMENTS)
   const payNow = payMode === 'emi' ? emiAmount : totalPayable
-  const showEmi = itemType === 'package' && basePrice > 0
+  const showEmi = itemType === 'package' && basePrice > 0 && emiEnabled
 
   const handlePromo = useCallback(async () => {
     if (!promoCode) return

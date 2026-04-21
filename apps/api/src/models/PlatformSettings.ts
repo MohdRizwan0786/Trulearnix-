@@ -19,6 +19,7 @@ export interface IPlatformSettings extends Document {
   trulanceMaintenance: boolean;
   maintenanceMessage?: string;
   earlyAccessEnabled: boolean;
+  emiEnabled: boolean;
   earlyAccessTokens: IEarlyAccessToken[];
   updatedAt: Date;
 }
@@ -36,6 +37,7 @@ const PlatformSettingsSchema = new Schema<IPlatformSettings>({
   trulanceMaintenance: { type: Boolean, default: false },
   maintenanceMessage: { type: String, default: 'We are performing scheduled maintenance. We will be back shortly.' },
   earlyAccessEnabled: { type: Boolean, default: false },
+  emiEnabled: { type: Boolean, default: false },
   earlyAccessTokens: [{
     token: { type: String, required: true },
     label: { type: String, default: '' },
