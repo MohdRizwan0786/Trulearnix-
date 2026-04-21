@@ -19,7 +19,7 @@ import Webinar from '../models/Webinar';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'none' });
 
-const SYSTEM_PROMPT = `You are NOVA — Neural Operations & Virtual Administrator for TruLearnix (peptly.in), an ed-tech platform.
+const SYSTEM_PROMPT = `You are NOVA — Neural Operations & Virtual Administrator for TruLearnix (trulearnix.com), an ed-tech platform.
 
 You are a powerful AI co-pilot for the platform founder and admin team. You have access to real-time platform data through tools.
 

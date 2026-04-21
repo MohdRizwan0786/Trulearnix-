@@ -86,14 +86,14 @@ export default function SettingsPage() {
   }
 
   const copyLink = (token: string) => {
-    const link = `https://peptly.in/?early_access=${token}`
+    const link = `https://trulearnix.com/?early_access=${token}`
     navigator.clipboard.writeText(link).then(() => {
       setCopiedToken(token)
       setTimeout(() => setCopiedToken(null), 2000)
     })
   }
 
-  const siteUrl = 'https://peptly.in'
+  const siteUrl = 'https://trulearnix.com'
 
   if (loading) return (
     <AdminLayout>
@@ -151,7 +151,7 @@ export default function SettingsPage() {
         <MaintenanceCard
           icon={<Construction className="w-5 h-5" />}
           title="TruLearnix Web"
-          subtitle="peptly.in — Learner & Partner portal"
+          subtitle="trulearnix.com — Learner & Partner portal"
           active={!!settings?.maintenanceMode}
           loading={saving === 'maintenanceMode'}
           onToggle={() => toggle('maintenanceMode')}
@@ -162,7 +162,7 @@ export default function SettingsPage() {
         <MaintenanceCard
           icon={<Zap className="w-5 h-5" />}
           title="Trulancer"
-          subtitle="trulancer.peptly.in — Freelance marketplace"
+          subtitle="trulancer.trulearnix.com — Freelance marketplace"
           active={!!settings?.trulanceMaintenance}
           loading={saving === 'trulanceMaintenance'}
           onToggle={() => toggle('trulanceMaintenance')}

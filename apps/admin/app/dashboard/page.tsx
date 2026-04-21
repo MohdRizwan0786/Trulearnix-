@@ -24,6 +24,11 @@ import { format, formatDistanceToNow } from 'date-fns'
 const PKG_COLORS: Record<string, string> = {
   starter: '#3b82f6', pro: '#8b5cf6', elite: '#f59e0b',
   supreme: '#f43f5e', free: '#6b7280',
+  'tru starter': '#3b82f6',
+  'tru pro-edge': '#8b5cf6',
+  'tru booster': '#10b981',
+  'tru advance': '#f59e0b',
+  'tru premium-infinity': '#f43f5e',
 }
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────

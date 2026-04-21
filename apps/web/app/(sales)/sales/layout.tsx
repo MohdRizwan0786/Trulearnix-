@@ -206,10 +206,34 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
           <div className="w-9" />
         </div>
 
-        <main className="flex-1 p-4 sm:p-6">
+        <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-30 flex items-stretch justify-around h-16"
+        style={{ background: 'rgba(10,10,18,0.97)', borderTop: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)' }}>
+        {[
+          { href: '/sales/dashboard', icon: LayoutDashboard, label: 'Home' },
+          { href: '/sales/leads',     icon: Users,           label: 'Leads' },
+          { href: '/sales/orders',    icon: ShoppingBag,     label: 'Orders' },
+          { href: '/sales/earnings',  icon: IndianRupee,     label: 'Earnings' },
+          { href: '/sales/kanban',    icon: Kanban,          label: 'Kanban' },
+        ].map(item => {
+          const active = pathname === item.href || (item.href !== '/sales/dashboard' && pathname.startsWith(item.href))
+          return (
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-0.5 flex-1">
+              <item.icon className={`w-5 h-5 ${active ? 'text-blue-400' : 'text-gray-600'}`} />
+              <span className={`text-[9px] font-bold ${active ? 'text-blue-400' : 'text-gray-600'}`}>{item.label}</span>
+            </Link>
+          )
+        })}
+        <button onClick={() => setOpen(true)} className="flex flex-col items-center justify-center gap-0.5 flex-1 text-gray-600">
+          <Menu className="w-5 h-5" />
+          <span className="text-[9px] font-bold">More</span>
+        </button>
+      </nav>
     </div>
   )
 }

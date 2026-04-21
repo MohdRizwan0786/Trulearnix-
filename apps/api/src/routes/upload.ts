@@ -5,7 +5,7 @@ import { uploadToS3, processAndSaveUpload } from '../services/s3Service';
 import MediaFile from '../models/MediaFile';
 
 const router = Router();
-const API_URL = process.env.API_URL || 'https://api.peptly.in';
+const API_URL = process.env.API_URL || 'https://api.trulearnix.com';
 
 function getType(mime: string): 'image' | 'video' | 'document' {
   if (mime.startsWith('image/')) return 'image';
@@ -90,7 +90,7 @@ router.delete('/media/:id', protect, authorize('admin', 'superadmin'), async (re
   try {
     const file = await MediaFile.findByIdAndDelete(req.params.id);
     if (file?.filename) {
-      const filePath = `/var/www/trulearnix/uploads/${file.filename}`;
+      const filePath = `/var/www/trulearnix-qa/uploads/${file.filename}`;
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
     res.json({ success: true, message: 'File deleted' });

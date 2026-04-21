@@ -216,12 +216,12 @@ export default function CoursesPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         {course.thumbnail ? (
-                          <img src={course.thumbnail} alt="" className="w-16 h-10 rounded-lg object-cover flex-shrink-0 ring-1 ring-white/10" />
-                        ) : (
-                          <div className="w-16 h-10 bg-violet-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <BookOpen className="w-4 h-4 text-violet-400" />
-                          </div>
-                        )}
+                          <img src={course.thumbnail} alt="" className="w-16 h-10 rounded-lg object-cover flex-shrink-0 ring-1 ring-white/10"
+                            onError={e => { (e.target as HTMLImageElement).style.display='none'; (e.target as HTMLImageElement).nextElementSibling?.removeAttribute('style') }} />
+                        ) : null}
+                        <div className="w-16 h-10 bg-violet-500/20 rounded-lg flex items-center justify-center flex-shrink-0" style={course.thumbnail ? {display:'none'} : {}}>
+                          <BookOpen className="w-4 h-4 text-violet-400" />
+                        </div>
                         <div className="min-w-0">
                           <p className="text-white font-medium line-clamp-1 max-w-[220px]">{course.title}</p>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">

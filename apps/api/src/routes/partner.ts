@@ -134,7 +134,7 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
       user: { name: user?.name, avatar: user?.avatar, affiliateCode: user?.affiliateCode, packageTier: user?.packageTier, commissionRate: user?.commissionRate, createdAt: user?.createdAt, kyc: user?.kyc },
       commissionRates,
       packageCommissions,
-      referralLink: `${process.env.WEB_URL || 'https://peptly.in'}?ref=${user?.affiliateCode}`,
+      referralLink: `${process.env.WEB_URL || 'https://trulearnix.com'}?ref=${user?.affiliateCode}`,
       sponsor: user?.upline1,
       manager: (user as any)?.managerId || (user?.managerName ? { name: user.managerName, phone: user.managerPhone } : null),
       stats: {
@@ -285,6 +285,7 @@ router.get('/leaderboard', protect, affiliateGuard, async (req: any, res) => {
       // All-time: include industrial earnings in display total
       const top = await User.find({
         isAffiliate: true,
+        role: { $nin: ['admin', 'superadmin', 'manager', 'mentor', 'salesperson'] },
         $or: [{ totalEarnings: { $gt: 0 } }, { industrialEarning: { $gt: 0 } }]
       })
         .select('name avatar packageTier totalEarnings commissionRate totalReferrals createdAt industrialEarning isIndustrialPartner')
@@ -311,7 +312,7 @@ router.get('/leaderboard', protect, affiliateGuard, async (req: any, res) => {
             localField: '_id',
             foreignField: '_id',
             as: 'user',
-            pipeline: [{ $match: { isAffiliate: true } }, { $project: { name: 1, avatar: 1, packageTier: 1, commissionRate: 1, totalReferrals: 1, industrialEarning: 1, isIndustrialPartner: 1 } }]
+            pipeline: [{ $match: { isAffiliate: true, role: { $nin: ['admin', 'superadmin', 'manager', 'mentor', 'salesperson'] } } }, { $project: { name: 1, avatar: 1, packageTier: 1, commissionRate: 1, totalReferrals: 1, industrialEarning: 1, isIndustrialPartner: 1 } }]
           }
         },
         { $unwind: { path: '$user', preserveNullAndEmptyArrays: false } },
@@ -600,7 +601,7 @@ router.post('/kyc', protect, affiliateGuard, async (req: any, res) => {
 router.get('/link', protect, affiliateGuard, async (req: any, res) => {
   try {
     const user = await User.findById(req.user._id).select('affiliateCode');
-    const baseUrl = process.env.WEB_URL || 'https://peptly.in';
+    const baseUrl = process.env.WEB_URL || 'https://trulearnix.com';
     const code = user?.affiliateCode || '';
 
     const [packages, courses, platformSettings] = await Promise.all([

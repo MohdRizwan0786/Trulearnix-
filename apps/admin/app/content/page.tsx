@@ -94,6 +94,7 @@ const DEFAULT_HERO = {
     { value: '20K+', label: 'Certificates Issued' },
     { value: '₹2Cr+', label: 'Partner Earnings' },
   ],
+  heroVideoUrl: '',
   liveClassTitle: 'Full Stack Dev — Batch 12',
   liveClassMentor: 'Mentor Aryan Kapoor',
   liveClassSession: 'React Hooks Deep Dive - Session 8 / 24',
@@ -624,6 +625,14 @@ function HeroTab() {
           currentUrl={data.heroBannerImage}
           type="image"
           onUploaded={url => set('heroBannerImage', url)}
+        />
+        <label className={labelCls}>Hero Live Demo Video (shown in homepage card)</label>
+        <UploadBtn
+          accept="video/*"
+          label="Upload Hero Video (.mp4)"
+          currentUrl={(data as any).heroVideoUrl}
+          type="video"
+          onUploaded={url => set('heroVideoUrl', url)}
         />
       </div>
 
@@ -1501,6 +1510,7 @@ function AchievementsTab() {
   const [subheading, setSubheading] = useState('')
   const [awards, setAwards] = useState<any[]>([])
   const [photos, setPhotos] = useState<any[]>([])
+  const [videos, setVideos] = useState<any[]>([])
   const [stats, setStats] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -1513,6 +1523,7 @@ function AchievementsTab() {
         if (d.subheading) setSubheading(d.subheading)
         if (d.awards?.length) setAwards(d.awards)
         if (d.photos?.length) setPhotos(d.photos)
+        if (d.videos?.length) setVideos(d.videos)
         if (d.stats?.length) setStats(d.stats)
       }
     }).catch(() => {}).finally(() => setLoading(false))
@@ -1520,7 +1531,7 @@ function AchievementsTab() {
 
   const save = async () => {
     setSaving(true)
-    try { await adminAPI.saveSiteContent('achievements', { heading, subheading, awards, photos, stats }); toast.success('Achievements saved!') }
+    try { await adminAPI.saveSiteContent('achievements', { heading, subheading, awards, photos, videos, stats }); toast.success('Achievements saved!') }
     catch { toast.error('Save failed') }
     finally { setSaving(false) }
   }
@@ -1532,6 +1543,10 @@ function AchievementsTab() {
   const updatePhoto = (i: number, v: any) => setPhotos(p => p.map((x, idx) => idx === i ? v : x))
   const addPhoto = () => setPhotos(p => [...p, { src: '', caption: '', sub: '' }])
   const deletePhoto = (i: number) => setPhotos(p => p.filter((_, idx) => idx !== i))
+
+  const updateVideo = (i: number, v: any) => setVideos(vs => vs.map((x, idx) => idx === i ? v : x))
+  const addVideo = () => setVideos(vs => [...vs, { src: '', caption: '', sub: '' }])
+  const deleteVideo = (i: number) => setVideos(vs => vs.filter((_, idx) => idx !== i))
 
   const updateStat = (i: number, v: any) => setStats(s => s.map((x, idx) => idx === i ? v : x))
   const addStat = () => setStats(s => [...s, { val: '', label: '', color: 'amber' }])
@@ -1606,7 +1621,6 @@ function AchievementsTab() {
             <Plus className="w-4 h-4" /> Add Photo
           </button>
         </div>
-        <p className="text-gray-500 text-xs">Upload images to /public/achievements/ and enter the path (e.g. /achievements/img-1.jpg)</p>
         {photos.map((p, i) => (
           <div key={i} className={cardCls + ' space-y-3'}>
             <div className="flex items-center justify-between mb-1">
@@ -1615,12 +1629,51 @@ function AchievementsTab() {
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-            <label className={labelCls}>Image Path (from /public)</label>
-            <input value={p.src} onChange={e => updatePhoto(i, { ...p, src: e.target.value })} placeholder="/achievements/img-1.jpg" className={inputCls} />
+            <label className={labelCls}>Image</label>
+            <UploadBtn
+              accept="image/*"
+              label="Upload Image"
+              onUploaded={url => updatePhoto(i, { ...p, src: url })}
+              currentUrl={p.src}
+              type="image"
+            />
             <label className={labelCls}>Caption</label>
             <input value={p.caption} onChange={e => updatePhoto(i, { ...p, caption: e.target.value })} placeholder="Award Night 2024" className={inputCls} />
             <label className={labelCls}>Sub-caption</label>
             <input value={p.sub} onChange={e => updatePhoto(i, { ...p, sub: e.target.value })} placeholder="Inc42 Summit, Bangalore" className={inputCls} />
+          </div>
+        ))}
+      </div>
+
+      {/* Videos */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-white text-sm">Moment Videos ({videos.length})</h3>
+          <button type="button" onClick={addVideo}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">
+            <Plus className="w-4 h-4" /> Add Video
+          </button>
+        </div>
+        {videos.map((v, i) => (
+          <div key={i} className={cardCls + ' space-y-3'}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-white text-xs font-bold">Video #{i + 1}</span>
+              <button type="button" onClick={() => deleteVideo(i)} className="text-red-400 hover:text-red-300 transition-colors">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            <label className={labelCls}>Video</label>
+            <UploadBtn
+              accept="video/*"
+              label="Upload Video"
+              onUploaded={url => updateVideo(i, { ...v, src: url })}
+              currentUrl={v.src}
+              type="video"
+            />
+            <label className={labelCls}>Caption</label>
+            <input value={v.caption} onChange={e => updateVideo(i, { ...v, caption: e.target.value })} placeholder="Award Night 2024" className={inputCls} />
+            <label className={labelCls}>Sub-caption</label>
+            <input value={v.sub} onChange={e => updateVideo(i, { ...v, sub: e.target.value })} placeholder="Inc42 Summit, Bangalore" className={inputCls} />
           </div>
         ))}
       </div>

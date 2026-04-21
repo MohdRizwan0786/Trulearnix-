@@ -4,7 +4,7 @@ import Notification from '../models/Notification'
 import mongoose from 'mongoose'
 
 webpush.setVapidDetails(
-  process.env.VAPID_EMAIL || 'mailto:admin@peptly.in',
+  process.env.VAPID_EMAIL || 'mailto:admin@trulearnix.com',
   process.env.VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!,
 )

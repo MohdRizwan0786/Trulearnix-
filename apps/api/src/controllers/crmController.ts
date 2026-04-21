@@ -184,7 +184,7 @@ export const deleteLead = async (req: AuthRequest, res: Response) => {
 
 // GET /api/crm/webhook/meta — Facebook webhook verification
 export const metaWebhookVerify = async (req: any, res: Response) => {
-  const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'peptly_meta_crm_2024';
+  const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'trulearnix_meta_crm_2024';
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];

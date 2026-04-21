@@ -96,6 +96,17 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
       {open && (
         <div className="sm:hidden fixed inset-0 z-40 flex">
           <div className="w-56 bg-dark-800 border-r border-white/5 flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                  <UserCog className="w-4 h-4 text-white" />
+                </div>
+                <p className="text-white font-bold text-sm">Manager</p>
+              </div>
+              <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             <SidebarContent />
           </div>
           <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
@@ -113,10 +124,32 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
           <div className="w-9" />
         </div>
 
-        <main className="flex-1 p-4 sm:p-6">
+        <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-30 flex items-stretch justify-around h-16 bg-dark-800 border-t border-white/5">
+        {[
+          { href: '/manager/dashboard',   icon: LayoutDashboard, label: 'Home' },
+          { href: '/manager/partners',    icon: Users,           label: 'Partners' },
+          { href: '/manager/leaderboard', icon: Trophy,          label: 'Board' },
+          { href: '/manager/kanban',      icon: Kanban,          label: 'Kanban' },
+        ].map(item => {
+          const active = pathname === item.href || (item.href !== '/manager/dashboard' && pathname.startsWith(item.href))
+          return (
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-0.5 flex-1">
+              <item.icon className={`w-5 h-5 ${active ? 'text-emerald-400' : 'text-gray-600'}`} />
+              <span className={`text-[9px] font-bold ${active ? 'text-emerald-400' : 'text-gray-600'}`}>{item.label}</span>
+            </Link>
+          )
+        })}
+        <button onClick={() => setOpen(true)} className="flex flex-col items-center justify-center gap-0.5 flex-1 text-gray-600">
+          <Menu className="w-5 h-5" />
+          <span className="text-[9px] font-bold">More</span>
+        </button>
+      </nav>
     </div>
   )
 }

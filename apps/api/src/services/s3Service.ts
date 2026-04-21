@@ -16,7 +16,7 @@ export const s3 = new S3Client({
 
 const BUCKET = process.env.AWS_S3_BUCKET || 'trulearnix';
 const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, '');
-const UPLOAD_DIR = '/var/www/trulearnix/uploads/';
+const UPLOAD_DIR = '/var/www/trulearnix-qa/uploads/';
 
 // Store in memory first so we can process images before uploading
 export const uploadToS3 = multer({
@@ -99,10 +99,10 @@ export const deleteFromS3 = async (key: string) => {
 
 export const getSignedVideoUrl = async (key: string, _expiresIn = 3600): Promise<string> => {
   if (R2_PUBLIC_URL) return `${R2_PUBLIC_URL}/${key}`;
-  return `${process.env.API_URL || 'https://api.peptly.in'}/uploads/${key}`;
+  return `${process.env.API_URL || 'https://api.trulearnix.com'}/uploads/${key}`;
 };
 
-const RECORDINGS_DIR = '/var/www/trulearnix/uploads/recordings';
+const RECORDINGS_DIR = '/var/www/trulearnix-qa/uploads/recordings';
 
 /**
  * Upload a recording file to R2.

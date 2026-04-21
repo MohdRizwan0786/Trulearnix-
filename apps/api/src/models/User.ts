@@ -214,7 +214,7 @@ UserSchema.methods.comparePassword = async function (password: string) {
   return bcrypt.compare(password, this.password);
 };
 
-const UPLOADS_BASE = 'https://api.peptly.in/uploads';
+const UPLOADS_BASE = `${process.env.API_URL || 'https://api.trulearnix.com'}/uploads`;
 function normalizeAvatar(avatar: string | undefined): string {
   if (!avatar) return '';
   if (avatar.startsWith('http://') || avatar.startsWith('https://')) return avatar;
