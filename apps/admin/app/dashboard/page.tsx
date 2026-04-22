@@ -144,11 +144,14 @@ export default function DashboardPage() {
   const { data: crmData } = useQuery({ queryKey: ['crm-stats'], queryFn: () => adminAPI.crmStats().then(r => r.data) })
   const { data: meetingsData } = useQuery({ queryKey: ['meetings-dash'], queryFn: () => adminAPI.meetings().then(r => r.data), refetchInterval: 60000 })
   const { data: tasksData } = useQuery({ queryKey: ['tasks-dash'], queryFn: () => adminAPI.tasks().then(r => r.data), refetchInterval: 60000 })
+  const { data: pkgData } = useQuery({ queryKey: ['admin-packages'], queryFn: () => adminAPI.packages().then(r => r.data) })
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const stats = dash || {}
   const basicStats = basicDash?.stats || {}
+  const pkgList: any[] = pkgData?.packages || pkgData || []
   const pkgDist = dash?.packages || []
+  const getPkgName = (tier: string) => pkgList.find((p: any) => p.tier?.toLowerCase() === tier?.toLowerCase())?.name || tier
   const recentPayments = basicDash?.recentPayments || []
 
   const liveClasses: any[] = liveClassesData?.classes || []
@@ -399,7 +402,7 @@ export default function DashboardPage() {
                     return (
                       <div key={p._id} className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                        <span className="text-gray-400 text-[11px] capitalize flex-1">{p._id || 'Unknown'}</span>
+                        <span className="text-gray-400 text-[11px] capitalize flex-1">{getPkgName(p._id) || 'Unknown'}</span>
                         <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden max-w-[60px]">
                           <div className="h-1 rounded-full" style={{ width: `${pct}%`, background: color }} />
                         </div>
