@@ -25,8 +25,12 @@ export default function CouponsPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<any>(empty)
+  const [pkgList, setPkgList] = useState<any[]>([])
 
-  useEffect(() => { fetch() }, [])
+  useEffect(() => {
+    fetch()
+    adminAPI.packages().then((r: any) => setPkgList(r.data?.packages || r.data || [])).catch(() => {})
+  }, [])
 
   const fetch = async () => {
     try {
@@ -143,10 +147,10 @@ export default function CouponsPage() {
               <div>
                 <label className="text-xs text-gray-400 mb-2 block">Applicable Tiers (leave empty for all)</label>
                 <div className="flex gap-2 flex-wrap">
-                  {['starter', 'pro', 'elite', 'supreme'].map(tier => (
-                    <button key={tier} onClick={() => tierToggle(tier)}
-                      className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${form.applicableTiers.includes(tier) ? 'bg-violet-600 text-white' : 'bg-slate-700 text-gray-400 hover:bg-slate-600'}`}>
-                      {tier}
+                  {(pkgList.length > 0 ? pkgList : [{ _id: 'starter', tier: 'starter', name: 'Starter' }, { _id: 'pro', tier: 'pro', name: 'Pro' }, { _id: 'elite', tier: 'elite', name: 'Elite' }, { _id: 'supreme', tier: 'supreme', name: 'Supreme' }]).map((pkg: any) => (
+                    <button key={pkg.tier} onClick={() => tierToggle(pkg.tier)}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${form.applicableTiers.includes(pkg.tier) ? 'bg-violet-600 text-white' : 'bg-slate-700 text-gray-400 hover:bg-slate-600'}`}>
+                      {pkg.name}
                     </button>
                   ))}
                 </div>
@@ -187,7 +191,7 @@ export default function CouponsPage() {
                   <p>Uses: <span className="text-white">{c.usedCount}/{c.maxUses}</span></p>
                   {c.minOrderValue > 0 && <p>Min order: <span className="text-white">₹{c.minOrderValue}</span></p>}
                   <p>Expires: <span className="text-white">{new Date(c.expiresAt).toLocaleDateString()}</span></p>
-                  {c.applicableTiers.length > 0 && <p>Tiers: <span className="text-violet-400 capitalize">{c.applicableTiers.join(', ')}</span></p>}
+                  {c.applicableTiers.length > 0 && <p>Packages: <span className="text-violet-400">{c.applicableTiers.map(t => pkgList.find((p: any) => p.tier?.toLowerCase() === t?.toLowerCase())?.name || t).join(', ')}</span></p>}
                 </div>
                 <div className="mt-3 bg-slate-700 rounded-full h-1.5">
                   <div className="bg-violet-500 h-1.5 rounded-full" style={{ width: `${(c.usedCount / c.maxUses) * 100}%` }} />
