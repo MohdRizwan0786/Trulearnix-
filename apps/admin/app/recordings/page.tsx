@@ -22,10 +22,15 @@ const TYPE_TABS = [
 
 // ── Link to Lesson Modal ─────────────────────────────────────────────────────
 function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
+  const recBatchId = rec.batch?._id || rec.batch || ''
+  const recBatchLabel = rec.batch ? `Batch #${rec.batch.batchNumber}${rec.batch.label ? ' — ' + rec.batch.label : ''}` : ''
+
   const [courseId, setCourseId] = useState(rec.course?._id || rec.course || '')
   const [moduleIdx, setModuleIdx] = useState('')
   const [lessonId, setLessonId] = useState('')
   const [ytUrl, setYtUrl] = useState('')
+  // batchMode: 'batch' = sirf is batch ke liye, 'all' = sabke liye (default videoUrl)
+  const [batchMode, setBatchMode] = useState<'batch' | 'all'>(recBatchId ? 'batch' : 'all')
   const qc = useQueryClient()
 
   const { data: courseData, isLoading: courseLoading } = useQuery({
@@ -37,14 +42,22 @@ function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
     queryKey: ['admin-all-courses-sm'],
     queryFn: () => adminAPI.allCourses({ limit: 200 }).then(r => r.data),
   })
+
   const courses = coursesData?.courses || []
   const modules: any[] = courseData?.course?.modules || []
   const lessons: any[] = moduleIdx !== '' ? (modules[Number(moduleIdx)]?.lessons || []) : []
 
   const saveMutation = useMutation({
-    mutationFn: () => adminAPI.updateLessonVideoUrl(courseId, lessonId, ytUrl),
+    mutationFn: () => {
+      if (batchMode === 'batch' && recBatchId) {
+        return adminAPI.updateBatchLessonVideoUrl(courseId, lessonId, recBatchId, ytUrl)
+      }
+      return adminAPI.updateLessonVideoUrl(courseId, lessonId, ytUrl)
+    },
     onSuccess: () => {
-      toast.success('YouTube link lesson mein add ho gaya!')
+      toast.success(batchMode === 'batch'
+        ? `${recBatchLabel} ke lesson mein YouTube link add ho gaya!`
+        : 'Lesson mein YouTube link add ho gaya (sabke liye)!')
       qc.invalidateQueries({ queryKey: ['admin-course', courseId] })
       onClose()
     },
@@ -59,7 +72,7 @@ function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div className="flex items-center gap-2.5">
             <Link2 className="w-5 h-5 text-violet-400" />
-            <h2 className="text-white font-bold">Recording ka YouTube Link add karo</h2>
+            <h2 className="text-white font-bold text-sm">Lesson mein Recording Link daalo</h2>
           </div>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
             <X className="w-4 h-4" />
@@ -68,10 +81,10 @@ function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
 
         <div className="p-5 space-y-4">
           {/* Recording info */}
-          <div className="p-3 rounded-xl bg-white/5 border border-white/8 text-xs text-gray-400">
-            <p className="text-white font-semibold text-sm mb-0.5">{rec.title}</p>
+          <div className="p-3 rounded-xl bg-white/5 border border-white/8 text-xs text-gray-400 space-y-0.5">
+            <p className="text-white font-semibold text-sm">{rec.title}</p>
             {rec.course?.title && <p className="text-violet-400">{rec.course.title}</p>}
-            {rec.batch && <p>Batch #{rec.batch.batchNumber}{rec.batch.label ? ` — ${rec.batch.label}` : ''}</p>}
+            {recBatchLabel && <p className="text-emerald-400">{recBatchLabel}</p>}
           </div>
 
           {/* YouTube URL */}
@@ -83,10 +96,23 @@ function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
               placeholder="https://www.youtube.com/watch?v=..."
               className="input w-full text-sm"
             />
-            <p className="text-xs text-gray-600 mt-1">Recording download karke YouTube pe upload karo, phir woh URL yahan daalo</p>
           </div>
 
-          {/* Course selector (if not pre-filled) */}
+          {/* Batch mode toggle — only if recording has a batch */}
+          {recBatchId && (
+            <div className="flex gap-2">
+              <button onClick={() => setBatchMode('batch')}
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors ${batchMode === 'batch' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'border-white/10 text-gray-500 hover:text-gray-300'}`}>
+                Sirf {recBatchLabel}
+              </button>
+              <button onClick={() => setBatchMode('all')}
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors ${batchMode === 'all' ? 'bg-violet-500/20 border-violet-500/40 text-violet-300' : 'border-white/10 text-gray-500 hover:text-gray-300'}`}>
+                Saare Batches
+              </button>
+            </div>
+          )}
+
+          {/* Course selector */}
           {!rec.course?._id && (
             <div>
               <label className="block text-xs text-gray-400 mb-1.5 font-medium">Course <span className="text-red-400">*</span></label>
@@ -125,7 +151,7 @@ function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
               <select value={lessonId} onChange={e => setLessonId(e.target.value)} className="input w-full text-sm">
                 <option value="">Lesson select karo</option>
                 {lessons.map((l: any) => (
-                  <option key={l._id} value={l._id}>{l.title || `Lesson`}</option>
+                  <option key={l._id} value={l._id}>{l.title || 'Lesson'}</option>
                 ))}
               </select>
             </div>
@@ -134,7 +160,9 @@ function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
           {canSave && (
             <div className="flex items-start gap-2 p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-xs text-violet-300">
               <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-              Selected lesson ka videoUrl is YouTube link se update ho jayega — student directly wahan se dekh sakenge.
+              {batchMode === 'batch' && recBatchId
+                ? `Sirf ${recBatchLabel} ke students ko yeh recording dikhegi is lesson mein.`
+                : 'Saare batches ke students ko yeh recording dikhegi is lesson mein.'}
             </div>
           )}
         </div>
@@ -384,13 +412,11 @@ export default function RecordingsPage() {
                               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors">
                               <Download className="w-3.5 h-3.5" /> Download
                             </a>
-                            {/* Add to Lesson (only for class recordings with a course) */}
-                            {rec._recordingType === 'class' && (
-                              <button onClick={() => setLinkRec(rec)}
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors">
-                                <Link2 className="w-3.5 h-3.5" /> Add to Lesson
-                              </button>
-                            )}
+                            {/* Add to Lesson */}
+                            <button onClick={() => setLinkRec(rec)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors">
+                              <Link2 className="w-3.5 h-3.5" /> Add to Lesson
+                            </button>
                             {/* Delete from R2 */}
                             <button onClick={() => setDeleteRec(rec)}
                               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors">

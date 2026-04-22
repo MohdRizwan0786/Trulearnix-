@@ -147,7 +147,7 @@ export default function CouponsPage() {
               <div>
                 <label className="text-xs text-gray-400 mb-2 block">Applicable Tiers (leave empty for all)</label>
                 <div className="flex gap-2 flex-wrap">
-                  {(pkgList.length > 0 ? pkgList : [{ _id: 'starter', tier: 'starter', name: 'Starter' }, { _id: 'pro', tier: 'pro', name: 'Pro' }, { _id: 'elite', tier: 'elite', name: 'Elite' }, { _id: 'supreme', tier: 'supreme', name: 'Supreme' }]).map((pkg: any) => (
+                  {(pkgList.length > 0 ? pkgList : [{ tier: 'starter', name: 'Starter' }, { tier: 'pro', name: 'Pro' }, { tier: 'elite', name: 'Elite' }, { tier: 'supreme', name: 'Supreme' }]).map((pkg: any) => (
                     <button key={pkg.tier} onClick={() => tierToggle(pkg.tier)}
                       className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${form.applicableTiers.includes(pkg.tier) ? 'bg-violet-600 text-white' : 'bg-slate-700 text-gray-400 hover:bg-slate-600'}`}>
                       {pkg.name}

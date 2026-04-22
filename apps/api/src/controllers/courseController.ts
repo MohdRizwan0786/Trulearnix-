@@ -126,9 +126,26 @@ export const getEnrolledCourseContent = async (req: AuthRequest, res: Response) 
       return { ...q, myAttempt: attempt || null };
     });
 
+    // Replace lesson videoUrl with batch-specific URL if available for student's batch
+    const studentBatchId = (enrollment.batch as any)?._id?.toString() || enrollment.batch?.toString();
+    const courseObj = course?.toObject ? course.toObject() : course;
+    if (studentBatchId && courseObj?.modules) {
+      courseObj.modules = courseObj.modules.map((mod: any) => ({
+        ...mod,
+        lessons: (mod.lessons || []).map((lesson: any) => {
+          const batchEntry = (lesson.batchVideoUrls || []).find(
+            (b: any) => b.batch?.toString() === studentBatchId
+          );
+          return batchEntry?.videoUrl
+            ? { ...lesson, videoUrl: batchEntry.videoUrl }
+            : lesson;
+        }),
+      }));
+    }
+
     res.json({
       success: true,
-      course,
+      course: courseObj,
       enrollment: { progressPercent: enrollment.progressPercent },
       batch: enrollment.batch || null,
       completedLessons,

@@ -388,7 +388,7 @@ router.put('/courses/:id', async (req: any, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
-// Admin: update a specific lesson's videoUrl (for adding YouTube links after recording)
+// Admin: update a specific lesson's default videoUrl
 router.patch('/courses/:courseId/lessons/:lessonId/video-url', async (req: any, res) => {
   try {
     const { videoUrl } = req.body;
@@ -398,6 +398,37 @@ router.patch('/courses/:courseId/lessons/:lessonId/video-url', async (req: any, 
       { arrayFilters: [{ 'l._id': req.params.lessonId }] }
     );
     if (result.matchedCount === 0) return res.status(404).json({ success: false, message: 'Lesson not found' });
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: set batch-specific video URL for a lesson
+router.patch('/courses/:courseId/lessons/:lessonId/batch-video-url', async (req: any, res) => {
+  try {
+    const { batchId, videoUrl } = req.body;
+    if (!batchId || !videoUrl) return res.status(400).json({ success: false, message: 'batchId and videoUrl required' });
+
+    const course = await Course.findOne({ _id: req.params.courseId, 'modules.lessons._id': req.params.lessonId });
+    if (!course) return res.status(404).json({ success: false, message: 'Lesson not found' });
+
+    // Find the lesson and upsert batchVideoUrls entry
+    let updated = false;
+    for (const mod of course.modules as any[]) {
+      const lesson = mod.lessons.find((l: any) => l._id.toString() === req.params.lessonId);
+      if (lesson) {
+        if (!lesson.batchVideoUrls) lesson.batchVideoUrls = [];
+        const existing = lesson.batchVideoUrls.find((b: any) => b.batch?.toString() === batchId);
+        if (existing) {
+          existing.videoUrl = videoUrl;
+        } else {
+          lesson.batchVideoUrls.push({ batch: batchId, videoUrl });
+        }
+        updated = true;
+        break;
+      }
+    }
+    if (!updated) return res.status(404).json({ success: false, message: 'Lesson not found in modules' });
+    await course.save();
     res.json({ success: true });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });

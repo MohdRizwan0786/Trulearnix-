@@ -7,6 +7,7 @@ export interface ILesson {
   type: 'video' | 'document' | 'quiz' | 'live';
   videoUrl?: string;
   videoKey?: string;
+  batchVideoUrls?: { batch: mongoose.Types.ObjectId; videoUrl: string }[];
   duration?: number;
   order: number;
   isPreview: boolean;
@@ -73,6 +74,7 @@ const LessonSchema = new Schema<ILesson>({
   type: { type: String, enum: ['video', 'document', 'quiz', 'live'], required: true },
   videoUrl: String,
   videoKey: String,
+  batchVideoUrls: [{ batch: { type: Schema.Types.ObjectId, ref: 'Batch' }, videoUrl: String }],
   duration: Number,
   order: { type: Number, required: true },
   isPreview: { type: Boolean, default: false },
