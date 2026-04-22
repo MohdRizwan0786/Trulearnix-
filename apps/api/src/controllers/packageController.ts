@@ -21,7 +21,7 @@ const GST_RATE = 0.18;
 // GET /api/packages — public
 export const getPackages = async (req: any, res: Response) => {
   try {
-    const packages = await Package.find({ isActive: true }).sort('displayOrder');
+    const packages = await Package.find({ isActive: true }).sort('displayOrder').populate('courses', 'title thumbnail status category');
     res.json({ success: true, packages });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };

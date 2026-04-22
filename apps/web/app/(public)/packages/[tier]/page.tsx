@@ -524,6 +524,53 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
           </div>
         </section>
 
+        {/* Included Courses */}
+        {(pkg?.courses || []).length > 0 && (
+          <section>
+            <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
+              <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: cfg.accentColor }}>Courses Included</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">What you&apos;ll learn</h2>
+              <p className="text-gray-500 text-sm mt-2">{(pkg.courses || []).length} courses unlocked with this plan</p>
+            </motion.div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(pkg.courses || []).map((course: any, i: number) => (
+                <motion.div key={course._id} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i * 0.05, 0.4) }} viewport={{ once: true }}
+                  className="group rounded-2xl overflow-hidden transition-all hover:scale-[1.02]"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${cfg.borderColor}40` }}
+                  whileHover={{ borderColor: cfg.accentColor + '50', boxShadow: `0 8px 32px ${cfg.glowColor}` }}>
+                  {course.thumbnail ? (
+                    <div className="relative h-36 overflow-hidden">
+                      <img src={course.thumbnail} alt={course.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      {course.status === 'published' && (
+                        <span className="absolute top-2 right-2 text-[10px] font-black px-2 py-0.5 rounded-full"
+                          style={{ background: 'rgba(74,222,128,0.2)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.4)' }}>
+                          Live
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="h-36 flex items-center justify-center"
+                      style={{ background: `linear-gradient(135deg,${cfg.accentColor}12,${cfg.accentColor2 || cfg.accentColor}08)` }}>
+                      <BookOpen className="w-10 h-10 opacity-30" style={{ color: cfg.accentColor }} />
+                    </div>
+                  )}
+                  <div className="p-4">
+                    {course.category && (
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: cfg.accentColor }}>
+                        {course.category}
+                      </p>
+                    )}
+                    <p className="text-white font-bold text-sm leading-snug line-clamp-2">{course.title}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* What happens after purchase */}
         <section>
           <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
