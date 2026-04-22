@@ -20,7 +20,7 @@ import { initiateWithdrawalPayout, isPayoutConfigured } from '../services/razorp
 import { activateOrder } from '../services/orderActivation';
 
 const router = Router();
-router.use(protect, authorize('superadmin', 'admin', 'manager', 'mentor', 'salesperson'));
+router.use(protect, authorize('superadmin', 'admin', 'manager', 'mentor', 'salesperson', 'employee', 'department_head', 'team_lead'));
 
 // Dashboard
 router.get('/dashboard', getDashboardStats);
