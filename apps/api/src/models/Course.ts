@@ -20,6 +20,7 @@ export interface IModule {
   order: number;
   batch?: mongoose.Types.ObjectId;
   lessons: ILesson[];
+  youtubePlaylistUrl?: string;
 }
 
 export interface IBatchSettings {
@@ -61,6 +62,7 @@ export interface ICourse extends Document {
   passingScore: number;
   batchSettings: IBatchSettings;
   isPackage: boolean;
+  youtubePlaylistUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,7 +84,8 @@ const ModuleSchema = new Schema<IModule>({
   description: String,
   order: { type: Number, required: true },
   batch: { type: Schema.Types.ObjectId, ref: 'Batch' },
-  lessons: [LessonSchema]
+  lessons: [LessonSchema],
+  youtubePlaylistUrl: String,
 });
 
 const CourseSchema = new Schema<ICourse>({
@@ -130,6 +133,7 @@ const CourseSchema = new Schema<ICourse>({
     closingDays: { type: Number, default: 30 },
     durationDays: { type: Number, default: 0 },
   },
+  youtubePlaylistUrl: String,
 }, { timestamps: true });
 
 CourseSchema.pre('save', function (next) {
