@@ -210,6 +210,8 @@ export const login = async (req: Request, res: Response) => {
     if (!user.isActive) return res.status(401).json({ success: false, message: 'Account suspended. Contact support.' });
 
     user.lastLogin = new Date();
+    const validTiers = ['free', 'starter', 'pro', 'elite', 'supreme'];
+    if (!validTiers.includes(user.packageTier)) user.packageTier = 'free' as any;
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
     user.refreshToken = refreshToken;
