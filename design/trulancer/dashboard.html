@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard - Trulancer</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulancer</div>
+  <nav class="sidebar-nav"><a href="dashboard.html" class="nav-item active"><span class="nav-icon">-</span>Dashboard</a><a href="projects.html" class="nav-item"><span class="nav-icon">-</span>Browse Projects</a><a href="freelancers.html" class="nav-item"><span class="nav-icon">-</span>Find Freelancers</a><a href="post-project.html" class="nav-item"><span class="nav-icon">-</span>Post Project</a></nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">Menu</button>
+    <h1 class="topbar-title">Dashboard</h1>
+    <div class="topbar-actions"><div class="avatar">TL</div></div>
+  </header>
+  <main class="page-content">
+<div class="page-header"><h2 class="page-title">Dashboard</h2><a href="post-project.html" class="btn btn-primary">+ Post a Project</a></div>
+<div class="stats-row" style="margin-bottom:var(--space-6);">
+  <div class="stat-card"><div class="stat-value">Rs. 48,200</div><div class="stat-label">Total Earned</div></div>
+  <div class="stat-card"><div class="stat-value">12</div><div class="stat-label">Projects Done</div></div>
+  <div class="stat-card"><div class="stat-value">4.9</div><div class="stat-label">Rating</div></div>
+  <div class="stat-card"><div class="stat-value">3</div><div class="stat-label">Active Bids</div></div>
+</div>
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-6);">
+  <div>
+    <h3 style="font-weight:600;margin-bottom:var(--space-4);">Active Projects</h3>
+    <div style="display:flex;flex-direction:column;gap:var(--space-3);margin-bottom:var(--space-6);">
+      <div class="card" style="padding:var(--space-4);">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:var(--space-2);">
+          <div style="flex:1;">
+            <div style="font-weight:600;margin-bottom:4px;">SEO Audit and Strategy for E-commerce Site</div>
+            <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-2);">Client: TechMart India - Budget: Rs. 8,000</div>
+            <div style="display:flex;gap:var(--space-2);">
+              <span class="badge badge-warning">In Progress</span>
+              <span style="font-size:.75rem;color:var(--text-muted);">Due: Apr 28</span>
+            </div>
+          </div>
+          <button class="btn btn-sm">View</button>
+        </div>
+        <div style="margin-top:var(--space-3);">
+          <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted);margin-bottom:4px;"><span>Progress</span><span>60%</span></div>
+          <div style="height:6px;background:var(--bg-secondary);border-radius:3px;"><div style="height:6px;background:var(--primary-600);border-radius:3px;width:60%;"></div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:var(--space-4);">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:var(--space-2);">
+          <div style="flex:1;">
+            <div style="font-weight:600;margin-bottom:4px;">Social Media Content Calendar - May 2024</div>
+            <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-2);">Client: Fashion Hub - Budget: Rs. 4,500</div>
+            <div style="display:flex;gap:var(--space-2);">
+              <span class="badge" style="background:#dbeafe;color:#1d4ed8;">Review</span>
+              <span style="font-size:.75rem;color:var(--text-muted);">Due: Apr 25</span>
+            </div>
+          </div>
+          <button class="btn btn-sm">View</button>
+        </div>
+        <div style="margin-top:var(--space-3);">
+          <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted);margin-bottom:4px;"><span>Progress</span><span>90%</span></div>
+          <div style="height:6px;background:var(--bg-secondary);border-radius:3px;"><div style="height:6px;background:#10b981;border-radius:3px;width:90%;"></div></div>
+        </div>
+      </div>
+    </div>
+    <h3 style="font-weight:600;margin-bottom:var(--space-4);">Recommended Projects</h3>
+    <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+      <div class="card" style="padding:var(--space-4);">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:var(--space-3);">
+          <div style="flex:1;">
+            <div style="font-weight:600;margin-bottom:4px;">Google Ads Campaign Manager Needed</div>
+            <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-2);">
+              <span class="badge">Digital Marketing</span>
+              <span class="badge">Google Ads</span>
+            </div>
+            <div style="font-size:.8rem;color:var(--text-muted);">Budget: Rs. 12,000-15,000 - 12 bids</div>
+          </div>
+          <button class="btn btn-primary" style="font-size:.8rem;">Bid Now</button>
+        </div>
+      </div>
+      <div class="card" style="padding:var(--space-4);">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:var(--space-3);">
+          <div style="flex:1;">
+            <div style="font-weight:600;margin-bottom:4px;">Monthly Blog Writing - Finance Niche (8 articles)</div>
+            <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-2);">
+              <span class="badge">Content Writing</span>
+              <span class="badge">Finance</span>
+            </div>
+            <div style="font-size:.8rem;color:var(--text-muted);">Budget: Rs. 6,000-8,000 - 5 bids</div>
+          </div>
+          <button class="btn btn-primary" style="font-size:.8rem;">Bid Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+    <div class="card" style="padding:var(--space-4);">
+      <div style="font-weight:600;margin-bottom:var(--space-3);">Wallet</div>
+      <div style="font-size:1.75rem;font-weight:800;color:var(--primary-600);margin-bottom:var(--space-2);">Rs. 18,400</div>
+      <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-3);">Available balance</div>
+      <button class="btn btn-primary btn-block" style="font-size:.8rem;">Withdraw</button>
+    </div>
+    <div class="card" style="padding:var(--space-4);">
+      <div style="font-weight:600;margin-bottom:var(--space-3);">Profile Completion</div>
+      <div style="height:8px;background:var(--bg-secondary);border-radius:4px;margin-bottom:var(--space-2);"><div style="height:8px;background:var(--primary-600);border-radius:4px;width:75%;"></div></div>
+      <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-3);">75% complete - Add portfolio to reach 100%</div>
+      <button class="btn btn-outline btn-block" style="font-size:.8rem;">Complete Profile</button>
+    </div>
+  </div>
+</div></main>
+</div>
+</body>
+</html>

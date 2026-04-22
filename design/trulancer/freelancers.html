@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Find Freelancers - Trulancer</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulancer</div>
+  <nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><span class="nav-icon">-</span>Dashboard</a><a href="projects.html" class="nav-item"><span class="nav-icon">-</span>Browse Projects</a><a href="freelancers.html" class="nav-item active"><span class="nav-icon">-</span>Find Freelancers</a><a href="post-project.html" class="nav-item"><span class="nav-icon">-</span>Post Project</a></nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">Menu</button>
+    <h1 class="topbar-title">Find Freelancers</h1>
+    <div class="topbar-actions"><div class="avatar">TL</div></div>
+  </header>
+  <main class="page-content">
+<div class="page-header"><h2 class="page-title">Find Freelancers</h2></div>
+<div class="card" style="margin-bottom:var(--space-4);padding:var(--space-4);">
+  <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+    <input class="form-input" placeholder="Search freelancers by skill..." style="flex:1;min-width:200px;">
+    <select class="form-input" style="width:180px;"><option>All Skills</option><option>Digital Marketing</option><option>Web Dev</option><option>Design</option><option>Content Writing</option></select>
+    <select class="form-input" style="width:140px;"><option>Any Rating</option><option>4.5+ Stars</option><option>4+ Stars</option></select>
+    <select class="form-input" style="width:160px;"><option>Any Budget</option><option>Under Rs. 5K</option><option>Rs. 5K-15K</option><option>Rs. 15K+</option></select>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--space-4);">
+  <div class="card" style="padding:var(--space-5);">
+    <div style="display:flex;align-items:start;gap:var(--space-3);margin-bottom:var(--space-3);">
+      <div class="avatar" style="width:56px;height:56px;font-size:1.25rem;">AK</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;margin-bottom:2px;">Arjun Kapoor</div>
+        <div style="font-size:.8rem;color:var(--text-muted);">Digital Marketing Expert</div>
+        <div style="font-size:.8rem;color:#f59e0b;font-weight:600;">4.9 (142 reviews)</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--space-1);margin-bottom:var(--space-3);">
+      <span class="badge">SEO</span><span class="badge">Google Ads</span><span class="badge">Social Media</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:var(--space-3);">
+      <span style="color:var(--text-muted);">Rate</span><span style="font-weight:600;">Rs. 800/hr</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-4);">
+      <span>48 projects done</span><span>Trulearnix Certified</span>
+    </div>
+    <a href="freelancer-profile.html" class="btn btn-primary btn-block" style="font-size:.8rem;">View Profile</a>
+  </div>
+  <div class="card" style="padding:var(--space-5);">
+    <div style="display:flex;align-items:start;gap:var(--space-3);margin-bottom:var(--space-3);">
+      <div class="avatar" style="width:56px;height:56px;font-size:1.25rem;">SM</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;margin-bottom:2px;">Sneha Mehta</div>
+        <div style="font-size:.8rem;color:var(--text-muted);">Stock Market Analyst</div>
+        <div style="font-size:.8rem;color:#f59e0b;font-weight:600;">4.8 (98 reviews)</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--space-1);margin-bottom:var(--space-3);">
+      <span class="badge">Finance</span><span class="badge">Trading</span><span class="badge">Analysis</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:var(--space-3);">
+      <span style="color:var(--text-muted);">Rate</span><span style="font-weight:600;">Rs. 1,200/hr</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-4);">
+      <span>32 projects done</span><span>Trulearnix Certified</span>
+    </div>
+    <a href="freelancer-profile.html" class="btn btn-primary btn-block" style="font-size:.8rem;">View Profile</a>
+  </div>
+  <div class="card" style="padding:var(--space-5);">
+    <div style="display:flex;align-items:start;gap:var(--space-3);margin-bottom:var(--space-3);">
+      <div class="avatar" style="width:56px;height:56px;font-size:1.25rem;">RJ</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;margin-bottom:2px;">Rohit Jain</div>
+        <div style="font-size:.8rem;color:var(--text-muted);">Web Developer</div>
+        <div style="font-size:.8rem;color:#f59e0b;font-weight:600;">4.7 (76 reviews)</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--space-1);margin-bottom:var(--space-3);">
+      <span class="badge">React</span><span class="badge">Node.js</span><span class="badge">MongoDB</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:var(--space-3);">
+      <span style="color:var(--text-muted);">Rate</span><span style="font-weight:600;">Rs. 1,000/hr</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-4);">
+      <span>28 projects done</span><span>Trulearnix Certified</span>
+    </div>
+    <a href="freelancer-profile.html" class="btn btn-primary btn-block" style="font-size:.8rem;">View Profile</a>
+  </div>
+  <div class="card" style="padding:var(--space-5);">
+    <div style="display:flex;align-items:start;gap:var(--space-3);margin-bottom:var(--space-3);">
+      <div class="avatar" style="width:56px;height:56px;font-size:1.25rem;">PG</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;margin-bottom:2px;">Priya Gupta</div>
+        <div style="font-size:.8rem;color:var(--text-muted);">Graphic Designer</div>
+        <div style="font-size:.8rem;color:#f59e0b;font-weight:600;">4.9 (112 reviews)</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--space-1);margin-bottom:var(--space-3);">
+      <span class="badge">Branding</span><span class="badge">UI Design</span><span class="badge">Canva</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:var(--space-3);">
+      <span style="color:var(--text-muted);">Rate</span><span style="font-weight:600;">Rs. 600/hr</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-4);">
+      <span>64 projects done</span><span>Trulearnix Certified</span>
+    </div>
+    <a href="freelancer-profile.html" class="btn btn-primary btn-block" style="font-size:.8rem;">View Profile</a>
+  </div>
+</div></main>
+</div>
+</body>
+</html>

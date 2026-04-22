@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Referrals - Partner Portal</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulearnix <span>Partner</span></div>
+  <nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><span class="nav-icon">-</span>Dashboard</a><a href="earnings.html" class="nav-item"><span class="nav-icon">-</span>Earnings</a><a href="referrals.html" class="nav-item active"><span class="nav-icon">-</span>Referrals</a><a href="network.html" class="nav-item"><span class="nav-icon">-</span>My Network</a><a href="leaderboard.html" class="nav-item"><span class="nav-icon">-</span>Leaderboard</a><a href="training.html" class="nav-item"><span class="nav-icon">-</span>Training</a><a href="kyc.html" class="nav-item"><span class="nav-icon">-</span>KYC</a><a href="withdraw.html" class="nav-item"><span class="nav-icon">-</span>Withdraw</a></nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">Menu</button>
+    <h1 class="topbar-title">My Referrals</h1>
+    <div class="topbar-actions"><div class="avatar">PK</div></div>
+  </header>
+  <main class="page-content">
+<div class="page-header"><h2 class="page-title">My Referrals</h2></div>
+<div class="stats-row" style="margin-bottom:var(--space-6);">
+  <div class="stat-card"><div class="stat-value">142</div><div class="stat-label">Total Referrals</div></div>
+  <div class="stat-card"><div class="stat-value">128</div><div class="stat-label">Active Students</div></div>
+  <div class="stat-card"><div class="stat-value">14</div><div class="stat-label">Pending</div></div>
+  <div class="stat-card"><div class="stat-value">Rs. 2,84,000</div><div class="stat-label">Commission Earned</div></div>
+</div>
+<div class="card" style="margin-bottom:var(--space-6);padding:var(--space-4);">
+  <div style="font-weight:600;margin-bottom:var(--space-3);">Your Referral Link</div>
+  <div style="display:flex;gap:var(--space-3);">
+    <div style="flex:1;background:var(--bg-secondary);padding:var(--space-3);border-radius:var(--radius);font-size:.875rem;font-family:monospace;">https://trulearnix.com/ref/paras123</div>
+    <button class="btn btn-primary">Copy Link</button>
+    <button class="btn btn-outline">Share</button>
+  </div>
+</div>
+<div class="card" style="margin-bottom:var(--space-4);padding:var(--space-4);">
+  <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+    <input class="form-input" placeholder="Search referral by name..." style="flex:1;min-width:200px;">
+    <select class="form-input" style="width:160px;"><option>All Packages</option><option>Elite</option><option>Pro</option><option>Growth</option><option>Starter</option></select>
+    <select class="form-input" style="width:140px;"><option>All Status</option><option>Active</option><option>Pending</option></select>
+  </div>
+</div>
+<div class="card table-container">
+  <table class="table">
+    <thead><tr><th>Student</th><th>Package</th><th>Enrolled</th><th>L1 Commission</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">RS</div><div><div class="user-name">Ravi Sharma</div><div class="user-email">ravi@gmail.com</div></div></div></td><td><span class="badge badge-warning">Elite</span></td><td>Apr 18</td><td style="font-weight:600;color:#16a34a;">Rs. 4,500</td><td><span class="badge badge-success">Active</span></td><td><button class="btn btn-sm">View</button></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">PV</div><div><div class="user-name">Priya Verma</div><div class="user-email">priya@gmail.com</div></div></div></td><td><span class="badge" style="background:#dbeafe;color:#1d4ed8;">Pro</span></td><td>Apr 15</td><td style="font-weight:600;color:#16a34a;">Rs. 2,800</td><td><span class="badge badge-success">Active</span></td><td><button class="btn btn-sm">View</button></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">NK</div><div><div class="user-name">Neha Kumar</div><div class="user-email">neha@gmail.com</div></div></div></td><td><span class="badge badge-success">Growth</span></td><td>Apr 12</td><td style="font-weight:600;color:#16a34a;">Rs. 1,200</td><td><span class="badge badge-warning">Pending KYC</span></td><td><button class="btn btn-sm">View</button></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">AT</div><div><div class="user-name">Ankit Tiwari</div><div class="user-email">ankit@gmail.com</div></div></div></td><td><span class="badge badge-warning">Elite</span></td><td>Apr 10</td><td style="font-weight:600;color:#16a34a;">Rs. 4,500</td><td><span class="badge badge-success">Active</span></td><td><button class="btn btn-sm">View</button></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">SG</div><div><div class="user-name">Sonal Gupta</div><div class="user-email">sonal@gmail.com</div></div></div></td><td><span class="badge">Starter</span></td><td>Apr 8</td><td style="font-weight:600;color:#16a34a;">Rs. 600</td><td><span class="badge badge-success">Active</span></td><td><button class="btn btn-sm">View</button></td></tr>
+    </tbody>
+  </table>
+</div></main>
+</div>
+</body>
+</html>

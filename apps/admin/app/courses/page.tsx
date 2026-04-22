@@ -7,7 +7,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import {
   BookOpen, Clock, CheckCircle, XCircle, Users,
-  Plus, Layers, Search, Pencil
+  Plus, Layers, Search, Pencil, Trash2
 } from 'lucide-react'
 
 type Tab = 'all' | 'pending'
@@ -78,6 +78,16 @@ export default function CoursesPage() {
       qc.invalidateQueries({ queryKey: ['pending-courses'] })
       qc.invalidateQueries({ queryKey: ['admin-courses'] })
     } catch { toast.error('Failed to reject') } finally { setProcessing('') }
+  }
+
+  const deleteCourse = async (id: string, title: string) => {
+    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return
+    setProcessing(id)
+    try {
+      await adminAPI.deleteCourse(id)
+      toast.success(`"${title}" deleted`)
+      qc.invalidateQueries({ queryKey: ['admin-courses'] })
+    } catch { toast.error('Failed to delete') } finally { setProcessing('') }
   }
 
   const publishedCount = rawCourses.filter((c: any) => c.status === 'published').length
@@ -288,6 +298,10 @@ export default function CoursesPage() {
                                 <Layers className="w-3 h-3" /> Batches
                               </Link>
                             )}
+                            <button onClick={() => deleteCourse(course._id, course.title)} disabled={processing === course._id}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40" title="Delete">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </>
                         )}
                       </div>

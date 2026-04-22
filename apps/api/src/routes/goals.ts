@@ -20,7 +20,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Create goal
-router.post('/', authenticate, authorize('admin', 'superadmin', 'manager'), async (req, res) => {
+router.post('/', authenticate, authorize('admin', 'superadmin', 'manager', 'employee', 'department_head', 'team_lead'), async (req, res) => {
   try {
     const goal = await Goal.create({ ...req.body, owner: (req as any).user._id });
     res.status(201).json({ success: true, data: goal });
@@ -30,7 +30,7 @@ router.post('/', authenticate, authorize('admin', 'superadmin', 'manager'), asyn
 });
 
 // Update goal / key results
-router.patch('/:id', authenticate, authorize('admin', 'superadmin', 'manager'), async (req, res) => {
+router.patch('/:id', authenticate, authorize('admin', 'superadmin', 'manager', 'employee', 'department_head', 'team_lead'), async (req, res) => {
   try {
     const goal = await Goal.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });

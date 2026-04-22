@@ -362,6 +362,16 @@ router.post('/courses/create', async (req: any, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// Admin: delete course
+router.delete('/courses/:id', async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
+    await Course.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Course deleted' });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // Admin: update course
 router.put('/courses/:id', async (req: any, res) => {
   try {
@@ -576,7 +586,7 @@ router.post('/batches/transfer', async (req, res) => {
 
 // Packages management
 router.get('/packages', async (_req, res) => {
-  try { res.json({ success: true, packages: await Package.find().sort('displayOrder') }); } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+  try { res.json({ success: true, packages: await Package.find().populate('courses', 'title thumbnail status category').sort('displayOrder') }); } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 router.post('/packages', async (req, res) => {
   try { res.status(201).json({ success: true, package: await Package.create(req.body) }); } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
@@ -1102,6 +1112,36 @@ router.delete('/mentors/:id/assign-course/:courseId', async (req, res) => {
       $pull: { assignedCourses: { courseId: req.params.courseId } }
     });
     res.json({ success: true, message: 'Course unassigned' });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: full profile edit for any user
+router.patch('/users/:id/profile', async (req, res) => {
+  try {
+    const { name, email, phone, bio, password, avatar, role, department, employeeId, joiningDate, permissions } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (name !== undefined) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    if (bio !== undefined) user.bio = bio;
+    if (avatar !== undefined) user.avatar = avatar;
+    if (department !== undefined) user.department = department;
+    if (employeeId !== undefined) user.employeeId = employeeId;
+    if (joiningDate !== undefined) user.joiningDate = joiningDate;
+    if (Array.isArray(permissions)) user.permissions = permissions;
+    if (role !== undefined) user.role = role;
+    if (email !== undefined && email !== user.email) {
+      const exists = await User.findOne({ email: email.toLowerCase().trim(), _id: { $ne: user._id } });
+      if (exists) return res.status(400).json({ success: false, message: 'Email already in use' });
+      user.email = email.toLowerCase().trim();
+    }
+    if (password && password.length >= 6) {
+      user.password = password;
+    }
+    await user.save();
+    const safe = user.toObject() as any;
+    delete safe.password;
+    res.json({ success: true, user: safe });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings – Trulearnix Admin</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulearnix <span>Admin</span></div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">⊞</span>Dashboard</a>
+    <a href="users.html" class="nav-item"><span class="nav-icon">👥</span>Users</a>
+    <a href="courses.html" class="nav-item"><span class="nav-icon">📚</span>Courses</a>
+    <a href="packages.html" class="nav-item"><span class="nav-icon">📦</span>Packages</a>
+    <a href="crm.html" class="nav-item"><span class="nav-icon">🎯</span>CRM / Leads</a>
+    <a href="sales-team.html" class="nav-item"><span class="nav-icon">💼</span>Sales Team</a>
+    <a href="employees.html" class="nav-item"><span class="nav-icon">🏢</span>Employees</a>
+    <a href="partners.html" class="nav-item"><span class="nav-icon">🤝</span>Partners</a>
+    <a href="mentors.html" class="nav-item"><span class="nav-icon">🎓</span>Mentors</a>
+    <a href="live-classes.html" class="nav-item"><span class="nav-icon">📡</span>Live Classes</a>
+    <a href="analytics.html" class="nav-item"><span class="nav-icon">📊</span>Analytics</a>
+    <a href="finance.html" class="nav-item"><span class="nav-icon">💰</span>Finance</a>
+    <a href="withdrawals.html" class="nav-item"><span class="nav-icon">🏧</span>Withdrawals</a>
+    <a href="kyc.html" class="nav-item"><span class="nav-icon">🪪</span>KYC</a>
+    <a href="marketing.html" class="nav-item"><span class="nav-icon">📣</span>Marketing</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">📋</span>Reports</a>
+    <a href="settings.html" class="nav-item active"><span class="nav-icon">⚙️</span>Settings</a>
+  </nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">☰</button>
+    <h1 class="topbar-title">Settings</h1>
+    <div class="topbar-actions"><div class="avatar">AD</div></div>
+  </header>
+  <main class="page-content">
+<div class="page-header">
+  <h2 class="page-title">Settings</h2>
+  <button class="btn btn-primary">Save Changes</button>
+</div>
+<div style="display:grid;grid-template-columns:240px 1fr;gap:var(--space-6);">
+  <div class="card" style="padding:var(--space-2);height:fit-content;">
+    <nav>
+      <a href="#general" style="display:block;padding:var(--space-2) var(--space-3);border-radius:var(--radius);font-weight:500;color:var(--text-primary);background:var(--bg-secondary);margin-bottom:4px;">General</a>
+      <a href="#platform" style="display:block;padding:var(--space-2) var(--space-3);border-radius:var(--radius);color:var(--text-muted);margin-bottom:4px;">Platform Config</a>
+      <a href="#payments" style="display:block;padding:var(--space-2) var(--space-3);border-radius:var(--radius);color:var(--text-muted);margin-bottom:4px;">Payments & GST</a>
+      <a href="#notifications" style="display:block;padding:var(--space-2) var(--space-3);border-radius:var(--radius);color:var(--text-muted);margin-bottom:4px;">Notifications</a>
+      <a href="#security" style="display:block;padding:var(--space-2) var(--space-3);border-radius:var(--radius);color:var(--text-muted);">Security</a>
+    </nav>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+    <div class="card" style="padding:var(--space-6);">
+      <h3 style="font-size:1rem;font-weight:600;margin-bottom:var(--space-4);">General Settings</h3>
+      <div class="form-group"><label class="form-label">Platform Name</label><input class="form-input" value="Trulearnix"></div>
+      <div class="form-group"><label class="form-label">Support Email</label><input class="form-input" value="support@trulearnix.com"></div>
+      <div class="form-group"><label class="form-label">Support Phone</label><input class="form-input" value="+91 98765 43210"></div>
+      <div class="form-group"><label class="form-label">Website URL</label><input class="form-input" value="https://trulearnix.com"></div>
+    </div>
+    <div class="card" style="padding:var(--space-6);">
+      <h3 style="font-size:1rem;font-weight:600;margin-bottom:var(--space-4);">Payments & GST</h3>
+      <div class="form-group"><label class="form-label">GST Rate (%)</label><input class="form-input" type="number" value="18"></div>
+      <div class="form-group"><label class="form-label">GST Number</label><input class="form-input" value="29ABCDE1234F1Z5"></div>
+      <div class="form-group"><label class="form-label">Razorpay Key ID</label><input class="form-input" value="rzp_live_••••••••••••"></div>
+      <div class="form-group"><label class="form-label">Minimum Withdrawal Amount (₹)</label><input class="form-input" type="number" value="500"></div>
+    </div>
+    <div class="card" style="padding:var(--space-6);">
+      <h3 style="font-size:1rem;font-weight:600;margin-bottom:var(--space-4);">Feature Toggles</h3>
+      <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--space-3);background:var(--bg-secondary);border-radius:var(--radius);">
+          <div><div style="font-weight:500;">AI Coach</div><div style="font-size:.8rem;color:var(--text-muted);">Enable AI coaching feature</div></div>
+          <div style="width:44px;height:24px;background:var(--primary-600);border-radius:12px;position:relative;cursor:pointer;"><div style="position:absolute;right:2px;top:2px;width:20px;height:20px;background:white;border-radius:50%;"></div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--space-3);background:var(--bg-secondary);border-radius:var(--radius);">
+          <div><div style="font-weight:500;">Trulancer</div><div style="font-size:.8rem;color:var(--text-muted);">Enable freelancing marketplace</div></div>
+          <div style="width:44px;height:24px;background:var(--primary-600);border-radius:12px;position:relative;cursor:pointer;"><div style="position:absolute;right:2px;top:2px;width:20px;height:20px;background:white;border-radius:50%;"></div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--space-3);background:var(--bg-secondary);border-radius:var(--radius);">
+          <div><div style="font-weight:500;">Maintenance Mode</div><div style="font-size:.8rem;color:var(--text-muted);">Take site offline for maintenance</div></div>
+          <div style="width:44px;height:24px;background:var(--border-color);border-radius:12px;position:relative;cursor:pointer;"><div style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:white;border-radius:50%;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></main>
+</div>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Users — TruLearnix Design</title>
+<link rel="stylesheet" href="../../_base.css">
+</head><body><div class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-header"><div class="sidebar-logo">TruLearnix Admin</div></div>
+  <nav class="sidebar-nav"><div class="sidebar-section">OVERVIEW</div><a href="#" class="sidebar-item"><span style="font-size:16px;">📊</span><span>Dashboard</span></a><a href="#" class="sidebar-item active"><span style="font-size:16px;">👥</span><span>Users</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">📚</span><span>Courses</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">📦</span><span>Packages</span></a><div class="sidebar-section">CRM</div><a href="#" class="sidebar-item"><span style="font-size:16px;">📋</span><span>CRM / Leads</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">💼</span><span>Sales Team</span></a><div class="sidebar-section">REPORTS</div><a href="#" class="sidebar-item"><span style="font-size:16px;">📈</span><span>Analytics</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">💰</span><span>Finance</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">📑</span><span>Reports</span></a><div class="sidebar-section">HR</div><a href="#" class="sidebar-item"><span style="font-size:16px;">🏢</span><span>Employees</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">👨‍🏫</span><span>Mentors</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">🤝</span><span>Partners</span></a><div class="sidebar-section">CONTENT</div><a href="#" class="sidebar-item"><span style="font-size:16px;">📡</span><span>Live Classes</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">✍️</span><span>Blog</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">📣</span><span>Marketing</span></a><div class="sidebar-section">OPERATIONS</div><a href="#" class="sidebar-item"><span style="font-size:16px;">🪪</span><span>KYC</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">💸</span><span>Withdrawals</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">⚙️</span><span>Settings</span></a></nav>
+  <div class="sidebar-footer"><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-placeholder avatar-sm">SA</div><div><div style="font-size:12px;font-weight:600;">Super Admin</div><div style="font-size:10px;color:#4b5563;">admin@trulearnix.com</div></div></div></div>
+</aside>
+<div class="main-content">
+  <div class="main-header">
+    <div><div style="font-size:18px;font-weight:700;">Users</div><div style="font-size:12px;color:#6b7280;">Admin Panel · TruLearnix</div></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="position:relative;"><button class="btn btn-secondary btn-icon">🔔</button><span style="position:absolute;top:-4px;right:-4px;background:#e11d48;border-radius:50%;width:16px;height:16px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;">3</span></div>
+      <div class="avatar-placeholder avatar-sm">SA</div>
+    </div>
+  </div>
+  <div class="main-body">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <div class="search-bar"><span>🔍</span><input placeholder="Search users..."></div>
+    <select class="select" style="width:auto;padding:8px 14px;font-size:13px;"><option>All Roles</option><option>Student</option><option>Partner</option><option>Mentor</option><option>Employee</option><option>Salesperson</option></select>
+    <select class="select" style="width:auto;padding:8px 14px;font-size:13px;"><option>All Plans</option><option>Starter</option><option>Pro</option><option>Elite</option><option>Supreme</option></select>
+  </div>
+  <button class="btn btn-primary btn-sm">+ Add User</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+  <div class="stat-card"><div class="stat-icon" style="background:rgba(124,58,237,0.12);">👥</div><div><div class="stat-value">52,481</div><div class="stat-label">Total Users</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,0.12);">🎓</div><div><div class="stat-value">35,640</div><div class="stat-label">Students</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,0.12);">🤝</div><div><div class="stat-value">3,892</div><div class="stat-label">Partners</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:rgba(59,130,246,0.12);">👨‍🏫</div><div><div class="stat-value">482</div><div class="stat-label">Mentors</div></div></div>
+</div>
+<div class="card" style="padding:0;">
+  <table>
+    <thead><tr><th>User</th><th>Email</th><th>Phone</th><th>Role</th><th>Plan</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-placeholder avatar-sm">R</div><span class="td-primary">Rahul Sharma</span></div></td><td>rahul@gmail.com</td><td>+91 98765 43210</td><td><span class="badge badge-violet">Student</span></td><td><span class="badge badge-blue">Pro</span></td><td>Apr 22, 2026</td><td><span class="badge badge-green">Active</span></td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">✏️</button><button class="btn btn-sm btn-danger">🗑</button></div></td></tr>
+      <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-placeholder avatar-sm" style="background:linear-gradient(135deg,#f59e0b,#ea580c)">P</div><span class="td-primary">Priya Verma</span></div></td><td>priya@gmail.com</td><td>+91 87654 32109</td><td><span class="badge badge-amber">Partner</span></td><td><span class="badge badge-violet">Elite</span></td><td>Apr 19, 2026</td><td><span class="badge badge-green">Active</span></td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">✏️</button><button class="btn btn-sm btn-danger">🗑</button></div></td></tr>
+      <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-placeholder avatar-sm" style="background:linear-gradient(135deg,#10b981,#06b6d4)">A</div><span class="td-primary">Amit Kumar</span></div></td><td>amit@gmail.com</td><td>+91 76543 21098</td><td><span class="badge badge-green">Mentor</span></td><td><span class="badge badge-red">Supreme</span></td><td>Mar 15, 2026</td><td><span class="badge badge-green">Active</span></td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">✏️</button><button class="btn btn-sm btn-danger">🗑</button></div></td></tr>
+      <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-placeholder avatar-sm" style="background:linear-gradient(135deg,#e11d48,#db2777)">S</div><span class="td-primary">Sneha Patel</span></div></td><td>sneha@gmail.com</td><td>+91 65432 10987</td><td><span class="badge badge-violet">Student</span></td><td><span class="badge badge-gray">Starter</span></td><td>Apr 18, 2026</td><td><span class="badge badge-amber">KYC Pending</span></td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">✏️</button><button class="btn btn-sm btn-danger">🗑</button></div></td></tr>
+      <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-placeholder avatar-sm" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)">M</div><span class="td-primary">Mohd Rizwan</span></div></td><td>rizwan@gmail.com</td><td>+91 54321 09876</td><td><span class="badge badge-blue">Employee</span></td><td>—</td><td>Jan 10, 2026</td><td><span class="badge badge-green">Active</span></td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">✏️</button><button class="btn btn-sm btn-danger">🗑</button></div></td></tr>
+      <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-placeholder avatar-sm" style="background:linear-gradient(135deg,#f97316,#fbbf24)">K</div><span class="td-primary">Kavita Singh</span></div></td><td>kavita@gmail.com</td><td>+91 43210 98765</td><td><span class="badge badge-amber">Partner</span></td><td><span class="badge badge-blue">Pro</span></td><td>Apr 10, 2026</td><td><span class="badge badge-green">Active</span></td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">✏️</button><button class="btn btn-sm btn-danger">🗑</button></div></td></tr>
+    </tbody>
+  </table>
+  <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-size:12px;color:#6b7280;">Showing 1–6 of 52,481 users</div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-secondary btn-sm">← Prev</button>
+      <button class="btn btn-primary btn-sm">1</button>
+      <button class="btn btn-secondary btn-sm">2</button>
+      <button class="btn btn-secondary btn-sm">3</button>
+      <button class="btn btn-secondary btn-sm">Next →</button>
+    </div>
+  </div>
+</div></div>
+</div></div><a href="../../index.html" class="back-link">← All Screens</a></body></html>
