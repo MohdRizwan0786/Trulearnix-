@@ -284,7 +284,7 @@ export default function PartnersPage() {
                         </div>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-lg capitalize font-semibold flex items-center gap-1 ${TIER_COLOR[p.packageTier] || TIER_COLOR.free}`}>
-                        {TIER_ICON[p.packageTier]} {p.packageTier}
+                        {TIER_ICON[p.packageTier]} {pkgList.find((pkg: any) => pkg.tier?.toLowerCase() === p.packageTier?.toLowerCase())?.name || p.packageTier}
                       </span>
                     </div>
 
@@ -455,7 +455,7 @@ export default function PartnersPage() {
               </div>
               <div>
                 <p className="text-white font-semibold">{assignModal.name}</p>
-                <p className="text-gray-400 text-xs">{assignModal.affiliateCode} · {assignModal.packageTier}</p>
+                <p className="text-gray-400 text-xs">{assignModal.affiliateCode} · {pkgList.find((pkg: any) => pkg.tier?.toLowerCase() === assignModal.packageTier?.toLowerCase())?.name || assignModal.packageTier}</p>
               </div>
             </div>
             <div>
@@ -650,6 +650,7 @@ export default function PartnersPage() {
         <ReferralsModal
           userId={refModal.id}
           userName={refModal.name}
+          pkgList={pkgList}
           onClose={() => setRefModal(null)}
         />
       )}

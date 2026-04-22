@@ -28,10 +28,12 @@ const fmt = (n: number) => new Intl.NumberFormat('en-IN').format(n || 0)
 interface Props {
   userId: string
   userName: string
+  pkgList?: any[]
   onClose: () => void
 }
 
-export default function ReferralsModal({ userId, userName, onClose }: Props) {
+export default function ReferralsModal({ userId, userName, pkgList = [], onClose }: Props) {
+  const getPkgName = (tier: string) => pkgList.find((p: any) => p.tier?.toLowerCase() === tier?.toLowerCase())?.name || tier
   const [search, setSearch] = useState('')
   const [page, setPage]     = useState(1)
 
@@ -92,7 +94,7 @@ export default function ReferralsModal({ userId, userName, onClose }: Props) {
             </div>
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-amber-400" />
-              <span className="text-gray-400 text-xs capitalize">{referrer.packageTier} tier</span>
+              <span className="text-gray-400 text-xs capitalize">{getPkgName(referrer.packageTier)} tier</span>
             </div>
           </div>
         )}
@@ -149,7 +151,7 @@ export default function ReferralsModal({ userId, userName, onClose }: Props) {
                     {/* Right side */}
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${tier.color} ${tier.bg}`}>
-                        {tier.icon} {r.packageTier}
+                        {tier.icon} {getPkgName(r.packageTier)}
                       </span>
                       {r.commission?.commAmount > 0 ? (
                         <span className="text-green-400 text-xs font-bold">+₹{fmt(r.commission.commAmount)}</span>
