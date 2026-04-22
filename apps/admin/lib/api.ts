@@ -123,6 +123,8 @@ export const adminAPI = {
   deleteRecording: (classId: string) => api.delete(`/classes/${classId}/recording`),
   updateLessonVideoUrl: (courseId: string, lessonId: string, videoUrl: string) =>
     api.patch(`/admin/courses/${courseId}/lessons/${lessonId}/video-url`, { videoUrl }),
+  updateBatchLessonVideoUrl: (courseId: string, lessonId: string, batchId: string, videoUrl: string) =>
+    api.patch(`/admin/courses/${courseId}/lessons/${lessonId}/batch-video-url`, { batchId, videoUrl }),
   livekitToken: (id: string) => api.get(`/classes/${id}/livekit-token`),
   getRoomControl: (id: string) => api.get(`/classes/${id}/room-control`),
   setRoomControl: (id: string, data: any) => api.post(`/classes/${id}/room-control`, data),
