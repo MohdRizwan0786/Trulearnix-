@@ -50,8 +50,9 @@ export default function PartnersPage() {
   const [mgrForm, setMgrForm]         = useState({ name: '', email: '', phone: '', password: '' })
   const [creatingMgr, setCreatingMgr] = useState(false)
   const [refModal, setRefModal]       = useState<{ id: string; name: string } | null>(null)
+  const [pkgList, setPkgList]         = useState<any[]>([])
 
-  useEffect(() => { fetchManagers() }, [])
+  useEffect(() => { fetchManagers(); adminAPI.packages().then((r: any) => setPkgList(r.data?.packages || r.data || [])).catch(() => {}) }, [])
   useEffect(() => { fetchPartners() }, [search, mgrFilter, page])
 
   const fetchManagers = async () => {
@@ -204,26 +205,34 @@ export default function PartnersPage() {
           )
         })()}
 
-        {/* ── Tier Distribution ── */}
+        {/* ── Package Distribution ── */}
         {partners.length > 0 && (() => {
-          const tiers = ['free','starter','pro','elite','supreme']
           const tierCounts: Record<string, number> = {}
-          partners.forEach(p => { tierCounts[p.packageTier || 'free'] = (tierCounts[p.packageTier || 'free'] || 0) + 1 })
+          partners.forEach(p => { tierCounts[p.packageTier?.toLowerCase() || 'free'] = (tierCounts[p.packageTier?.toLowerCase() || 'free'] || 0) + 1 })
+          const colors = ['bg-blue-500','bg-indigo-500','bg-violet-500','bg-yellow-500','bg-emerald-500','bg-fuchsia-500','bg-gray-500']
+          const displayList = pkgList.length > 0
+            ? pkgList.map((pkg: any, i: number) => ({ key: pkg.tier?.toLowerCase(), label: pkg.name, color: colors[i % colors.length] }))
+            : [
+                { key: 'free', label: 'Free', color: 'bg-gray-500' },
+                { key: 'starter', label: 'Starter', color: 'bg-blue-500' },
+                { key: 'pro', label: 'Pro', color: 'bg-indigo-500' },
+                { key: 'elite', label: 'Elite', color: 'bg-violet-500' },
+                { key: 'supreme', label: 'Supreme', color: 'bg-yellow-500' },
+              ]
           return (
             <div className="bg-slate-800 rounded-2xl p-4 border border-white/5">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Tier Distribution
+                <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Package Distribution
               </p>
               <div className="flex items-end gap-2 h-16">
-                {tiers.map(t => {
-                  const count = tierCounts[t] || 0
+                {displayList.map((item: any) => {
+                  const count = tierCounts[item.key] || 0
                   const pct = partners.length > 0 ? (count / partners.length) * 100 : 0
-                  const colors: Record<string,string> = { free:'bg-gray-500', starter:'bg-blue-500', pro:'bg-indigo-500', elite:'bg-violet-500', supreme:'bg-yellow-500' }
                   return (
-                    <div key={t} className="flex-1 flex flex-col items-center gap-1">
+                    <div key={item.key + item.label} className="flex-1 flex flex-col items-center gap-1">
                       <span className="text-xs text-gray-400">{count}</span>
-                      <div className={`w-full rounded-t-lg ${colors[t]} opacity-80`} style={{ height: `${Math.max(pct * 0.48, count > 0 ? 4 : 0)}px` }} />
-                      <span className="text-[9px] text-gray-500 capitalize">{t}</span>
+                      <div className={`w-full rounded-t-lg ${item.color} opacity-80`} style={{ height: `${Math.max(pct * 0.48, count > 0 ? 4 : 0)}px` }} />
+                      <span className="text-[9px] text-gray-500 text-center leading-tight">{item.label}</span>
                     </div>
                   )
                 })}
