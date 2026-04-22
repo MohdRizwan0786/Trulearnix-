@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pricing — TruLearnix</title><link rel="stylesheet" href="../_base.css"></head><body>
+<style>
+body{padding-top:72px;}
+.pricing-hero{text-align:center;padding:60px 24px 48px;background:radial-gradient(ellipse at 50% 0,rgba(124,58,237,0.15),transparent 60%);}
+.pkg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1280px;margin:0 auto;padding:0 24px 80px;}
+.pkg-card{border-radius:24px;padding:32px;border:1px solid;position:relative;overflow:hidden;transition:transform .2s;}
+.pkg-card:hover{transform:translateY(-4px);}
+.pkg-popular{position:absolute;top:16px;right:-20px;background:var(--gradient-primary);color:#fff;font-size:11px;font-weight:700;padding:4px 28px;transform:rotate(12deg);}
+.pkg-name{font-size:13px;font-weight:700;text-transform:uppercase;margin-bottom:10px;}
+.pkg-price{font-size:3rem;font-weight:900;line-height:1;margin-bottom:6px;}
+.pkg-per{font-size:13px;color:#6b7280;margin-bottom:24px;}
+.pkg-feat{display:flex;flex-direction:column;gap:10px;margin-bottom:28px;}
+.pkg-feat li{display:flex;align-items:center;gap:8px;font-size:13px;color:#9ca3af;}
+.pkg-feat li::before{content:"✓";font-weight:700;font-size:14px;}
+@media(max-width:900px){.pkg-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){.pkg-grid{grid-template-columns:1fr;}}
+</style><nav class="navbar"><div class="navbar-inner"><div class="nav-logo">TruLearnix</div><ul class="nav-links"><li><a href="#">Home</a></li><li><a href="#">Courses</a></li><li><a href="#">Pricing</a></li><li><a href="#">Blog</a></li></ul><div class="nav-actions"><button class="btn btn-secondary btn-sm">Login</button><button class="btn btn-primary btn-sm">Get Started</button></div><div class="hamburger"><span></span><span></span><span></span></div></div></nav>
+<section class="pricing-hero">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#8b5cf6;margin-bottom:16px;">💎 Membership Plans</div>
+  <h1 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:900;margin-bottom:16px;">Choose your plan</h1>
+  <p style="color:#6b7280;font-size:16px;max-width:500px;margin:0 auto 32px;">One-time payment. Lifetime access. No hidden fees. Start earning while you learn.</p>
+  <div style="display:inline-flex;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:30px;padding:4px;">
+    <button class="btn btn-primary btn-sm" style="border-radius:24px;">One-time</button>
+    <button class="btn btn-sm" style="color:#6b7280;border-radius:24px;">EMI Available</button>
+  </div>
+</section>
+<div class="pkg-grid">
+<div class="pkg-card" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.3);">
+  
+  <div class="pkg-name" style="color:#60a5fa;">Starter 🚀</div>
+  <div class="pkg-price" style="color:#60a5fa;">₹4,999</div>
+  <div class="pkg-per">one-time · lifetime access</div>
+  <ul class="pkg-feat"><li style="color:#e5e7eb">100+ Courses</li><li style="color:#e5e7eb">Community Access</li><li style="color:#e5e7eb">10% Partner Rate</li><li style="color:#e5e7eb">Quiz & Assignments</li><li style="color:#e5e7eb">Mobile Access</li><li style="color:#6b7280">AI Coach</li><li style="color:#6b7280">Live Classes</li><li style="color:#6b7280">Mentor Sessions</li></ul>
+  <button class="btn btn-outline" style="width:100%;border-color:rgba(59,130,246,0.3);color:#60a5fa;padding:14px;font-size:15px;">Get Starter</button>
+  <div style="text-align:center;margin-top:12px;font-size:11px;color:#374151;">Earn 10% per referral</div>
+</div>
+<div class="pkg-card" style="background:rgba(124,58,237,0.06);border-color:rgba(124,58,237,0.5);position:relative;">
+  <div class='pkg-popular'>Popular</div>
+  <div class="pkg-name" style="color:#a78bfa;">Pro ⚡</div>
+  <div class="pkg-price" style="color:#a78bfa;">₹9,999</div>
+  <div class="pkg-per">one-time · lifetime access</div>
+  <ul class="pkg-feat"><li style="color:#e5e7eb">300+ Courses</li><li style="color:#e5e7eb">Community Access</li><li style="color:#e5e7eb">15% Partner Rate</li><li style="color:#e5e7eb">Quiz & Assignments</li><li style="color:#e5e7eb">AI Coach Access</li><li style="color:#e5e7eb">Live Classes</li><li style="color:#e5e7eb">Job Engine</li><li style="color:#6b7280">Mentor Sessions</li></ul>
+  <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;">Get Pro</button>
+  <div style="text-align:center;margin-top:12px;font-size:11px;color:#374151;">Earn 15% per referral</div>
+</div>
+<div class="pkg-card" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.3);">
+  
+  <div class="pkg-name" style="color:#fbbf24;">Elite 👑</div>
+  <div class="pkg-price" style="color:#fbbf24;">₹19,999</div>
+  <div class="pkg-per">one-time · lifetime access</div>
+  <ul class="pkg-feat"><li style="color:#e5e7eb">500+ Courses</li><li style="color:#e5e7eb">Community Access</li><li style="color:#e5e7eb">22% Partner Rate</li><li style="color:#e5e7eb">Priority Support</li><li style="color:#e5e7eb">AI Coach Access</li><li style="color:#e5e7eb">Live Classes</li><li style="color:#e5e7eb">Job Engine</li><li style="color:#e5e7eb">Mentor Sessions</li></ul>
+  <button class="btn btn-outline" style="width:100%;border-color:rgba(245,158,11,0.3);color:#fbbf24;padding:14px;font-size:15px;">Get Elite</button>
+  <div style="text-align:center;margin-top:12px;font-size:11px;color:#374151;">Earn 22% per referral</div>
+</div>
+<div class="pkg-card" style="background:rgba(225,29,72,0.05);border-color:rgba(225,29,72,0.3);">
+  
+  <div class="pkg-name" style="color:#fb7185;">Supreme 💎</div>
+  <div class="pkg-price" style="color:#fb7185;">₹29,999</div>
+  <div class="pkg-per">one-time · lifetime access</div>
+  <ul class="pkg-feat"><li style="color:#e5e7eb">All 500+ Courses</li><li style="color:#e5e7eb">Personal Brand Kit</li><li style="color:#e5e7eb">30% Partner Rate</li><li style="color:#e5e7eb">Dedicated Manager</li><li style="color:#e5e7eb">AI Coach Access</li><li style="color:#e5e7eb">Live Classes</li><li style="color:#e5e7eb">Job Engine</li><li style="color:#e5e7eb">1-on-1 Mentorship</li></ul>
+  <button class="btn btn-outline" style="width:100%;border-color:rgba(225,29,72,0.3);color:#fb7185;padding:14px;font-size:15px;">Get Supreme</button>
+  <div style="text-align:center;margin-top:12px;font-size:11px;color:#374151;">Earn 30% per referral</div>
+</div></div><a href="../index.html" class="back-link">← All Screens</a></body></html>

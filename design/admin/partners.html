@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Partners – Trulearnix Admin</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulearnix <span>Admin</span></div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">⊞</span>Dashboard</a>
+    <a href="users.html" class="nav-item"><span class="nav-icon">👥</span>Users</a>
+    <a href="courses.html" class="nav-item"><span class="nav-icon">📚</span>Courses</a>
+    <a href="packages.html" class="nav-item"><span class="nav-icon">📦</span>Packages</a>
+    <a href="crm.html" class="nav-item"><span class="nav-icon">🎯</span>CRM / Leads</a>
+    <a href="sales-team.html" class="nav-item"><span class="nav-icon">💼</span>Sales Team</a>
+    <a href="employees.html" class="nav-item"><span class="nav-icon">🏢</span>Employees</a>
+    <a href="partners.html" class="nav-item active"><span class="nav-icon">🤝</span>Partners</a>
+    <a href="mentors.html" class="nav-item"><span class="nav-icon">🎓</span>Mentors</a>
+    <a href="live-classes.html" class="nav-item"><span class="nav-icon">📡</span>Live Classes</a>
+    <a href="analytics.html" class="nav-item"><span class="nav-icon">📊</span>Analytics</a>
+    <a href="finance.html" class="nav-item"><span class="nav-icon">💰</span>Finance</a>
+    <a href="withdrawals.html" class="nav-item"><span class="nav-icon">🏧</span>Withdrawals</a>
+    <a href="kyc.html" class="nav-item"><span class="nav-icon">🪪</span>KYC</a>
+    <a href="marketing.html" class="nav-item"><span class="nav-icon">📣</span>Marketing</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">📋</span>Reports</a>
+    <a href="settings.html" class="nav-item"><span class="nav-icon">⚙️</span>Settings</a>
+  </nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">☰</button>
+    <h1 class="topbar-title">Partners</h1>
+    <div class="topbar-actions">
+      <div class="avatar">AD</div>
+    </div>
+  </header>
+  <main class="page-content">
+    
+<div class="page-header">
+  <h2 class="page-title">Partners</h2>
+  <button class="btn btn-primary">+ Invite Partner</button>
+</div>
+<div class="stats-row" style="margin-bottom:var(--space-6);">
+  <div class="stat-card"><div class="stat-value">1,842</div><div class="stat-label">Total Partners</div></div>
+  <div class="stat-card"><div class="stat-value">1,204</div><div class="stat-label">Active</div></div>
+  <div class="stat-card"><div class="stat-value">₹18.4L</div><div class="stat-label">Commission Paid</div></div>
+  <div class="stat-card"><div class="stat-value">342</div><div class="stat-label">New This Month</div></div>
+</div>
+<div class="card" style="margin-bottom:var(--space-4);padding:var(--space-4);">
+  <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+    <input type="text" class="form-input" placeholder="Search partner..." style="flex:1;min-width:200px;">
+    <select class="form-input" style="width:160px;"><option>All Tiers</option><option>Starter</option><option>Growth</option><option>Pro</option><option>Elite</option></select>
+    <select class="form-input" style="width:140px;"><option>All Status</option><option>Active</option><option>Inactive</option><option>Pending KYC</option></select>
+  </div>
+</div>
+<div class="card table-container">
+  <table class="table">
+    <thead><tr><th>Partner</th><th>Tier</th><th>Referrals</th><th>Total Earned</th><th>Wallet Balance</th><th>KYC</th><th>Joined</th><th>Actions</th></tr></thead>
+    <tbody>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">PK</div><div><div class="user-name">Paras Kumar</div><div class="user-email">paras@gmail.com</div></div></div></td><td><span class="badge badge-warning">Elite</span></td><td>142</td><td>₹2,84,000</td><td>₹12,400</td><td><span class="badge badge-success">Verified</span></td><td>Jan 2024</td><td><div class="action-btns"><button class="btn btn-sm">View</button></div></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">MN</div><div><div class="user-name">Meena Nair</div><div class="user-email">meena@gmail.com</div></div></div></td><td><span class="badge" style="background:#e0f2fe;color:#0284c7;">Pro</span></td><td>89</td><td>₹1,12,000</td><td>₹8,200</td><td><span class="badge badge-success">Verified</span></td><td>Feb 2024</td><td><div class="action-btns"><button class="btn btn-sm">View</button></div></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">DT</div><div><div class="user-name">Deepak Tiwari</div><div class="user-email">deepak@gmail.com</div></div></div></td><td><span class="badge badge-success">Growth</span></td><td>34</td><td>₹28,500</td><td>₹3,100</td><td><span class="badge badge-warning">Pending</span></td><td>Mar 2024</td><td><div class="action-btns"><button class="btn btn-sm">View</button></div></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">AR</div><div><div class="user-name">Anjali Rao</div><div class="user-email">anjali@gmail.com</div></div></div></td><td><span class="badge">Starter</span></td><td>8</td><td>₹6,400</td><td>₹1,200</td><td><span class="badge badge-danger">Not Done</span></td><td>Apr 2024</td><td><div class="action-btns"><button class="btn btn-sm">View</button></div></td></tr>
+    </tbody>
+  </table>
+</div>
+  </main>
+</div>
+</body>
+</html>

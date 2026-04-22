@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin CRM — TruLearnix Design</title>
+<link rel="stylesheet" href="../../_base.css">
+</head><body><div class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-header"><div class="sidebar-logo">TruLearnix Admin</div></div>
+  <nav class="sidebar-nav"><div class="sidebar-section">OVERVIEW</div><a href="#" class="sidebar-item"><span style="font-size:16px;">📊</span><span>Dashboard</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">👥</span><span>Users</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">📚</span><span>Courses</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">📦</span><span>Packages</span></a><div class="sidebar-section">CRM</div><a href="#" class="sidebar-item active"><span style="font-size:16px;">📋</span><span>CRM / Leads</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">💼</span><span>Sales Team</span></a><div class="sidebar-section">REPORTS</div><a href="#" class="sidebar-item"><span style="font-size:16px;">📈</span><span>Analytics</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">💰</span><span>Finance</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">📑</span><span>Reports</span></a><div class="sidebar-section">HR</div><a href="#" class="sidebar-item"><span style="font-size:16px;">🏢</span><span>Employees</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">👨‍🏫</span><span>Mentors</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">🤝</span><span>Partners</span></a><div class="sidebar-section">CONTENT</div><a href="#" class="sidebar-item"><span style="font-size:16px;">📡</span><span>Live Classes</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">✍️</span><span>Blog</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">📣</span><span>Marketing</span></a><div class="sidebar-section">OPERATIONS</div><a href="#" class="sidebar-item"><span style="font-size:16px;">🪪</span><span>KYC</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">💸</span><span>Withdrawals</span></a><a href="#" class="sidebar-item"><span style="font-size:16px;">⚙️</span><span>Settings</span></a></nav>
+  <div class="sidebar-footer"><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-placeholder avatar-sm">SA</div><div><div style="font-size:12px;font-weight:600;">Super Admin</div><div style="font-size:10px;color:#4b5563;">admin@trulearnix.com</div></div></div></div>
+</aside>
+<div class="main-content">
+  <div class="main-header">
+    <div><div style="font-size:18px;font-weight:700;">CRM / Leads</div><div style="font-size:12px;color:#6b7280;">Admin Panel · TruLearnix</div></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="position:relative;"><button class="btn btn-secondary btn-icon">🔔</button><span style="position:absolute;top:-4px;right:-4px;background:#e11d48;border-radius:50%;width:16px;height:16px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;">3</span></div>
+      <div class="avatar-placeholder avatar-sm">SA</div>
+    </div>
+  </div>
+  <div class="main-body">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+  <div class="stat-card"><div class="stat-icon" style="background:rgba(59,130,246,0.12);">📋</div><div><div class="stat-value">284</div><div class="stat-label">Total Leads</div><div class="stat-change stat-up">↑ 18 today</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,0.12);">📞</div><div><div class="stat-value">67</div><div class="stat-label">In Progress</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,0.12);">✅</div><div><div class="stat-value">42</div><div class="stat-label">Converted</div><div class="stat-change stat-up">↑ 12% this week</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:rgba(225,29,72,0.12);">❌</div><div><div class="stat-value">23</div><div class="stat-label">Not Interested</div></div></div>
+</div>
+<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+  <div class="search-bar" style="flex:1;min-width:200px;"><span>🔍</span><input placeholder="Search leads..."></div>
+  <select class="select" style="width:auto;padding:8px 14px;font-size:13px;"><option>All Status</option><option>New</option><option>Contacted</option><option>Interested</option><option>Converted</option></select>
+  <select class="select" style="width:auto;padding:8px 14px;font-size:13px;"><option>All Sources</option><option>Website</option><option>WhatsApp</option><option>Instagram</option></select>
+  <button class="btn btn-primary btn-sm">+ Add Lead</button>
+</div>
+<div class="card" style="padding:0;">
+  <table>
+    <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Source</th><th>Assigned To</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+    <tbody>
+      <tr><td class="td-primary">Ramesh Gupta</td><td>+91 98765 43210</td><td>ramesh@gmail.com</td><td><span class="badge badge-blue">Instagram</span></td><td>Mohd Rizwan</td><td><span class="badge badge-blue">New</span></td><td>Today 2:30 PM</td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">📞</button><button class="btn btn-sm btn-secondary">✏️</button></div></td></tr>
+      <tr><td class="td-primary">Sunita Mehta</td><td>+91 87654 32109</td><td>sunita@gmail.com</td><td><span class="badge badge-violet">WhatsApp</span></td><td>Kavita Singh</td><td><span class="badge badge-amber">Interested</span></td><td>Today 11:15 AM</td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">📞</button><button class="btn btn-sm btn-secondary">✏️</button></div></td></tr>
+      <tr><td class="td-primary">Deepak Rao</td><td>+91 76543 21098</td><td>deepak@gmail.com</td><td><span class="badge badge-green">Website</span></td><td>Sneha Patel</td><td><span class="badge badge-green">Converted</span></td><td>Yesterday</td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">👁</button><button class="btn btn-sm btn-secondary">✏️</button></div></td></tr>
+      <tr><td class="td-primary">Anita Sharma</td><td>+91 65432 10987</td><td>anita@gmail.com</td><td><span class="badge badge-amber">YouTube</span></td><td>Vikram Dev</td><td><span class="badge badge-blue">Contacted</span></td><td>2 days ago</td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">📞</button><button class="btn btn-sm btn-secondary">✏️</button></div></td></tr>
+      <tr><td class="td-primary">Vijay Kumar</td><td>+91 54321 09876</td><td>vijay@gmail.com</td><td><span class="badge badge-blue">Instagram</span></td><td>Rahul V</td><td><span class="badge badge-red">Not Interested</span></td><td>3 days ago</td><td><div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary">📞</button><button class="btn btn-sm btn-secondary">✏️</button></div></td></tr>
+    </tbody>
+  </table>
+</div></div>
+</div></div><a href="../../index.html" class="back-link">← All Screens</a></body></html>

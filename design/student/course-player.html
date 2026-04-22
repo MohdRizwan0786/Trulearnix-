@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Course Player — TruLearnix</title><link rel="stylesheet" href="../../_base.css">
+<style>
+body{margin:0;overflow:hidden;}
+.player-layout{display:grid;grid-template-columns:1fr 320px;height:100vh;}
+.video-area{background:#000;display:flex;flex-direction:column;}
+.video-topbar{background:rgba(4,5,10,0.98);border-bottom:1px solid rgba(255,255,255,0.08);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+.video-frame{flex:1;background:linear-gradient(135deg,#0a0518,#180d3a);display:flex;align-items:center;justify-content:center;position:relative;}
+.play-btn{width:72px;height:72px;border-radius:50%;background:rgba(124,58,237,0.8);display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;}
+.video-controls{background:rgba(4,5,10,0.98);padding:12px 20px;border-top:1px solid rgba(255,255,255,0.08);}
+.progress-seek{height:4px;background:rgba(255,255,255,0.15);border-radius:4px;margin-bottom:10px;position:relative;}
+.progress-played{height:100%;width:42%;background:var(--gradient-primary);border-radius:4px;}
+.lesson-sidebar{border-left:1px solid rgba(255,255,255,0.08);background:#0d0e1a;overflow-y:auto;display:flex;flex-direction:column;}
+.sidebar-title{padding:16px;border-bottom:1px solid rgba(255,255,255,0.08);font-weight:700;font-size:14px;}
+.lesson-item{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;transition:background .15s;}
+.lesson-item:hover{background:rgba(255,255,255,0.03);}
+.lesson-item.active{background:rgba(124,58,237,0.12);border-left:3px solid #7c3aed;}
+.lesson-num{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.lesson-item.done .lesson-num{background:rgba(16,185,129,0.2);color:#10b981;}
+.lesson-dur{margin-left:auto;font-size:11px;color:#4b5563;}
+@media(max-width:768px){.player-layout{grid-template-columns:1fr;height:auto;}.lesson-sidebar{max-height:300px;}.video-frame{height:220px;}.body{overflow:auto;}}
+</style>
+</head><body>
+<div class="player-layout">
+  <div class="video-area">
+    <div class="video-topbar">
+      <a href="courses.html" style="font-size:13px;color:#9ca3af;">← My Courses</a>
+      <div style="font-size:14px;font-weight:600;">Digital Marketing Masterclass</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#6b7280;"><span>65% complete</span><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:65%"></div></div></div>
+    </div>
+    <div class="video-frame">
+      <div class="play-btn">▶</div>
+      <div style="position:absolute;top:16px;right:16px;background:rgba(0,0,0,0.6);border-radius:8px;padding:6px 12px;font-size:12px;">📺 HD</div>
+      <div style="position:absolute;bottom:20px;left:20px;font-size:14px;font-weight:600;color:rgba(255,255,255,0.9);">Lesson 4: SEO Fundamentals</div>
+    </div>
+    <div class="video-controls">
+      <div class="progress-seek"><div class="progress-played"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:16px;font-size:18px;align-items:center;">
+          <span style="cursor:pointer;">⏮</span>
+          <span style="cursor:pointer;font-size:24px;">⏸</span>
+          <span style="cursor:pointer;">⏭</span>
+          <span style="font-size:13px;color:#6b7280;margin-left:4px;">18:24 / 43:15</span>
+        </div>
+        <div style="display:flex;gap:12px;font-size:18px;">
+          <span style="cursor:pointer;">🔊</span>
+          <span style="cursor:pointer;">⚙️</span>
+          <span style="cursor:pointer;">⛶</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:20px;border-top:1px solid rgba(255,255,255,0.06);">
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Lesson 4: SEO Fundamentals</div>
+      <div style="font-size:13px;color:#6b7280;line-height:1.75;">Learn the complete foundation of Search Engine Optimization — from keyword research to on-page and off-page tactics. This lesson covers practical strategies used by top digital marketers.</div>
+    </div>
+  </div>
+  <div class="lesson-sidebar">
+    <div class="sidebar-title">Course Content · 32 Lessons</div><div class="lesson-item done"><div class="lesson-num">✓</div><span style="flex:1;">Introduction to Digital Marketing</span><span class="lesson-dur">12:30</span></div><div class="lesson-item done"><div class="lesson-num">✓</div><span style="flex:1;">Understanding Your Audience</span><span class="lesson-dur">18:45</span></div><div class="lesson-item done"><div class="lesson-num">✓</div><span style="flex:1;">Content Marketing Strategy</span><span class="lesson-dur">22:10</span></div><div class="lesson-item active"><div class="lesson-num">4</div><span style="flex:1;">SEO Fundamentals</span><span class="lesson-dur">43:15</span></div><div class="lesson-item "><div class="lesson-num">5</div><span style="flex:1;">Google Ads Mastery</span><span class="lesson-dur">38:20</span></div><div class="lesson-item "><div class="lesson-num">6</div><span style="flex:1;">Social Media Marketing</span><span class="lesson-dur">28:45</span></div><div class="lesson-item "><div class="lesson-num">7</div><span style="flex:1;">Email Marketing</span><span class="lesson-dur">19:30</span></div><div class="lesson-item "><div class="lesson-num">8</div><span style="flex:1;">Analytics & Tracking</span><span class="lesson-dur">25:00</span></div>
+  </div>
+</div>
+<a href="../../index.html" class="back-link">← All Screens</a></body></html>

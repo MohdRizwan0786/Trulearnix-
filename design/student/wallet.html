@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wallet - Student Portal</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulearnix <span>Student</span></div>
+  <nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><span class="nav-icon">-</span>Dashboard</a><a href="courses.html" class="nav-item"><span class="nav-icon">-</span>My Courses</a><a href="course-player.html" class="nav-item"><span class="nav-icon">-</span>Course Player</a><a href="live-classes.html" class="nav-item"><span class="nav-icon">-</span>Live Classes</a><a href="ai-coach.html" class="nav-item"><span class="nav-icon">-</span>AI Coach</a><a href="quizzes.html" class="nav-item"><span class="nav-icon">-</span>Quizzes</a><a href="assignments.html" class="nav-item"><span class="nav-icon">-</span>Assignments</a><a href="certificates.html" class="nav-item"><span class="nav-icon">-</span>Certificates</a><a href="community.html" class="nav-item"><span class="nav-icon">-</span>Community</a><a href="wallet.html" class="nav-item active"><span class="nav-icon">-</span>Wallet</a><a href="profile.html" class="nav-item"><span class="nav-icon">-</span>Profile</a><a href="support.html" class="nav-item"><span class="nav-icon">-</span>Support</a></nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">Menu</button>
+    <h1 class="topbar-title">Wallet</h1>
+    <div class="topbar-actions"><div class="avatar">ST</div></div>
+  </header>
+  <main class="page-content">
+<div class="page-header"><h2 class="page-title">My Wallet</h2><button class="btn btn-primary">Withdraw</button></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4);margin-bottom:var(--space-6);">
+  <div class="card" style="padding:var(--space-5);background:linear-gradient(135deg,var(--primary-600),#0ea5e9);color:white;">
+    <div style="font-size:.8rem;opacity:.8;margin-bottom:var(--space-1);">Available Balance</div>
+    <div style="font-size:2rem;font-weight:800;">Rs. 8,240</div>
+    <div style="font-size:.75rem;opacity:.7;margin-top:var(--space-1);">Ready to withdraw</div>
+  </div>
+  <div class="stat-card"><div class="stat-value">Rs. 24,800</div><div class="stat-label">Total Earned</div></div>
+  <div class="stat-card"><div class="stat-value">Rs. 16,560</div><div class="stat-label">Total Withdrawn</div></div>
+  <div class="stat-card"><div class="stat-value">Rs. 2,400</div><div class="stat-label">Pending</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);margin-bottom:var(--space-6);">
+  <div class="card" style="padding:var(--space-4);">
+    <h3 style="font-size:1rem;font-weight:600;margin-bottom:var(--space-4);">Withdraw Funds</h3>
+    <div class="form-group"><label class="form-label">Amount</label><input type="number" class="form-input" placeholder="Min Rs. 500"></div>
+    <div class="form-group"><label class="form-label">Bank Account</label>
+    <select class="form-input"><option>SBI - XXXXXX1234</option><option>+ Add new bank</option></select></div>
+    <button class="btn btn-primary btn-block">Request Withdrawal</button>
+    <div style="font-size:.75rem;color:var(--text-muted);margin-top:var(--space-2);text-align:center;">KYC required - <a href="#">Complete KYC</a></div>
+  </div>
+  <div class="card" style="padding:var(--space-4);">
+    <h3 style="font-size:1rem;font-weight:600;margin-bottom:var(--space-4);">Earning Breakdown</h3>
+    <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:.875rem;"><span>Partner Referrals</span><span style="font-weight:600;">Rs. 18,400</span></div><div style="height:6px;background:var(--bg-secondary);border-radius:3px;"><div style="height:6px;background:var(--primary-600);border-radius:3px;width:74%;"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:.875rem;"><span>Course Referrals</span><span style="font-weight:600;">Rs. 4,200</span></div><div style="height:6px;background:var(--bg-secondary);border-radius:3px;"><div style="height:6px;background:#10b981;border-radius:3px;width:17%;"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:.875rem;"><span>Bonuses</span><span style="font-weight:600;">Rs. 2,200</span></div><div style="height:6px;background:var(--bg-secondary);border-radius:3px;"><div style="height:6px;background:#f59e0b;border-radius:3px;width:9%;"></div></div></div>
+    </div>
+  </div>
+</div>
+<div class="card table-container">
+  <div style="padding:var(--space-4);border-bottom:1px solid var(--border-color);font-weight:600;">Transaction History</div>
+  <table class="table">
+    <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Apr 22</td><td>Partner commission - Ravi enrollment</td><td><span class="badge badge-success">Credit</span></td><td style="font-weight:600;color:#16a34a;">+Rs. 2,400</td><td><span class="badge badge-warning">Pending</span></td></tr>
+      <tr><td>Apr 20</td><td>Withdrawal to SBI ****1234</td><td><span class="badge badge-danger">Debit</span></td><td style="font-weight:600;color:#dc2626;">-Rs. 5,000</td><td><span class="badge badge-success">Completed</span></td></tr>
+      <tr><td>Apr 18</td><td>Partner commission - Priya enrollment</td><td><span class="badge badge-success">Credit</span></td><td style="font-weight:600;color:#16a34a;">+Rs. 3,200</td><td><span class="badge badge-success">Credited</span></td></tr>
+      <tr><td>Apr 15</td><td>Course referral bonus</td><td><span class="badge badge-success">Credit</span></td><td style="font-weight:600;color:#16a34a;">+Rs. 800</td><td><span class="badge badge-success">Credited</span></td></tr>
+    </tbody>
+  </table>
+</div></main>
+</div>
+</body>
+</html>

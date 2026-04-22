@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Register — TruLearnix Design</title>
+<link rel="stylesheet" href="../_base.css">
+
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:#04050a;}
+.auth-wrap{display:grid;grid-template-columns:1fr 1fr;max-width:960px;width:100%;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);box-shadow:0 32px 80px rgba(0,0,0,0.5);}
+.auth-left{background:linear-gradient(135deg,#0a1a0a,#0d2d1a,#10b981);padding:48px;display:flex;flex-direction:column;justify-content:center;}
+.auth-right{background:#0d0e1a;padding:48px;overflow-y:auto;max-height:100vh;}
+@media(max-width:640px){.auth-wrap{grid-template-columns:1fr;}.auth-left{display:none;}.auth-right{padding:32px 24px;}}
+</style></head><body>
+<div class="auth-wrap">
+  <div class="auth-left">
+    <div style="font-size:28px;font-weight:900;color:#fff;margin-bottom:20px;">Join TruLearnix 🚀</div>
+    <p style="color:rgba(255,255,255,0.7);line-height:1.75;margin-bottom:32px;">Start your learning journey today. 50,000+ learners are already growing their skills and income.</p>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:14px;"><div style="color:#fff;font-weight:600;font-size:13px;">📚 500+ Courses</div><div style="color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px;">Digital Marketing, AI, Design & more</div></div>
+      <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:14px;"><div style="color:#fff;font-weight:600;font-size:13px;">💰 Partner Income</div><div style="color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px;">Earn up to 30% per referral</div></div>
+      <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:14px;"><div style="color:#fff;font-weight:600;font-size:13px;">🤖 AI Coach 24/7</div><div style="color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px;">Personalized learning guidance</div></div>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div style="font-size:20px;font-weight:900;background:linear-gradient(135deg,#7c3aed,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;">TruLearnix</div>
+    <div style="font-size:1.5rem;font-weight:800;margin-bottom:6px;">Create your account</div>
+    <div style="color:#6b7280;font-size:13px;margin-bottom:24px;">Already have one? <a href="login.html" style="color:#8b5cf6;font-weight:600;">Sign in</a></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="input-group"><label>First Name</label><input class="input" placeholder="Rahul"></div>
+      <div class="input-group"><label>Last Name</label><input class="input" placeholder="Sharma"></div>
+    </div>
+    <div class="input-group"><label>Email Address</label><input class="input" type="email" placeholder="rahul@example.com"></div>
+    <div class="input-group"><label>Phone Number</label><input class="input" type="tel" placeholder="+91 98765 43210"></div>
+    <div class="input-group"><label>Password</label><input class="input" type="password" placeholder="Min 8 characters"></div>
+    <div class="input-group"><label>Referral Code (optional)</label><input class="input" placeholder="Enter partner code"></div>
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;font-size:12px;color:#6b7280;">
+      <input type="checkbox" style="margin-top:2px;accent-color:#7c3aed;">
+      <span>I agree to the <a href="#" style="color:#8b5cf6;">Terms of Service</a> and <a href="#" style="color:#8b5cf6;">Privacy Policy</a></span>
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:14px;">Create Account →</button>
+    <div style="text-align:center;font-size:12px;color:#374151;margin-top:16px;">🔒 Your data is safe and encrypted</div>
+  </div>
+</div>
+<a href="../index.html" class="back-link">← All Screens</a></body></html>

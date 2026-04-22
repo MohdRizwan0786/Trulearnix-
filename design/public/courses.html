@@ -1,0 +1,129 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Courses — TruLearnix</title><link rel="stylesheet" href="../_base.css"></head><body><style>
+body{padding-top:72px;}
+.page-hero{padding:48px 24px;text-align:center;background:radial-gradient(ellipse at 50% 0,rgba(59,130,246,0.12),transparent 60%);}
+.filters{background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06);padding:16px 24px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;max-width:1280px;margin:0 auto;}
+.courses-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1280px;margin:24px auto;padding:0 24px 60px;}
+.c-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:20px;overflow:hidden;transition:all .2s;}
+.c-card:hover{border-color:rgba(124,58,237,0.3);transform:translateY(-2px);}
+.c-thumb{height:160px;display:flex;align-items:center;justify-content:center;font-size:48px;}
+.c-body{padding:18px;}
+.c-cat{font-size:10px;font-weight:700;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;}
+.c-title{font-size:15px;font-weight:700;margin-bottom:6px;line-height:1.4;}
+.c-meta{font-size:12px;color:#6b7280;margin-bottom:12px;}
+.c-footer{display:flex;align-items:center;justify-content:space-between;}
+.c-price{font-size:16px;font-weight:800;}
+@media(max-width:900px){.courses-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){.courses-grid{grid-template-columns:1fr;}}
+</style><nav class="navbar"><div class="navbar-inner"><div class="nav-logo">TruLearnix</div><ul class="nav-links"><li><a href="#">Home</a></li><li><a href="#">Courses</a></li><li><a href="#">Pricing</a></li><li><a href="#">Blog</a></li></ul><div class="nav-actions"><button class="btn btn-secondary btn-sm">Login</button><button class="btn btn-primary btn-sm">Get Started</button></div><div class="hamburger"><span></span><span></span><span></span></div></div></nav>
+<div class="page-hero">
+  <h1 style="font-size:clamp(2rem,5vw,3rem);font-weight:900;margin-bottom:12px;">Explore 500+ Courses</h1>
+  <p style="color:#6b7280;font-size:15px;max-width:480px;margin:0 auto 24px;">Learn from industry experts. Start free. Unlock all with a membership plan.</p>
+  <div style="max-width:500px;margin:0 auto;display:flex;gap:10px;">
+    <div class="search-bar" style="flex:1;"><span>🔍</span><input placeholder="Search courses, skills, mentors..."></div>
+    <button class="btn btn-primary">Search</button>
+  </div>
+</div>
+<div class="filters">
+  <div style="font-size:12px;font-weight:600;color:#6b7280;">Filter:</div>
+  <button class="btn btn-primary btn-sm">All</button>
+  <button class="btn btn-secondary btn-sm">Digital Marketing</button>
+  <button class="btn btn-secondary btn-sm">AI & Tech</button>
+  <button class="btn btn-secondary btn-sm">Design</button>
+  <button class="btn btn-secondary btn-sm">Business</button>
+  <button class="btn btn-secondary btn-sm">Finance</button>
+  <button class="btn btn-secondary btn-sm">Social Media</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <select class="select" style="width:auto;padding:7px 12px;font-size:12px;"><option>Sort: Popular</option><option>Newest</option><option>Rating</option></select>
+  </div>
+</div>
+<div class="courses-grid">
+<div class="c-card">
+  <div class="c-thumb" style="background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(99,102,241,0.1));">📣</div>
+  <div class="c-body">
+    <div class="c-cat">Digital Marketing</div>
+    <div class="c-title">Digital Marketing Masterclass</div>
+    <div class="c-meta">by Rahul Verma · 18h 30m · 1,240 students</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><div class="stars">★★★★★</div><span style="font-size:12px;color:#6b7280;">(324 reviews)</span></div>
+    <div class="c-footer"><div class="c-price" style="color:#8b5cf6;">Free w/ Pro</div><button class="btn btn-primary btn-sm">Enroll Free</button></div>
+  </div>
+</div>
+<div class="c-card">
+  <div class="c-thumb" style="background:linear-gradient(135deg,rgba(59,130,246,0.3),rgba(99,102,241,0.1));">🤖</div>
+  <div class="c-body">
+    <div class="c-cat">AI & Technology</div>
+    <div class="c-title">AI Tools for Business</div>
+    <div class="c-meta">by Priya Sharma · 12h · 890 students</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><div class="stars">★★★★★</div><span style="font-size:12px;color:#6b7280;">(218 reviews)</span></div>
+    <div class="c-footer"><div class="c-price" style="color:#8b5cf6;">Free w/ Pro</div><button class="btn btn-primary btn-sm">Enroll Free</button></div>
+  </div>
+</div>
+<div class="c-card">
+  <div class="c-thumb" style="background:linear-gradient(135deg,rgba(16,185,129,0.3),rgba(6,182,212,0.1));">🎨</div>
+  <div class="c-body">
+    <div class="c-cat">Design</div>
+    <div class="c-title">UI/UX Design Bootcamp</div>
+    <div class="c-meta">by Amit Design · 24h · 654 students</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><div class="stars">★★★★☆</div><span style="font-size:12px;color:#6b7280;">(156 reviews)</span></div>
+    <div class="c-footer"><div class="c-price" style="color:#8b5cf6;">Free w/ Elite</div><button class="btn btn-primary btn-sm">Enroll Free</button></div>
+  </div>
+</div>
+<div class="c-card">
+  <div class="c-thumb" style="background:linear-gradient(135deg,rgba(245,158,11,0.3),rgba(234,88,12,0.1));">📈</div>
+  <div class="c-body">
+    <div class="c-cat">Finance</div>
+    <div class="c-title">Stock Market Basics</div>
+    <div class="c-meta">by Kavita Singh · 8h · 2,100 students</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><div class="stars">★★★★☆</div><span style="font-size:12px;color:#6b7280;">(478 reviews)</span></div>
+    <div class="c-footer"><div class="c-price" style="color:#8b5cf6;">Free w/ Elite</div><button class="btn btn-primary btn-sm">Enroll Free</button></div>
+  </div>
+</div>
+<div class="c-card">
+  <div class="c-thumb" style="background:linear-gradient(135deg,rgba(225,29,72,0.3),rgba(219,39,119,0.1));">📱</div>
+  <div class="c-body">
+    <div class="c-cat">Social Media</div>
+    <div class="c-title">Instagram Growth 2026</div>
+    <div class="c-meta">by Sneha Patel · 10h · 3,400 students</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><div class="stars">★★★★★</div><span style="font-size:12px;color:#6b7280;">(891 reviews)</span></div>
+    <div class="c-footer"><div class="c-price" style="color:#8b5cf6;">Free w/ Pro</div><button class="btn btn-primary btn-sm">Enroll Free</button></div>
+  </div>
+</div>
+<div class="c-card">
+  <div class="c-thumb" style="background:linear-gradient(135deg,rgba(6,182,212,0.3),rgba(59,130,246,0.1));">💻</div>
+  <div class="c-body">
+    <div class="c-cat">Development</div>
+    <div class="c-title">Python for Beginners</div>
+    <div class="c-meta">by Vikram Dev · 30h · 5,200 students</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><div class="stars">★★★★★</div><span style="font-size:12px;color:#6b7280;">(1,240 reviews)</span></div>
+    <div class="c-footer"><div class="c-price" style="color:#8b5cf6;">Free w/ Pro</div><button class="btn btn-primary btn-sm">Enroll Free</button></div>
+  </div>
+</div>
+<div class="c-card">
+  <div class="c-thumb" style="background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(99,102,241,0.1));">🎯</div>
+  <div class="c-body">
+    <div class="c-cat">Business</div>
+    <div class="c-title">Affiliate Marketing</div>
+    <div class="c-meta">by Rohit Gupta · 14h · 780 students</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><div class="stars">★★★★☆</div><span style="font-size:12px;color:#6b7280;">(203 reviews)</span></div>
+    <div class="c-footer"><div class="c-price" style="color:#8b5cf6;">Free w/ Starter</div><button class="btn btn-primary btn-sm">Enroll Free</button></div>
+  </div>
+</div>
+<div class="c-card">
+  <div class="c-thumb" style="background:linear-gradient(135deg,rgba(59,130,246,0.3),rgba(6,182,212,0.1));">📊</div>
+  <div class="c-body">
+    <div class="c-cat">Analytics</div>
+    <div class="c-title">Google Analytics Pro</div>
+    <div class="c-meta">by Neha Shah · 9h · 560 students</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><div class="stars">★★★★★</div><span style="font-size:12px;color:#6b7280;">(142 reviews)</span></div>
+    <div class="c-footer"><div class="c-price" style="color:#8b5cf6;">Free w/ Pro</div><button class="btn btn-primary btn-sm">Enroll Free</button></div>
+  </div>
+</div>
+<div class="c-card">
+  <div class="c-thumb" style="background:linear-gradient(135deg,rgba(245,158,11,0.3),rgba(225,29,72,0.1));">🎬</div>
+  <div class="c-body">
+    <div class="c-cat">Design</div>
+    <div class="c-title">Video Editing Masterclass</div>
+    <div class="c-meta">by Dev Singh · 20h · 430 students</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;"><div class="stars">★★★★☆</div><span style="font-size:12px;color:#6b7280;">(98 reviews)</span></div>
+    <div class="c-footer"><div class="c-price" style="color:#8b5cf6;">Free w/ Elite</div><button class="btn btn-primary btn-sm">Enroll Free</button></div>
+  </div>
+</div></div><a href="../index.html" class="back-link">← All Screens</a></body></html>
