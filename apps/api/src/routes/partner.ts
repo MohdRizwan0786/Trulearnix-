@@ -327,7 +327,7 @@ router.get('/leaderboard', protect, affiliateGuard, async (req: any, res) => {
     } else {
       // Period-based: aggregate Commission records
       const agg = await Commission.aggregate([
-        { $match: { createdAt: { $gte: startDate }, status: { $in: ['paid', 'pending'] } } },
+        { $match: { createdAt: { $gte: startDate }, status: { $in: ['paid', 'pending', 'approved'] } } },
         { $group: { _id: '$earner', periodEarnings: { $sum: '$commissionAmount' } } },
         { $sort: { periodEarnings: -1 } },
         { $limit: 50 },
@@ -359,7 +359,7 @@ router.get('/leaderboard', protect, affiliateGuard, async (req: any, res) => {
 
       // My earnings in period
       const myAgg = await Commission.aggregate([
-        { $match: { earner: req.user._id, createdAt: { $gte: startDate }, status: { $in: ['paid', 'pending'] } } },
+        { $match: { earner: req.user._id, createdAt: { $gte: startDate }, status: { $in: ['paid', 'pending', 'approved'] } } },
         { $group: { _id: null, total: { $sum: '$commissionAmount' } } }
       ]);
       myEarnings = myAgg[0]?.total || 0;
