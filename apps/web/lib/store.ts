@@ -78,6 +78,7 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'trulearnix-auth',
+      skipHydration: true,
       partialize: (s) => ({ user: s.user, accessToken: s.accessToken, refreshToken: s.refreshToken }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

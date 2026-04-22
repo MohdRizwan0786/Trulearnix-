@@ -41,12 +41,12 @@ const chunkErrorScript = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* eslint-disable-next-line react/no-danger */}
         <script dangerouslySetInnerHTML={{ __html: chunkErrorScript }} />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <Providers>
           <PushSetup />
           {children}
