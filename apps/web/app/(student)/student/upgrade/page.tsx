@@ -79,7 +79,7 @@ export default function UpgradePage() {
           <h1 className="text-2xl sm:text-3xl font-black text-white">Level Up Your Learning</h1>
           <p className="text-gray-400 mt-2 text-sm max-w-lg mx-auto">
             Unlock all courses, live classes, AI Coach & more. Current plan:
-            <span className="text-violet-300 font-bold capitalize ml-1">{currentTier}</span>
+            <span className="text-violet-300 font-bold ml-1">{pkgs?.find((p: any) => p.tier === currentTier)?.name || currentTier}</span>
           </p>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function UpgradePage() {
             <Check className="w-5 h-5 text-green-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-white">You're on the <span className="text-green-400 capitalize">{currentTier}</span> plan</p>
+            <p className="text-sm font-bold text-white">You're on the <span className="text-green-400">{pkgs?.find((p: any) => p.tier === currentTier)?.name || currentTier}</span> plan</p>
             <p className="text-xs text-gray-500 mt-0.5">Upgrade to unlock more features & higher commission rates</p>
           </div>
           {(user as any)?.packageExpiresAt && (
@@ -115,8 +115,10 @@ export default function UpgradePage() {
           const isUpgrade = tierIdx > currentIdx
           const isLocked = tierIdx < currentIdx
           const Icon = t.icon
-          const features = FEATURES[t.tier] || []
           const pkgData = pkgs?.find((p: any) => p.tier === t.tier)
+          const features = (pkgData?.features?.length ? pkgData.features : FEATURES[t.tier]) || []
+          const displayName = pkgData?.name || t.name
+          const displayBadge = pkgData?.badge || t.badge
 
           return (
             <div key={t.tier} className="relative rounded-2xl p-5 flex flex-col transition-all"
@@ -129,10 +131,10 @@ export default function UpgradePage() {
                 boxShadow: isCurrent ? `0 8px 32px ${t.glow}` : 'none',
               }}>
               {/* Badge */}
-              {(t.badge || isCurrent) && (
+              {(displayBadge || isCurrent) && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-black px-3 py-1 rounded-full whitespace-nowrap text-white"
                   style={{ background: isCurrent ? 'linear-gradient(135deg,#7c3aed,#4f46e5)' : t.grad }}>
-                  {isCurrent ? '✓ Current' : t.badge}
+                  {isCurrent ? '✓ Current' : displayBadge}
                 </div>
               )}
 
@@ -142,7 +144,7 @@ export default function UpgradePage() {
                 <Icon className="w-5 h-5" style={{ color: t.accent }} />
               </div>
 
-              <h3 className="text-base font-black text-white">{t.name}</h3>
+              <h3 className="text-base font-black text-white">{displayName}</h3>
               <div className="flex items-baseline gap-1 mt-1 mb-4">
                 <span className="text-2xl font-black" style={{ color: isUpgrade || isCurrent ? t.accent : '#6b7280' }}>
                   ₹{(pkgData?.price || t.price).toLocaleString('en-IN')}

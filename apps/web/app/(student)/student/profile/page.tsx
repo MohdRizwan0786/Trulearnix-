@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { userAPI } from '@/lib/api'
+import { userAPI, packageAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import {
   Camera, Loader2, Star, Trophy, Zap, Copy, Check, Link2,
@@ -33,6 +33,11 @@ export default function ProfilePage() {
   const { data: user, isLoading } = useQuery({
     queryKey: ['user-me'],
     queryFn: () => userAPI.me().then(r => r.data.user),
+  })
+  const { data: pkgs } = useQuery({
+    queryKey: ['packages'],
+    queryFn: () => packageAPI.getAll().then(r => r.data.packages),
+    staleTime: 10 * 60 * 1000,
   })
 
   const [form, setForm] = useState({ bio: '', socialLinks: { twitter: '', linkedin: '', instagram: '', youtube: '' } })
@@ -77,7 +82,10 @@ export default function ProfilePage() {
 
   const copy = (text: string) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) }
 
-  const tier = TIER_META[user?.packageTier || 'free']
+  const tierKey = user?.packageTier || 'free'
+  const tierMeta = TIER_META[tierKey] || TIER_META.free
+  const pkgDisplayName = pkgs?.find((p: any) => p.tier === tierKey)?.name || tierMeta.label
+  const tier = { ...tierMeta, label: pkgDisplayName }
   const isPartner = user?.isAffiliate
 
   if (isLoading) return (

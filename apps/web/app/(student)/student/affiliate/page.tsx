@@ -33,6 +33,7 @@ export default function AffiliatePage() {
   const { data: stats } = useQuery({ queryKey: ['affiliate-stats'], queryFn: () => affiliateAPI.stats().then(r => r.data), enabled: isAffiliate })
   const { data: refs } = useQuery({ queryKey: ['affiliate-refs'], queryFn: () => affiliateAPI.referrals().then(r => r.data), enabled: isAffiliate })
   const { data: commissions } = useQuery({ queryKey: ['affiliate-commissions'], queryFn: () => affiliateAPI.commissions().then(r => r.data), enabled: isAffiliate })
+  const { data: pkgs } = useQuery({ queryKey: ['packages'], queryFn: () => packageAPI.getAll().then(r => r.data.packages), staleTime: 10 * 60 * 1000 })
 
   const withdrawMutation = useMutation({
     mutationFn: (data: any) => affiliateAPI.withdraw(data),
@@ -57,18 +58,21 @@ export default function AffiliatePage() {
           <h2 className="text-2xl font-black text-white mb-2">Partner Panel Locked</h2>
           <p className="text-gray-400 text-sm mb-6 max-w-md mx-auto">Purchase any package to unlock the Partner Program and start earning income every time someone joins through your link.</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto mb-8">
-            {[
-              { tier: 'Starter', price: '₹4,999', rate: '10%', color: '#60a5fa' },
-              { tier: 'Pro',     price: '₹9,999', rate: '15%', color: '#a78bfa' },
-              { tier: 'Elite',   price: '₹19,999',rate: '22%', color: '#fbbf24' },
-              { tier: 'Supreme', price: '₹29,999',rate: '30%', color: '#fb7185' },
-            ].map(p => (
+            {(pkgs?.filter((p: any) => p.tier !== 'free' && p.isActive !== false) || [
+              { tier: 'starter', name: 'Starter', price: 4999, commissionRate: 10 },
+              { tier: 'pro',     name: 'Pro',     price: 9999, commissionRate: 15 },
+              { tier: 'elite',   name: 'Elite',   price: 19999, commissionRate: 22 },
+              { tier: 'supreme', name: 'Supreme', price: 29999, commissionRate: 30 },
+            ]).map((p: any) => {
+              const colors: Record<string, string> = { starter: '#60a5fa', pro: '#a78bfa', elite: '#fbbf24', supreme: '#fb7185' }
+              const color = colors[p.tier] || '#60a5fa'
+              return (
               <div key={p.tier} className="rounded-2xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p className="font-bold text-white text-sm">{p.tier}</p>
-                <p className="font-black text-base mt-0.5" style={{ color: p.color }}>{p.price}</p>
-                <p className="text-green-400 text-[10px] font-semibold mt-0.5">{p.rate} income</p>
+                <p className="font-bold text-white text-sm">{p.name}</p>
+                <p className="font-black text-base mt-0.5" style={{ color }}>₹{(p.price || 0).toLocaleString('en-IN')}</p>
+                <p className="text-green-400 text-[10px] font-semibold mt-0.5">{p.commissionRate || 0}% income</p>
               </div>
-            ))}
+            )})}
           </div>
           <Link href="/packages" className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold text-sm" style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', boxShadow: '0 8px 24px rgba(124,58,237,0.4)' }}>
             <Sparkles className="w-4 h-4" /> Unlock Partner Access

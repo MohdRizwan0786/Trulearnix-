@@ -1,6 +1,6 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
-import { partnerAPI, managerAPI } from '@/lib/api'
+import { partnerAPI, managerAPI, packageAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -649,6 +649,7 @@ export default function PartnerDashboard() {
   const { data: goalsData } = useQuery({ queryKey:['my-goals'], queryFn:() => managerAPI.myGoals().then(r => r.data), staleTime:0 })
   const { data: lb24Data }  = useQuery({ queryKey:['lb-24h'],   queryFn:() => partnerAPI.leaderboard('24h').then(r => r.data),  staleTime:5*60*1000 })
   const { data: lbAllData } = useQuery({ queryKey:['lb-all'],   queryFn:() => partnerAPI.leaderboard('all').then(r => r.data),  staleTime:10*60*1000 })
+  const { data: pkgs } = useQuery({ queryKey:['packages'], queryFn:() => packageAPI.getAll().then(r => r.data.packages), staleTime:10*60*1000 })
 
   const myTips: any[]  = tipsData?.tips  || []
   const myGoals: any[] = goalsData?.goals || []
