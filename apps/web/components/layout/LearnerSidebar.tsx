@@ -10,7 +10,7 @@ import {
   ExternalLink, CreditCard, Sparkles, LifeBuoy
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
-import { authAPI, userAPI } from '@/lib/api'
+import { authAPI, userAPI, packageAPI } from '@/lib/api'
 import Logo from '@/components/ui/Logo'
 import { useQuery } from '@tanstack/react-query'
 
@@ -86,6 +86,12 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
   const tier = (user as any)?.packageTier || 'free'
   const tc = TIER_CONFIG[tier] || TIER_CONFIG.free
   const isLocked = tier === 'free' && !(user as any)?.isAffiliate && !((user as any)?.enrollmentCount > 0)
+  const { data: pkgs } = useQuery({
+    queryKey: ['packages'],
+    queryFn: () => packageAPI.getAll().then(r => r.data.packages),
+    staleTime: 10 * 60 * 1000,
+  })
+  const tierDisplayName = pkgs?.find((p: any) => p.tier === tier)?.name || tc.label
 
   const { data: annData } = useQuery({
     queryKey: ['announcements'],
@@ -176,7 +182,7 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
               <div className="inline-flex items-center gap-1 px-2 py-0.5 mt-1 rounded-full text-[10px] font-black uppercase tracking-wider"
                 style={{ background: tc.bg, color: tc.color, border: `1px solid ${tc.color}30` }}>
                 <Sparkles className="w-2.5 h-2.5" />
-                {tc.label}
+                {tierDisplayName}
               </div>
             </div>
 

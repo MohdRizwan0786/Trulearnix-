@@ -3,15 +3,23 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, BookOpen, Video, Award, Wallet, TrendingUp, Bot, Briefcase, Star, FileQuestion, LogOut, Lock, User, FolderGit2, FileText, X, Bell, LifeBuoy } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
-import { authAPI } from '@/lib/api'
+import { authAPI, packageAPI } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import Logo from '@/components/ui/Logo'
+import { useQuery } from '@tanstack/react-query'
 
 export default function StudentSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
   const router = useRouter()
   const isAffiliate = (user as any)?.isAffiliate
+  const { data: pkgs } = useQuery({
+    queryKey: ['packages'],
+    queryFn: () => packageAPI.getAll().then(r => r.data.packages),
+    staleTime: 10 * 60 * 1000,
+  })
+  const tierKey = (user as any)?.packageTier || 'free'
+  const tierDisplayName = pkgs?.find((p: any) => p.tier === tierKey)?.name || tierKey
 
   const navItems = [
     { href: '/student/dashboard',     icon: LayoutDashboard, label: 'Dashboard' },
@@ -56,7 +64,7 @@ export default function StudentSidebar({ onClose }: { onClose?: () => void }) {
           </div>
           <div className="min-w-0">
             <p className="font-medium text-white text-sm truncate">{user?.name}</p>
-            <p className="text-xs text-gray-400 capitalize">{(user as any)?.packageTier || 'Free'} Plan</p>
+            <p className="text-xs text-gray-400">{tierDisplayName} Plan</p>
           </div>
         </div>
       </div>
