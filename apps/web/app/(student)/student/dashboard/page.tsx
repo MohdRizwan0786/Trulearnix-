@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { userAPI, classAPI } from '@/lib/api'
+import { userAPI, classAPI, packageAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import {
   BookOpen, Video, Award, Timer, Play, ChevronRight,
@@ -188,6 +188,11 @@ export default function LearnerDashboard() {
     queryFn: () => userAPI.favorites().then(r => r.data.favorites),
     staleTime: 5 * 60 * 1000,
   })
+  const { data: pkgs } = useQuery({
+    queryKey: ['packages'],
+    queryFn: () => packageAPI.getAll().then(r => r.data.packages),
+    staleTime: 10 * 60 * 1000,
+  })
 
   const enrollMutation = useMutation({
     mutationFn: (courseId: string) => userAPI.enrollFree(courseId),
@@ -215,12 +220,13 @@ export default function LearnerDashboard() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const greetingEmoji = hour < 12 ? '☀️' : hour < 17 ? '⚡' : '🌙'
 
+  const pkgName = (t: string) => pkgs?.find((p: any) => p.tier === t)?.name || t
   const tierConfig: Record<string, { label: string; color: string; bg: string; glow: string }> = {
-    free:    { label: 'Free',    color: 'text-gray-400',   bg: 'bg-gray-500/10 border-gray-500/20',     glow: 'rgba(156,163,175,0.3)' },
-    starter: { label: 'Starter', color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20',     glow: 'rgba(59,130,246,0.3)' },
-    pro:     { label: 'Pro',     color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20', glow: 'rgba(139,92,246,0.3)' },
-    elite:   { label: 'Elite',   color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/20',   glow: 'rgba(245,158,11,0.3)' },
-    supreme: { label: 'Supreme', color: 'text-rose-400',   bg: 'bg-rose-500/10 border-rose-500/20',     glow: 'rgba(244,63,94,0.3)' },
+    free:    { label: pkgName('free'),    color: 'text-gray-400',   bg: 'bg-gray-500/10 border-gray-500/20',     glow: 'rgba(156,163,175,0.3)' },
+    starter: { label: pkgName('starter'), color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20',     glow: 'rgba(59,130,246,0.3)' },
+    pro:     { label: pkgName('pro'),     color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20', glow: 'rgba(139,92,246,0.3)' },
+    elite:   { label: pkgName('elite'),   color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/20',   glow: 'rgba(245,158,11,0.3)' },
+    supreme: { label: pkgName('supreme'), color: 'text-rose-400',   bg: 'bg-rose-500/10 border-rose-500/20',     glow: 'rgba(244,63,94,0.3)' },
   }
   const tc = tierConfig[tier] || tierConfig.free
 
