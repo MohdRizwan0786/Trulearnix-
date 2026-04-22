@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { courseAPI, certAPI, materialAPI, quizAPI } from '@/lib/api'
 import {
@@ -12,6 +12,148 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+
+/* ── YouTube Playlist Player ─────────────────────────────────────────────── */
+function PlaylistPlayer({ playlistUrl, courseTitle }: { playlistUrl: string; courseTitle: string }) {
+  const playlistId = playlistUrl.match(/[?&]list=([^&]+)/)?.[1] || ''
+  const playerElId = 'yt-playlist-player-' + playlistId.slice(-6)
+  const playerRef = useRef<any>(null)
+  const [videoIds, setVideoIds] = useState<string[]>([])
+  const [activeIdx, setActiveIdx] = useState(0)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  const initPlayer = useCallback(() => {
+    if (playerRef.current || !playlistId) return
+    playerRef.current = new (window as any).YT.Player(playerElId, {
+      playerVars: { listType: 'playlist', list: playlistId, rel: 0, modestbranding: 1, autoplay: 0 },
+      events: {
+        onReady: (e: any) => {
+          const ids: string[] = e.target.getPlaylist() || []
+          setVideoIds(ids)
+        },
+        onStateChange: (e: any) => {
+          const idx = e.target.getPlaylistIndex?.() ?? 0
+          setActiveIdx(idx)
+          // auto scroll list item into view
+          const el = listRef.current?.children[idx] as HTMLElement | undefined
+          el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        },
+      },
+    })
+  }, [playlistId, playerElId])
+
+  useEffect(() => {
+    if (!playlistId) return
+    if ((window as any).YT?.Player) {
+      initPlayer()
+    } else {
+      const existing = document.getElementById('yt-iframe-api')
+      if (!existing) {
+        const s = document.createElement('script')
+        s.id = 'yt-iframe-api'
+        s.src = 'https://www.youtube.com/iframe_api'
+        s.async = true
+        document.head.appendChild(s)
+      }
+      ;(window as any).onYouTubeIframeAPIReady = initPlayer
+    }
+    return () => {
+      if (playerRef.current?.destroy) playerRef.current.destroy()
+      playerRef.current = null
+    }
+  }, [playlistId, initPlayer])
+
+  const goTo = (i: number) => {
+    playerRef.current?.playVideoAt?.(i)
+    setActiveIdx(i)
+  }
+
+  if (!playlistId) return (
+    <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">Invalid playlist URL</div>
+  )
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-white/5 flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center">
+          <Youtube className="w-4 h-4 text-red-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-white font-bold text-sm">Class Recordings</h2>
+          <p className="text-xs text-gray-500 truncate">{courseTitle}</p>
+        </div>
+        <a href={playlistUrl} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-xl transition-colors border border-red-500/20 flex-shrink-0">
+          <ExternalLink className="w-3.5 h-3.5" /> YouTube
+        </a>
+      </div>
+
+      {/* Player + List */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Video Player */}
+        <div className="flex-1 flex flex-col min-w-0 bg-black">
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <div id={playerElId} className="absolute inset-0 w-full h-full" />
+          </div>
+          {videoIds.length > 0 && (
+            <div className="px-4 py-3 bg-dark-900 border-t border-white/5">
+              <p className="text-white font-semibold text-sm line-clamp-1">
+                Video {activeIdx + 1} of {videoIds.length}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Playlist Sidebar */}
+        <div className="lg:w-72 flex flex-col border-t lg:border-t-0 lg:border-l border-white/5 bg-dark-900">
+          <div className="px-3 py-2.5 border-b border-white/5 flex-shrink-0">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+              <ListVideo className="w-3.5 h-3.5 text-red-400" />
+              Playlist — {videoIds.length > 0 ? `${videoIds.length} videos` : 'Loading...'}
+            </p>
+          </div>
+
+          <div ref={listRef} className="flex-1 overflow-y-auto">
+            {videoIds.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-red-400" />
+                <p className="text-xs text-gray-500">Playlist load ho rahi hai...</p>
+              </div>
+            ) : (
+              videoIds.map((vid, i) => (
+                <button key={vid} onClick={() => goTo(i)}
+                  className={`w-full flex items-start gap-2.5 px-3 py-2.5 text-left transition-colors border-b border-white/5 ${
+                    activeIdx === i ? 'bg-red-500/15' : 'hover:bg-white/5'
+                  }`}>
+                  <div className="relative w-20 flex-shrink-0 rounded-lg overflow-hidden">
+                    <img
+                      src={`https://img.youtube.com/vi/${vid}/mqdefault.jpg`}
+                      alt=""
+                      className="w-full aspect-video object-cover"
+                      loading="lazy"
+                    />
+                    {activeIdx === i && (
+                      <div className="absolute inset-0 bg-red-600/50 flex items-center justify-center">
+                        <Play className="w-4 h-4 text-white" fill="white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-medium leading-snug ${activeIdx === i ? 'text-red-300' : 'text-gray-300'}`}>
+                      Class {i + 1}
+                    </p>
+                    <p className="text-[10px] text-gray-600 mt-0.5">#{i + 1}</p>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const TYPE_ICON: Record<string, any> = { pdf: FileDown, video: Video, doc: FileText, link: Link2, image: ImgIcon }
 const TYPE_COLOR: Record<string, string> = {
@@ -283,48 +425,7 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
         </div>
 
         {showRecordings && course.youtubePlaylistUrl ? (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 max-w-4xl">
-            {/* Header */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                <Youtube className="w-5 h-5 text-red-400" />
-              </div>
-              <div>
-                <h2 className="text-white font-bold text-lg">Class Recordings</h2>
-                <p className="text-xs text-gray-500">{course.title}</p>
-              </div>
-              <a
-                href={course.youtubePlaylistUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-xl transition-colors border border-red-500/20"
-              >
-                <ExternalLink className="w-3.5 h-3.5" /> YouTube par kholo
-              </a>
-            </div>
-
-            {/* Info banner */}
-            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/3 border border-white/8 text-xs text-gray-400">
-              <ListVideo className="w-4 h-4 text-red-400 flex-shrink-0" />
-              Is playlist mein saari class recordings hain. Neeche player mein left-side mein sari videos ki list hai — koi bhi video click karke dekho.
-            </div>
-
-            {/* Embedded YouTube Playlist Player */}
-            <div className="rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl shadow-black/50"
-              style={{ position: 'relative', paddingBottom: '56.25%' }}>
-              <iframe
-                src={`https://www.youtube.com/embed/videoseries?list=${course.youtubePlaylistUrl.match(/[?&]list=([^&]+)/)?.[1]}&rel=0&modestbranding=1`}
-                className="absolute inset-0 w-full h-full"
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                title="Class Recordings Playlist"
-              />
-            </div>
-
-            <p className="text-xs text-gray-600 text-center">
-              Player ke andar right-side mein playlist icon hai — wahan se koi bhi recording seedha jump kar sakte ho
-            </p>
-          </div>
+          <PlaylistPlayer playlistUrl={course.youtubePlaylistUrl} courseTitle={course.title} />
         ) : showPerformance ? (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 max-w-3xl">
             <div className="flex items-center gap-3">
