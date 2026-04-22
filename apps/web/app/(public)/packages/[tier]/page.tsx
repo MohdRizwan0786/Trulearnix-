@@ -473,8 +473,8 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 -mt-2">
           {[
             { val: pkg?.commissionRate || 0, suffix: '%', label: 'Income Rate', icon: TrendingUp, prefix: '' },
-            { val: 500, suffix: '+', label: 'Courses Access', icon: BookOpen, prefix: '' },
-            { val: 10000, suffix: '+', label: 'Active Members', icon: Users, prefix: '' },
+            { val: pkg?.statCourses || 500, suffix: '+', label: 'Courses Access', icon: BookOpen, prefix: '' },
+            { val: pkg?.statMembers || 10000, suffix: '+', label: 'Active Members', icon: Users, prefix: '' },
             { val: 100, suffix: '%', label: 'Lifetime Access', icon: Shield, prefix: '' },
           ].map((s, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
@@ -580,18 +580,16 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
-            <JourneyStep step={1} icon={CheckCircle2} accentColor={cfg.accentColor} delay={0.1}
-              title="Secure checkout in 60 seconds"
-              desc="Pay safely with Razorpay. Cards, UPI, EMI — all options available." />
-            <JourneyStep step={2} icon={Zap} accentColor={cfg.accentColor} delay={0.2}
-              title="Instant plan activation"
-              desc="Your account is upgraded immediately. No wait time." />
-            <JourneyStep step={3} icon={BookOpen} accentColor={cfg.accentColor} delay={0.3}
-              title="Enroll in 500+ courses free"
-              desc="Browse the full catalog and self-enroll in anything you want." />
-            <JourneyStep step={4} icon={TrendingUp} accentColor={cfg.accentColor} delay={0.4}
-              title="Start earning as a partner"
-              desc="Get your unique link and start earning income by helping others join." />
+            {(pkg?.journeySteps?.length > 0 ? pkg.journeySteps : [
+              { title: 'Secure checkout in 60 seconds', desc: 'Pay safely with Razorpay. Cards, UPI, EMI — all options available.' },
+              { title: 'Instant plan activation', desc: 'Your account is upgraded immediately. No wait time.' },
+              { title: 'Enroll in courses free', desc: 'Browse the full catalog and self-enroll in anything you want.' },
+              { title: 'Start earning as a partner', desc: 'Get your unique link and start earning income by helping others join.' },
+            ]).map((step: any, i: number) => (
+              <JourneyStep key={i} step={i + 1} icon={[CheckCircle2, Zap, BookOpen, TrendingUp][i] || CheckCircle2}
+                accentColor={cfg.accentColor} delay={(i + 1) * 0.1}
+                title={step.title} desc={step.desc} />
+            ))}
           </div>
         </section>
 
@@ -676,17 +674,22 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
         )}
 
         {/* Testimonials */}
+        {((pkg?.testimonials?.length > 0 ? pkg.testimonials : [
+          { name: 'Rahul M.', role: 'Pro Member', avatar: 'R', text: 'The AI coach alone is worth the price. My skills improved 10x in just 2 months. Best investment I ever made!', rating: 5, earning: '₹18K/mo' },
+          { name: 'Priya S.', role: 'Elite Member', avatar: 'P', text: 'Earning ₹45K/month through the Partner Program — just helping friends learn. Never thought it was possible!', rating: 5, earning: '₹45K/mo' },
+          { name: 'Amit K.', role: 'Supreme Member', avatar: 'A', text: 'The dedicated success manager helped me build a 6-figure business online. Absolutely life-changing.', rating: 5, earning: '₹1.2L/mo' },
+        ])).length > 0 && (
         <section>
           <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
             <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: cfg.accentColor }}>Success Stories</p>
             <h2 className="text-2xl sm:text-3xl font-black text-white">What our members say</h2>
           </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
+            {(pkg?.testimonials?.length > 0 ? pkg.testimonials : [
               { name: 'Rahul M.', role: 'Pro Member', avatar: 'R', text: 'The AI coach alone is worth the price. My skills improved 10x in just 2 months. Best investment I ever made!', rating: 5, earning: '₹18K/mo' },
               { name: 'Priya S.', role: 'Elite Member', avatar: 'P', text: 'Earning ₹45K/month through the Partner Program — just helping friends learn. Never thought it was possible!', rating: 5, earning: '₹45K/mo' },
               { name: 'Amit K.', role: 'Supreme Member', avatar: 'A', text: 'The dedicated success manager helped me build a 6-figure business online. Absolutely life-changing.', rating: 5, earning: '₹1.2L/mo' },
-            ].map((t, i) => (
+            ]).map((t: any, i: number) => (
               <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }} viewport={{ once: true }}
                 className="rounded-3xl p-5 sm:p-6 flex flex-col"
@@ -714,8 +717,10 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
             ))}
           </div>
         </section>
+        )}
 
         {/* FAQ */}
+        {((pkg?.faqs?.length > 0 ? pkg.faqs : FAQS)).length > 0 && (
         <section>
           <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8">
             <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: cfg.accentColor }}>FAQ</p>
@@ -723,7 +728,7 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
             <p className="text-gray-500 text-sm mt-2">Everything you need to know before joining</p>
           </motion.div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {FAQS.map((f, i) => (
+            {(pkg?.faqs?.length > 0 ? pkg.faqs : FAQS).map((f: any, i: number) => (
               <motion.div key={i} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.07 }} viewport={{ once: true }}>
                 <FAQItem q={f.q} a={f.a} accentColor={cfg.accentColor} />
@@ -731,6 +736,7 @@ export default function PackageDetailPage({ params }: { params: { tier: string }
             ))}
           </div>
         </section>
+        )}
 
         {/* Final CTA */}
         <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}

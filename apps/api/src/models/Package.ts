@@ -56,6 +56,12 @@ export interface IPackage extends Document {
   displayOrder: number;
   badge?: string;
   badgeColor?: string;
+  // Page content (admin-editable)
+  statCourses?: number;
+  statMembers?: number;
+  journeySteps?: { title: string; desc: string }[];
+  testimonials?: { name: string; role: string; avatar: string; text: string; rating: number; earning: string }[];
+  faqs?: { q: string; a: string }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -112,6 +118,11 @@ const PackageSchema = new Schema<IPackage>({
   displayOrder: { type: Number, default: 0 },
   badge: String,
   badgeColor: String,
+  statCourses: { type: Number, default: 500 },
+  statMembers: { type: Number, default: 10000 },
+  journeySteps: [{ title: String, desc: String }],
+  testimonials: [{ name: String, role: String, avatar: String, text: String, rating: Number, earning: String }],
+  faqs: [{ q: String, a: String }],
 }, { timestamps: true });
 
 export default mongoose.model<IPackage>('Package', PackageSchema);
