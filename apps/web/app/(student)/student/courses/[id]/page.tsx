@@ -562,6 +562,10 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
               <div className="bg-black aspect-video max-h-[45vh] sm:max-h-[55vh]">
                 <video src={getRecordingUrl(lessonSessions[0].recordingUrl)} controls className="w-full h-full" />
               </div>
+            ) : lessonSessions[0]?.recordingUrl ? (
+              <div className="bg-black aspect-video max-h-[45vh] sm:max-h-[55vh]">
+                <video src={getRecordingUrl(lessonSessions[0].recordingUrl)} controls className="w-full h-full" />
+              </div>
             ) : (
               <div className="bg-gradient-to-br from-dark-800 to-dark-900 py-12 flex items-center justify-center">
                 <div className="text-center text-gray-500">

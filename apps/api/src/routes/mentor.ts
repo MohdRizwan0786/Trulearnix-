@@ -305,10 +305,11 @@ router.patch('/courses/:courseId/modules/:moduleId', async (req: any, res) => {
     if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
     const mod = (course.modules as any[]).find((m: any) => m._id.toString() === req.params.moduleId);
     if (!mod) return res.status(404).json({ success: false, message: 'Module not found' });
-    const { title, description, batchId } = req.body;
+    const { title, description, batchId, youtubePlaylistUrl } = req.body;
     if (title) mod.title = title;
     if (description !== undefined) mod.description = description;
     if (batchId !== undefined) mod.batch = batchId || undefined;
+    if (youtubePlaylistUrl !== undefined) mod.youtubePlaylistUrl = youtubePlaylistUrl || undefined;
     await course.save();
     res.json({ success: true, modules: course.modules });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
