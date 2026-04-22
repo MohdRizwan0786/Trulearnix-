@@ -1,0 +1,45 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Checkout — TruLearnix</title><link rel="stylesheet" href="../_base.css">
+<style>
+body{padding-top:72px;display:flex;justify-content:center;min-height:100vh;background:#04050a;}
+.checkout-wrap{max-width:900px;width:100%;margin:40px auto;padding:0 24px;display:grid;grid-template-columns:1fr 380px;gap:32px;align-items:start;}
+.checkout-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:28px;}
+@media(max-width:700px){.checkout-wrap{grid-template-columns:1fr;}.checkout-card:last-child{position:sticky;bottom:0;z-index:10;}}
+</style></head><body><nav class="navbar"><div class="navbar-inner"><div class="nav-logo">TruLearnix</div><ul class="nav-links"><li><a href="#">Home</a></li><li><a href="#">Courses</a></li><li><a href="#">Pricing</a></li><li><a href="#">Blog</a></li></ul><div class="nav-actions"><button class="btn btn-secondary btn-sm">Login</button><button class="btn btn-primary btn-sm">Get Started</button></div><div class="hamburger"><span></span><span></span><span></span></div></div></nav>
+<div class="checkout-wrap">
+  <div>
+    <h1 style="font-size:1.75rem;font-weight:800;margin-bottom:24px;">Checkout</h1>
+    <div class="checkout-card" style="margin-bottom:20px;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:16px;">Contact Information</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="input-group"><label>First Name</label><input class="input" value="Rahul"></div>
+        <div class="input-group"><label>Last Name</label><input class="input" value="Sharma"></div>
+      </div>
+      <div class="input-group"><label>Email</label><input class="input" type="email" value="rahul@gmail.com"></div>
+      <div class="input-group"><label>Phone</label><input class="input" value="+91 98765 43210"></div>
+    </div>
+    <div class="checkout-card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:16px;">Payment Method</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <label style="display:flex;align-items:center;gap:12px;padding:14px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);border-radius:12px;cursor:pointer;"><input type="radio" name="pay" checked style="accent-color:#7c3aed;"><span style="font-weight:600;">💳 Card / UPI / Net Banking</span><span style="margin-left:auto;font-size:11px;color:#8b5cf6;">via Razorpay</span></label>
+        <label style="display:flex;align-items:center;gap:12px;padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;cursor:pointer;"><input type="radio" name="pay" style="accent-color:#7c3aed;"><span>📅 EMI (3–12 months)</span></label>
+      </div>
+    </div>
+  </div>
+  <div class="checkout-card">
+    <div style="font-size:15px;font-weight:700;margin-bottom:16px;">Order Summary</div>
+    <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">Pro Plan ⚡</div>
+      <div style="font-size:13px;color:#9ca3af;">300+ Courses · AI Coach · Live Classes · 15% Commission</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">Package Price</span><span>₹9,999</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">GST (18%)</span><span>₹1,800</span></div>
+      <div style="height:1px;background:rgba(255,255,255,0.06);"></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:16px;"><span>Total</span><span style="color:#8b5cf6;">₹11,799</span></div>
+    </div>
+    <div class="input-group" style="margin-bottom:16px;"><label>Referral Code</label><div style="display:flex;gap:8px;"><input class="input" placeholder="Enter code"><button class="btn btn-secondary btn-sm">Apply</button></div></div>
+    <button class="btn btn-primary" style="width:100%;padding:16px;font-size:16px;font-weight:700;">🔒 Pay ₹11,799</button>
+    <div style="text-align:center;font-size:11px;color:#374151;margin-top:12px;">Secured by Razorpay · 256-bit SSL</div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:#4b5563;">By completing payment, you agree to our <a href="#" style="color:#8b5cf6;">Terms</a>. Lifetime access activated instantly.</div>
+  </div>
+</div><a href="../index.html" class="back-link">← All Screens</a></body></html>

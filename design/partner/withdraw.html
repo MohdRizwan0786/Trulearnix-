@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Withdraw Funds - Partner Portal</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulearnix <span>Partner</span></div>
+  <nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><span class="nav-icon">-</span>Dashboard</a><a href="earnings.html" class="nav-item"><span class="nav-icon">-</span>Earnings</a><a href="referrals.html" class="nav-item"><span class="nav-icon">-</span>Referrals</a><a href="network.html" class="nav-item"><span class="nav-icon">-</span>My Network</a><a href="leaderboard.html" class="nav-item"><span class="nav-icon">-</span>Leaderboard</a><a href="training.html" class="nav-item"><span class="nav-icon">-</span>Training</a><a href="kyc.html" class="nav-item"><span class="nav-icon">-</span>KYC</a><a href="withdraw.html" class="nav-item active"><span class="nav-icon">-</span>Withdraw</a></nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">Menu</button>
+    <h1 class="topbar-title">Withdraw Funds</h1>
+    <div class="topbar-actions"><div class="avatar">PK</div></div>
+  </header>
+  <main class="page-content">
+<div class="page-header"><h2 class="page-title">Withdraw Funds</h2></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);margin-bottom:var(--space-6);">
+  <div class="card" style="padding:var(--space-5);background:linear-gradient(135deg,var(--primary-600),#0ea5e9);color:white;">
+    <div style="font-size:.8rem;opacity:.8;margin-bottom:var(--space-1);">Available Balance</div>
+    <div style="font-size:2.5rem;font-weight:800;">Rs. 12,400</div>
+    <div style="font-size:.75rem;opacity:.7;margin-top:var(--space-1);">Min withdrawal: Rs. 500</div>
+  </div>
+  <div class="stat-card"><div class="stat-value">Rs. 2,84,000</div><div class="stat-label">Total Earned</div></div>
+</div>
+<div class="card" style="max-width:560px;padding:var(--space-6);">
+  <h3 style="font-weight:600;margin-bottom:var(--space-4);">Request Withdrawal</h3>
+  <div class="form-group">
+    <label class="form-label">Withdrawal Amount</label>
+    <div style="position:relative;">
+      <span style="position:absolute;left:var(--space-3);top:50%;transform:translateY(-50%);font-weight:600;color:var(--text-muted);">Rs.</span>
+      <input type="number" class="form-input" style="padding-left:var(--space-8);" placeholder="Enter amount">
+    </div>
+    <div style="display:flex;gap:var(--space-2);margin-top:var(--space-2);">
+      <button class="btn btn-outline" style="font-size:.75rem;padding:4px 12px;">Rs. 1,000</button>
+      <button class="btn btn-outline" style="font-size:.75rem;padding:4px 12px;">Rs. 5,000</button>
+      <button class="btn btn-outline" style="font-size:.75rem;padding:4px 12px;">Rs. 10,000</button>
+      <button class="btn btn-outline" style="font-size:.75rem;padding:4px 12px;">All</button>
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Bank Account</label>
+    <select class="form-input">
+      <option>SBI - XXXXXX1234 (Primary)</option>
+      <option>+ Add new bank account</option>
+    </select>
+  </div>
+  <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:var(--space-4);margin-bottom:var(--space-4);">
+    <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:var(--space-1);"><span>Amount Requested</span><span>Rs. 10,000</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:var(--space-1);color:var(--text-muted);"><span>Processing Fee</span><span>Rs. 0</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem;font-weight:700;border-top:1px solid var(--border-color);padding-top:var(--space-2);margin-top:var(--space-2);"><span>You Receive</span><span style="color:var(--primary-600);">Rs. 10,000</span></div>
+  </div>
+  <button class="btn btn-primary btn-block">Withdraw Now</button>
+  <div style="font-size:.75rem;color:var(--text-muted);text-align:center;margin-top:var(--space-3);">Transfers within 3-5 business days. KYC must be verified.</div>
+</div>
+<div class="card table-container" style="margin-top:var(--space-6);">
+  <div style="padding:var(--space-4);border-bottom:1px solid var(--border-color);font-weight:600;">Recent Withdrawals</div>
+  <table class="table">
+    <thead><tr><th>Date</th><th>Amount</th><th>Account</th><th>UTR</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Apr 20</td><td style="font-weight:600;">Rs. 8,200</td><td>SBI ****1234</td><td>UTR1234567890</td><td><span class="badge badge-success">Completed</span></td></tr>
+      <tr><td>Apr 5</td><td style="font-weight:600;">Rs. 5,000</td><td>SBI ****1234</td><td>UTR9876543210</td><td><span class="badge badge-success">Completed</span></td></tr>
+      <tr><td>Mar 28</td><td style="font-weight:600;">Rs. 12,400</td><td>SBI ****1234</td><td>UTR5432167890</td><td><span class="badge badge-success">Completed</span></td></tr>
+    </tbody>
+  </table>
+</div></main>
+</div>
+</body>
+</html>

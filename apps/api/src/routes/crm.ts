@@ -13,11 +13,11 @@ router.post('/leads', createLead);
 
 // Protected
 router.use(protect);
-router.get('/leads', authorize('superadmin', 'admin', 'manager', 'salesperson'), getLeads);
-router.get('/stats', authorize('superadmin', 'admin', 'manager'), getCRMStats);
+router.get('/leads', authorize('superadmin', 'admin', 'manager', 'salesperson', 'employee', 'department_head', 'team_lead'), getLeads);
+router.get('/stats', authorize('superadmin', 'admin', 'manager', 'employee', 'department_head', 'team_lead'), getCRMStats);
 router.post('/leads/import', authorize('superadmin', 'admin'), importLeads);
-router.get('/leads/:id', authorize('superadmin', 'admin', 'manager', 'salesperson'), getLead);
-router.patch('/leads/:id', authorize('superadmin', 'admin', 'manager', 'salesperson'), updateLead);
+router.get('/leads/:id', authorize('superadmin', 'admin', 'manager', 'salesperson', 'employee', 'department_head', 'team_lead'), getLead);
+router.patch('/leads/:id', authorize('superadmin', 'admin', 'manager', 'salesperson', 'employee', 'department_head', 'team_lead'), updateLead);
 router.delete('/leads/:id', authorize('superadmin', 'admin'), deleteLead);
 
 export default router;

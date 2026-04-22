@@ -41,7 +41,7 @@ router.post('/whatsapp/webhook', async (req: any, res) => {
 });
 
 // ── Admin protected routes ────────────────────────────────────────────────────
-router.use(protect, authorize('superadmin', 'admin', 'manager'));
+router.use(protect, authorize('superadmin', 'admin', 'manager', 'employee', 'department_head', 'team_lead'));
 
 // ── Overview stats ────────────────────────────────────────────────────────────
 router.get('/overview', async (req: any, res) => {

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Employees – Trulearnix Admin</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulearnix <span>Admin</span></div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">⊞</span>Dashboard</a>
+    <a href="users.html" class="nav-item"><span class="nav-icon">👥</span>Users</a>
+    <a href="courses.html" class="nav-item"><span class="nav-icon">📚</span>Courses</a>
+    <a href="packages.html" class="nav-item"><span class="nav-icon">📦</span>Packages</a>
+    <a href="crm.html" class="nav-item"><span class="nav-icon">🎯</span>CRM / Leads</a>
+    <a href="sales-team.html" class="nav-item"><span class="nav-icon">💼</span>Sales Team</a>
+    <a href="employees.html" class="nav-item active"><span class="nav-icon">🏢</span>Employees</a>
+    <a href="partners.html" class="nav-item"><span class="nav-icon">🤝</span>Partners</a>
+    <a href="mentors.html" class="nav-item"><span class="nav-icon">🎓</span>Mentors</a>
+    <a href="live-classes.html" class="nav-item"><span class="nav-icon">📡</span>Live Classes</a>
+    <a href="analytics.html" class="nav-item"><span class="nav-icon">📊</span>Analytics</a>
+    <a href="finance.html" class="nav-item"><span class="nav-icon">💰</span>Finance</a>
+    <a href="withdrawals.html" class="nav-item"><span class="nav-icon">🏧</span>Withdrawals</a>
+    <a href="kyc.html" class="nav-item"><span class="nav-icon">🪪</span>KYC</a>
+    <a href="marketing.html" class="nav-item"><span class="nav-icon">📣</span>Marketing</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">📋</span>Reports</a>
+    <a href="settings.html" class="nav-item"><span class="nav-icon">⚙️</span>Settings</a>
+  </nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">☰</button>
+    <h1 class="topbar-title">Employees</h1>
+    <div class="topbar-actions">
+      <div class="avatar">AD</div>
+    </div>
+  </header>
+  <main class="page-content">
+    
+<div class="page-header">
+  <h2 class="page-title">Employees</h2>
+  <button class="btn btn-primary">+ Add Employee</button>
+</div>
+<div class="stats-row" style="margin-bottom:var(--space-6);">
+  <div class="stat-card"><div class="stat-value">58</div><div class="stat-label">Total Employees</div></div>
+  <div class="stat-card"><div class="stat-value">52</div><div class="stat-label">Active</div></div>
+  <div class="stat-card"><div class="stat-value">6</div><div class="stat-label">Departments</div></div>
+  <div class="stat-card"><div class="stat-value">3</div><div class="stat-label">New This Month</div></div>
+</div>
+<div class="card" style="margin-bottom:var(--space-4);padding:var(--space-4);">
+  <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+    <input type="text" class="form-input" placeholder="Search employee..." style="flex:1;min-width:200px;">
+    <select class="form-input" style="width:180px;"><option>All Departments</option><option>Tech</option><option>Sales</option><option>Marketing</option><option>Operations</option><option>HR</option><option>Finance</option></select>
+    <select class="form-input" style="width:140px;"><option>All Status</option><option>Active</option><option>Inactive</option></select>
+  </div>
+</div>
+<div class="card table-container">
+  <table class="table">
+    <thead><tr><th>Employee</th><th>Department</th><th>Designation</th><th>Joined</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">MR</div><div><div class="user-name">Mohd Rizwan</div><div class="user-email">rizwan@trulearnix.com</div></div></div></td><td>Tech</td><td>Full Stack Developer</td><td>Jan 2024</td><td>₹85,000/mo</td><td><span class="badge badge-success">Active</span></td><td><div class="action-btns"><button class="btn btn-sm">View</button><button class="btn btn-sm">Edit</button></div></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">SG</div><div><div class="user-name">Sonal Gupta</div><div class="user-email">sonal@trulearnix.com</div></div></div></td><td>Marketing</td><td>Content Strategist</td><td>Mar 2024</td><td>₹45,000/mo</td><td><span class="badge badge-success">Active</span></td><td><div class="action-btns"><button class="btn btn-sm">View</button><button class="btn btn-sm">Edit</button></div></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">VK</div><div><div class="user-name">Vivek Kumar</div><div class="user-email">vivek@trulearnix.com</div></div></div></td><td>Operations</td><td>Operations Manager</td><td>Dec 2023</td><td>₹70,000/mo</td><td><span class="badge badge-success">Active</span></td><td><div class="action-btns"><button class="btn btn-sm">View</button><button class="btn btn-sm">Edit</button></div></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">RP</div><div><div class="user-name">Rohit Patel</div><div class="user-email">rohit@trulearnix.com</div></div></div></td><td>Finance</td><td>Accountant</td><td>Feb 2024</td><td>₹40,000/mo</td><td><span class="badge badge-warning">On Leave</span></td><td><div class="action-btns"><button class="btn btn-sm">View</button><button class="btn btn-sm">Edit</button></div></td></tr>
+    </tbody>
+  </table>
+</div>
+  </main>
+</div>
+</body>
+</html>

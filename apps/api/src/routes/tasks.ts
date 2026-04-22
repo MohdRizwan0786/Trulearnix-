@@ -9,7 +9,7 @@ const router = Router();
 router.get('/team', authenticate, async (req, res) => {
   try {
     const members = await User.find({
-      role: { $in: ['superadmin', 'admin', 'manager', 'mentor', 'salesperson'] },
+      role: { $in: ['superadmin', 'admin', 'manager', 'mentor', 'salesperson', 'employee', 'department_head', 'team_lead'] },
       isActive: { $ne: false },
     }).select('_id name email role department avatar').sort('name');
     res.json({ success: true, data: members });

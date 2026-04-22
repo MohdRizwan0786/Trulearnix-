@@ -5,7 +5,7 @@ import Reminder from '../models/Reminder';
 const router = Router();
 
 // Get all reminders
-router.get('/', authenticate, authorize('admin', 'superadmin', 'manager'), async (req, res) => {
+router.get('/', authenticate, authorize('admin', 'superadmin', 'manager', 'employee', 'department_head', 'team_lead'), async (req, res) => {
   try {
     const reminders = await Reminder.find().populate('createdBy', 'name').sort({ scheduledAt: 1 });
     res.json({ success: true, data: reminders });
@@ -15,7 +15,7 @@ router.get('/', authenticate, authorize('admin', 'superadmin', 'manager'), async
 });
 
 // Create reminder
-router.post('/', authenticate, authorize('admin', 'superadmin', 'manager'), async (req, res) => {
+router.post('/', authenticate, authorize('admin', 'superadmin', 'manager', 'employee', 'department_head', 'team_lead'), async (req, res) => {
   try {
     const reminder = await Reminder.create({ ...req.body, createdBy: (req as any).user._id });
     res.status(201).json({ success: true, data: reminder });
@@ -25,7 +25,7 @@ router.post('/', authenticate, authorize('admin', 'superadmin', 'manager'), asyn
 });
 
 // Update reminder
-router.patch('/:id', authenticate, authorize('admin', 'superadmin', 'manager'), async (req, res) => {
+router.patch('/:id', authenticate, authorize('admin', 'superadmin', 'manager', 'employee', 'department_head', 'team_lead'), async (req, res) => {
   try {
     const reminder = await Reminder.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!reminder) return res.status(404).json({ success: false, message: 'Reminder not found' });

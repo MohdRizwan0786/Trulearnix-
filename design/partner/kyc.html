@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KYC Verification - Partner Portal</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulearnix <span>Partner</span></div>
+  <nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><span class="nav-icon">-</span>Dashboard</a><a href="earnings.html" class="nav-item"><span class="nav-icon">-</span>Earnings</a><a href="referrals.html" class="nav-item"><span class="nav-icon">-</span>Referrals</a><a href="network.html" class="nav-item"><span class="nav-icon">-</span>My Network</a><a href="leaderboard.html" class="nav-item"><span class="nav-icon">-</span>Leaderboard</a><a href="training.html" class="nav-item"><span class="nav-icon">-</span>Training</a><a href="kyc.html" class="nav-item active"><span class="nav-icon">-</span>KYC</a><a href="withdraw.html" class="nav-item"><span class="nav-icon">-</span>Withdraw</a></nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">Menu</button>
+    <h1 class="topbar-title">KYC Verification</h1>
+    <div class="topbar-actions"><div class="avatar">PK</div></div>
+  </header>
+  <main class="page-content">
+<div class="page-header"><h2 class="page-title">KYC Verification</h2></div>
+<div class="card" style="max-width:600px;padding:var(--space-6);">
+  <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-6);padding:var(--space-3);background:#fef2f2;border-radius:var(--radius);border:1px solid #fecaca;">
+    <div style="font-size:1.5rem;">Warning</div>
+    <div>
+      <div style="font-weight:600;color:#dc2626;">KYC Not Completed</div>
+      <div style="font-size:.8rem;color:#dc2626;">Complete KYC to enable withdrawals</div>
+    </div>
+  </div>
+  <h3 style="font-weight:600;margin-bottom:var(--space-2);">Step 1: PAN Card</h3>
+  <div class="form-group"><label class="form-label">PAN Number</label><input class="form-input" placeholder="ABCDE1234F"></div>
+  <div class="form-group"><label class="form-label">Upload PAN Card</label>
+    <div style="border:2px dashed var(--border-color);border-radius:var(--radius);padding:var(--space-6);text-align:center;cursor:pointer;">
+      <div style="font-size:2rem;margin-bottom:var(--space-2);">Upload</div>
+      <div style="font-size:.8rem;color:var(--text-muted);">Click to upload or drag and drop. PNG, JPG up to 5MB</div>
+    </div>
+  </div>
+  <h3 style="font-weight:600;margin-bottom:var(--space-2);margin-top:var(--space-4);">Step 2: Aadhaar Card</h3>
+  <div class="form-group"><label class="form-label">Aadhaar Number (last 4 digits)</label><input class="form-input" placeholder="XXXX" maxlength="4"></div>
+  <div class="form-group"><label class="form-label">Upload Aadhaar (Front)</label>
+    <div style="border:2px dashed var(--border-color);border-radius:var(--radius);padding:var(--space-6);text-align:center;cursor:pointer;">
+      <div style="font-size:.8rem;color:var(--text-muted);">Upload front side</div>
+    </div>
+  </div>
+  <h3 style="font-weight:600;margin-bottom:var(--space-2);margin-top:var(--space-4);">Step 3: Bank Account</h3>
+  <div class="form-group"><label class="form-label">Account Holder Name</label><input class="form-input" placeholder="As per bank records"></div>
+  <div class="form-group"><label class="form-label">Account Number</label><input class="form-input" placeholder="Account number"></div>
+  <div class="form-group"><label class="form-label">IFSC Code</label><input class="form-input" placeholder="SBIN0001234"></div>
+  <div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" placeholder="State Bank of India"></div>
+  <button class="btn btn-primary btn-block">Submit KYC for Verification</button>
+  <div style="font-size:.75rem;color:var(--text-muted);text-align:center;margin-top:var(--space-3);">Verification takes 24-48 hours. You will be notified via email.</div>
+</div></main>
+</div>
+</body>
+</html>

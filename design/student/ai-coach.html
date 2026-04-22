@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Coach - Student Portal</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulearnix <span>Student</span></div>
+  <nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><span class="nav-icon">-</span>Dashboard</a><a href="courses.html" class="nav-item"><span class="nav-icon">-</span>My Courses</a><a href="course-player.html" class="nav-item"><span class="nav-icon">-</span>Course Player</a><a href="live-classes.html" class="nav-item"><span class="nav-icon">-</span>Live Classes</a><a href="ai-coach.html" class="nav-item active"><span class="nav-icon">-</span>AI Coach</a><a href="quizzes.html" class="nav-item"><span class="nav-icon">-</span>Quizzes</a><a href="assignments.html" class="nav-item"><span class="nav-icon">-</span>Assignments</a><a href="certificates.html" class="nav-item"><span class="nav-icon">-</span>Certificates</a><a href="community.html" class="nav-item"><span class="nav-icon">-</span>Community</a><a href="wallet.html" class="nav-item"><span class="nav-icon">-</span>Wallet</a><a href="profile.html" class="nav-item"><span class="nav-icon">-</span>Profile</a><a href="support.html" class="nav-item"><span class="nav-icon">-</span>Support</a></nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">Menu</button>
+    <h1 class="topbar-title">AI Coach</h1>
+    <div class="topbar-actions"><div class="avatar">ST</div></div>
+  </header>
+  <main class="page-content">
+<div class="page-header"><h2 class="page-title">AI Coach</h2><button class="btn btn-outline">New Session</button></div>
+<div style="display:grid;grid-template-columns:280px 1fr;gap:var(--space-4);height:calc(100vh - 180px);">
+  <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+    <div class="card" style="padding:var(--space-4);">
+      <div style="font-weight:600;margin-bottom:var(--space-3);font-size:.875rem;">Quick Topics</div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+        <button class="btn btn-outline" style="text-align:left;font-size:.8rem;justify-content:flex-start;">Course Help</button>
+        <button class="btn btn-outline" style="text-align:left;font-size:.8rem;justify-content:flex-start;">Career Guidance</button>
+        <button class="btn btn-outline" style="text-align:left;font-size:.8rem;justify-content:flex-start;">Interview Prep</button>
+        <button class="btn btn-outline" style="text-align:left;font-size:.8rem;justify-content:flex-start;">Business Ideas</button>
+        <button class="btn btn-outline" style="text-align:left;font-size:.8rem;justify-content:flex-start;">Skill Assessment</button>
+      </div>
+    </div>
+    <div class="card" style="padding:var(--space-4);">
+      <div style="font-weight:600;margin-bottom:var(--space-3);font-size:.875rem;">Past Sessions</div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+        <div style="padding:var(--space-2);background:var(--bg-secondary);border-radius:var(--radius);cursor:pointer;">
+          <div style="font-size:.8rem;font-weight:500;margin-bottom:2px;">SEO strategy help</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">Apr 20 - 8 messages</div>
+        </div>
+        <div style="padding:var(--space-2);background:var(--bg-secondary);border-radius:var(--radius);cursor:pointer;">
+          <div style="font-size:.8rem;font-weight:500;margin-bottom:2px;">Career path advice</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">Apr 15 - 14 messages</div>
+        </div>
+        <div style="padding:var(--space-2);background:var(--bg-secondary);border-radius:var(--radius);cursor:pointer;">
+          <div style="font-size:.8rem;font-weight:500;margin-bottom:2px;">Freelance pricing help</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">Apr 10 - 6 messages</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:var(--space-4);border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:var(--space-3);">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--primary-600),#0ea5e9);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:.875rem;font-weight:700;">AI</div>
+      <div><div style="font-weight:600;">Trulearnix AI Coach</div><div style="font-size:.75rem;color:#10b981;">Online - Ready to help</div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);">
+      <div style="display:flex;gap:var(--space-3);">
+        <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--primary-600),#0ea5e9);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:.7rem;flex-shrink:0;">AI</div>
+        <div style="background:var(--bg-secondary);padding:var(--space-3);border-radius:0 var(--radius) var(--radius) var(--radius);max-width:80%;font-size:.875rem;">
+          Hello Sanjay! I am your personal AI Coach. I can help you with your course content, career guidance, interview preparation, business ideas, and much more. What would you like to work on today?
+        </div>
+      </div>
+      <div style="display:flex;gap:var(--space-3);justify-content:flex-end;">
+        <div style="background:var(--primary-600);color:white;padding:var(--space-3);border-radius:var(--radius) 0 var(--radius) var(--radius);max-width:80%;font-size:.875rem;">
+          I want to learn how to get my first freelance client in digital marketing. I have completed Module 2 of the course.
+        </div>
+        <div class="avatar avatar-sm" style="flex-shrink:0;">ST</div>
+      </div>
+      <div style="display:flex;gap:var(--space-3);">
+        <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--primary-600),#0ea5e9);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:.7rem;flex-shrink:0;">AI</div>
+        <div style="background:var(--bg-secondary);padding:var(--space-3);border-radius:0 var(--radius) var(--radius) var(--radius);max-width:80%;font-size:.875rem;">
+          Great progress! Since you have completed Module 2, you have a solid foundation. Here is a step-by-step plan to land your first client:<br><br>
+          1. Create a portfolio with 2-3 sample projects (even unpaid ones)<br>
+          2. Optimize your LinkedIn profile with your new skills<br>
+          3. Start on Fiverr or Upwork with competitive pricing<br>
+          4. Reach out to local businesses in your network<br><br>
+          Which of these would you like to dive deeper into?
+        </div>
+      </div>
+    </div>
+    <div style="padding:var(--space-4);border-top:1px solid var(--border-color);">
+      <div style="display:flex;gap:var(--space-3);">
+        <input class="form-input" placeholder="Ask your AI Coach anything..." style="flex:1;">
+        <button class="btn btn-primary">Send</button>
+      </div>
+    </div>
+  </div>
+</div></main>
+</div>
+</body>
+</html>

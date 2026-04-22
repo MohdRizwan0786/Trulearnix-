@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import {
   Edit2, X, Plus, Check, Package, DollarSign, Settings, BookOpen,
   ChevronDown, ChevronUp, Percent, Hash, Users, Shield, Zap, Star,
-  TrendingUp, IndianRupee, Info, Video, Link, Calendar, Trash2
+  TrendingUp, IndianRupee, Info, Video, Link, Calendar, Trash2, CheckCircle2
 } from 'lucide-react'
 
 const TIER_COLORS: Record<string, string> = {
@@ -86,6 +86,16 @@ const DEFAULT_FORM = {
   courseReferralCommission: { type: 'percentage', value: 0 },
   courses: [] as string[],
   isActive: true,
+  statCourses: 500,
+  statMembers: 10000,
+  journeySteps: [
+    { title: 'Secure checkout in 60 seconds', desc: 'Pay safely with Razorpay. Cards, UPI, EMI — all options available.' },
+    { title: 'Instant plan activation', desc: 'Your account is upgraded immediately. No wait time.' },
+    { title: 'Enroll in 500+ courses free', desc: 'Browse the full catalog and self-enroll in anything you want.' },
+    { title: 'Start earning as a partner', desc: 'Get your unique link and start earning income by helping others join.' },
+  ] as { title: string; desc: string }[],
+  testimonials: [] as { name: string; role: string; avatar: string; text: string; rating: number; earning: string }[],
+  faqs: [] as { q: string; a: string }[],
 }
 
 function MatrixEditor({ packages, onSave }: { packages: any[], onSave: (soldPkgId: string, earnings: any[]) => void }) {
@@ -304,6 +314,16 @@ export default function PackagesPage() {
       courseReferralCommission: pkg.courseReferralCommission || { type: 'percentage', value: 0 },
       courses: (pkg.courses || []).map((c: any) => (typeof c === 'object' ? c._id || c : c).toString()),
       isActive: pkg.isActive !== false,
+      statCourses: pkg.statCourses ?? 500,
+      statMembers: pkg.statMembers ?? 10000,
+      journeySteps: pkg.journeySteps?.length > 0 ? pkg.journeySteps : [
+        { title: 'Secure checkout in 60 seconds', desc: 'Pay safely with Razorpay. Cards, UPI, EMI — all options available.' },
+        { title: 'Instant plan activation', desc: 'Your account is upgraded immediately. No wait time.' },
+        { title: 'Enroll in 500+ courses free', desc: 'Browse the full catalog and self-enroll in anything you want.' },
+        { title: 'Start earning as a partner', desc: 'Get your unique link and start earning income by helping others join.' },
+      ],
+      testimonials: pkg.testimonials || [],
+      faqs: pkg.faqs || [],
     })
     setFeaturesInput((pkg.features || []).join('\n'))
     // Load "my earnings" — what this package's tier partner earns when selling each other package
@@ -516,6 +536,22 @@ export default function PackagesPage() {
                       </div>
                     )}
                   </div>
+
+                  {(pkg.courses || []).length > 0 && (
+                    <div className="mb-3 p-2 bg-black/20 rounded-lg space-y-1.5">
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Included Courses</p>
+                      {(pkg.courses || []).map((c: any) => (
+                        <div key={c._id} className="flex items-center gap-2">
+                          {c.thumbnail
+                            ? <img src={c.thumbnail} className="w-6 h-6 rounded object-cover flex-shrink-0" alt="" />
+                            : <div className="w-6 h-6 rounded bg-violet-500/20 flex items-center justify-center flex-shrink-0"><BookOpen className="w-3 h-3 text-violet-400" /></div>
+                          }
+                          <span className="text-xs text-gray-300 truncate flex-1">{c.title}</span>
+                          <span className={`text-[10px] px-1 rounded ${c.status === 'published' ? 'text-emerald-400' : 'text-amber-400'}`}>{c.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between text-xs mb-3">
                     <span className="text-gray-500">{(pkg.courses || []).length} courses included</span>
@@ -1368,6 +1404,121 @@ export default function PackagesPage() {
                       className="input"
                     />
                   </div>
+                </div>
+              </Section>
+
+              {/* Page Stats */}
+              <Section title="Page Stats" icon={TrendingUp}>
+                <p className="text-xs text-gray-400 mb-3">Numbers shown in the stats row on the package detail page</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Courses Count</label>
+                    <input type="number" min="0" value={form.statCourses ?? 500} onChange={e => setForm({ ...form, statCourses: Number(e.target.value) })} className="input" placeholder="500" />
+                    <p className="text-[10px] text-gray-500 mt-1">Shown as "500+ Courses Access"</p>
+                  </div>
+                  <div>
+                    <label className="label">Members Count</label>
+                    <input type="number" min="0" value={form.statMembers ?? 10000} onChange={e => setForm({ ...form, statMembers: Number(e.target.value) })} className="input" placeholder="10000" />
+                    <p className="text-[10px] text-gray-500 mt-1">Shown as "10,000+ Active Members"</p>
+                  </div>
+                </div>
+              </Section>
+
+              {/* Journey Steps */}
+              <Section title="Journey Steps" icon={CheckCircle2}>
+                <p className="text-xs text-gray-400 mb-3">4 steps shown in "What happens after you join?" section</p>
+                <div className="space-y-3">
+                  {(form.journeySteps || []).map((step: any, i: number) => (
+                    <div key={i} className="p-3 bg-white/[0.03] rounded-lg border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-indigo-400">Step {i + 1}</span>
+                        <button type="button" onClick={() => setForm({ ...form, journeySteps: (form.journeySteps || []).filter((_: any, j: number) => j !== i) })}
+                          className="text-gray-600 hover:text-red-400 text-xs transition-colors">✕ Remove</button>
+                      </div>
+                      <input type="text" placeholder="Title" value={step.title}
+                        onChange={e => { const s = [...(form.journeySteps || [])]; s[i] = { ...s[i], title: e.target.value }; setForm({ ...form, journeySteps: s }) }}
+                        className="input text-sm" />
+                      <textarea placeholder="Description" value={step.desc} rows={2}
+                        onChange={e => { const s = [...(form.journeySteps || [])]; s[i] = { ...s[i], desc: e.target.value }; setForm({ ...form, journeySteps: s }) }}
+                        className="input text-sm resize-none" />
+                    </div>
+                  ))}
+                  {(form.journeySteps || []).length < 4 && (
+                    <button type="button" onClick={() => setForm({ ...form, journeySteps: [...(form.journeySteps || []), { title: '', desc: '' }] })}
+                      className="w-full py-2 text-xs text-indigo-400 border border-dashed border-indigo-500/30 rounded-lg hover:bg-indigo-500/5 transition-colors">
+                      + Add Step
+                    </button>
+                  )}
+                </div>
+              </Section>
+
+              {/* Testimonials */}
+              <Section title="Testimonials" icon={Star}>
+                <p className="text-xs text-gray-400 mb-3">Member success stories shown on the package page</p>
+                <div className="space-y-3">
+                  {(form.testimonials || []).map((t: any, i: number) => (
+                    <div key={i} className="p-3 bg-white/[0.03] rounded-lg border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-indigo-400">Testimonial {i + 1}</span>
+                        <button type="button" onClick={() => setForm({ ...form, testimonials: (form.testimonials || []).filter((_: any, j: number) => j !== i) })}
+                          className="text-gray-600 hover:text-red-400 text-xs transition-colors">✕ Remove</button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input type="text" placeholder="Name (e.g. Rahul M.)" value={t.name}
+                          onChange={e => { const s = [...(form.testimonials || [])]; s[i] = { ...s[i], name: e.target.value }; setForm({ ...form, testimonials: s }) }}
+                          className="input text-sm" />
+                        <input type="text" placeholder="Role (e.g. Pro Member)" value={t.role}
+                          onChange={e => { const s = [...(form.testimonials || [])]; s[i] = { ...s[i], role: e.target.value }; setForm({ ...form, testimonials: s }) }}
+                          className="input text-sm" />
+                        <input type="text" placeholder="Avatar initial (e.g. R)" value={t.avatar}
+                          onChange={e => { const s = [...(form.testimonials || [])]; s[i] = { ...s[i], avatar: e.target.value }; setForm({ ...form, testimonials: s }) }}
+                          className="input text-sm" />
+                        <input type="text" placeholder="Earning (e.g. ₹18K/mo)" value={t.earning}
+                          onChange={e => { const s = [...(form.testimonials || [])]; s[i] = { ...s[i], earning: e.target.value }; setForm({ ...form, testimonials: s }) }}
+                          className="input text-sm" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-400">Rating:</label>
+                        {[1,2,3,4,5].map(n => (
+                          <button key={n} type="button" onClick={() => { const s = [...(form.testimonials || [])]; s[i] = { ...s[i], rating: n }; setForm({ ...form, testimonials: s }) }}
+                            className={`text-lg transition-colors ${n <= (t.rating || 5) ? 'text-yellow-400' : 'text-gray-600'}`}>★</button>
+                        ))}
+                      </div>
+                      <textarea placeholder="Testimonial text..." value={t.text} rows={3}
+                        onChange={e => { const s = [...(form.testimonials || [])]; s[i] = { ...s[i], text: e.target.value }; setForm({ ...form, testimonials: s }) }}
+                        className="input text-sm resize-none" />
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setForm({ ...form, testimonials: [...(form.testimonials || []), { name: '', role: '', avatar: '', text: '', rating: 5, earning: '' }] })}
+                    className="w-full py-2 text-xs text-indigo-400 border border-dashed border-indigo-500/30 rounded-lg hover:bg-indigo-500/5 transition-colors">
+                    + Add Testimonial
+                  </button>
+                </div>
+              </Section>
+
+              {/* FAQs */}
+              <Section title="FAQs" icon={Info}>
+                <p className="text-xs text-gray-400 mb-3">Questions & answers shown on the package page</p>
+                <div className="space-y-3">
+                  {(form.faqs || []).map((f: any, i: number) => (
+                    <div key={i} className="p-3 bg-white/[0.03] rounded-lg border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-indigo-400">FAQ {i + 1}</span>
+                        <button type="button" onClick={() => setForm({ ...form, faqs: (form.faqs || []).filter((_: any, j: number) => j !== i) })}
+                          className="text-gray-600 hover:text-red-400 text-xs transition-colors">✕ Remove</button>
+                      </div>
+                      <input type="text" placeholder="Question" value={f.q}
+                        onChange={e => { const s = [...(form.faqs || [])]; s[i] = { ...s[i], q: e.target.value }; setForm({ ...form, faqs: s }) }}
+                        className="input text-sm" />
+                      <textarea placeholder="Answer" value={f.a} rows={3}
+                        onChange={e => { const s = [...(form.faqs || [])]; s[i] = { ...s[i], a: e.target.value }; setForm({ ...form, faqs: s }) }}
+                        className="input text-sm resize-none" />
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setForm({ ...form, faqs: [...(form.faqs || []), { q: '', a: '' }] })}
+                    className="w-full py-2 text-xs text-indigo-400 border border-dashed border-indigo-500/30 rounded-lg hover:bg-indigo-500/5 transition-colors">
+                    + Add FAQ
+                  </button>
                 </div>
               </Section>
 

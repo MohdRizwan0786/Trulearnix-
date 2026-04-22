@@ -8,7 +8,7 @@ import LiveClass from '../models/LiveClass';
 import { protect, authorize } from '../middleware/auth';
 
 const router = Router();
-router.use(protect, authorize('superadmin', 'admin'));
+router.use(protect, authorize('superadmin', 'admin', 'manager', 'employee', 'department_head', 'team_lead'));
 
 // GET /api/analytics/dashboard — main admin dashboard
 router.get('/dashboard', async (_req, res) => {

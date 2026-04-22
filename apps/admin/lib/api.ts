@@ -59,6 +59,8 @@ export const adminAPI = {
   pendingCourses: () => api.get('/admin/courses/pending'),
   approveCourse: (id: string) => api.patch(`/admin/courses/${id}/approve`),
   rejectCourse: (id: string, reason: string) => api.patch(`/admin/courses/${id}/reject`, { reason }),
+  deleteCourse: (id: string) => api.delete(`/admin/courses/${id}`),
+  updateUserProfile: (id: string, data: any) => api.patch(`/admin/users/${id}/profile`, data),
   // Batches
   batches: (courseId: string) => api.get('/admin/batches', { params: { courseId } }),
   batchStudents: (batchId: string) => api.get(`/admin/batches/${batchId}/students`),

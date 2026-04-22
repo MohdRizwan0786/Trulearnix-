@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sales Team – Trulearnix Admin</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulearnix <span>Admin</span></div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">⊞</span>Dashboard</a>
+    <a href="users.html" class="nav-item"><span class="nav-icon">👥</span>Users</a>
+    <a href="courses.html" class="nav-item"><span class="nav-icon">📚</span>Courses</a>
+    <a href="packages.html" class="nav-item"><span class="nav-icon">📦</span>Packages</a>
+    <a href="crm.html" class="nav-item"><span class="nav-icon">🎯</span>CRM / Leads</a>
+    <a href="sales-team.html" class="nav-item active"><span class="nav-icon">💼</span>Sales Team</a>
+    <a href="employees.html" class="nav-item"><span class="nav-icon">🏢</span>Employees</a>
+    <a href="partners.html" class="nav-item"><span class="nav-icon">🤝</span>Partners</a>
+    <a href="mentors.html" class="nav-item"><span class="nav-icon">🎓</span>Mentors</a>
+    <a href="live-classes.html" class="nav-item"><span class="nav-icon">📡</span>Live Classes</a>
+    <a href="analytics.html" class="nav-item"><span class="nav-icon">📊</span>Analytics</a>
+    <a href="finance.html" class="nav-item"><span class="nav-icon">💰</span>Finance</a>
+    <a href="withdrawals.html" class="nav-item"><span class="nav-icon">🏧</span>Withdrawals</a>
+    <a href="kyc.html" class="nav-item"><span class="nav-icon">🪪</span>KYC</a>
+    <a href="marketing.html" class="nav-item"><span class="nav-icon">📣</span>Marketing</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">📋</span>Reports</a>
+    <a href="settings.html" class="nav-item"><span class="nav-icon">⚙️</span>Settings</a>
+  </nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">☰</button>
+    <h1 class="topbar-title">Sales Team</h1>
+    <div class="topbar-actions">
+      <div class="avatar">AD</div>
+    </div>
+  </header>
+  <main class="page-content">
+    
+<div class="page-header">
+  <h2 class="page-title">Sales Team</h2>
+  <button class="btn btn-primary">+ Add Member</button>
+</div>
+<div class="stats-row" style="margin-bottom:var(--space-6);">
+  <div class="stat-card"><div class="stat-value">24</div><div class="stat-label">Total Members</div></div>
+  <div class="stat-card"><div class="stat-value">18</div><div class="stat-label">Active</div></div>
+  <div class="stat-card"><div class="stat-value">₹4.2L</div><div class="stat-label">Monthly Sales</div></div>
+  <div class="stat-card"><div class="stat-value">142</div><div class="stat-label">Conversions</div></div>
+</div>
+<div class="card" style="margin-bottom:var(--space-4);padding:var(--space-4);">
+  <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+    <input type="text" class="form-input" placeholder="Search member..." style="flex:1;min-width:200px;">
+    <select class="form-input" style="width:160px;"><option>All Roles</option><option>Sales Exec</option><option>Manager</option><option>TL</option></select>
+    <select class="form-input" style="width:140px;"><option>All Status</option><option>Active</option><option>Inactive</option></select>
+  </div>
+</div>
+<div class="card table-container">
+  <table class="table">
+    <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Manager</th><th>Monthly Target</th><th>Achieved</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">RS</div><div><div class="user-name">Ravi Sharma</div><div class="user-email">ravi@trulearnix.com</div></div></div></td><td>Sales Executive</td><td>98765 43210</td><td>Priya Verma</td><td>₹50,000</td><td><span class="badge badge-success">₹62,000</span></td><td><span class="badge badge-success">Active</span></td><td><div class="action-btns"><button class="btn btn-sm">Edit</button><button class="btn btn-sm btn-danger">Remove</button></div></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">PV</div><div><div class="user-name">Priya Verma</div><div class="user-email">priya@trulearnix.com</div></div></div></td><td>Team Lead</td><td>87654 32109</td><td>Amit Singh</td><td>₹1,20,000</td><td><span class="badge badge-warning">₹98,000</span></td><td><span class="badge badge-success">Active</span></td><td><div class="action-btns"><button class="btn btn-sm">Edit</button><button class="btn btn-sm btn-danger">Remove</button></div></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">NK</div><div><div class="user-name">Neha Kumar</div><div class="user-email">neha@trulearnix.com</div></div></div></td><td>Sales Executive</td><td>76543 21098</td><td>Priya Verma</td><td>₹50,000</td><td><span class="badge badge-danger">₹32,000</span></td><td><span class="badge badge-warning">On Leave</span></td><td><div class="action-btns"><button class="btn btn-sm">Edit</button><button class="btn btn-sm btn-danger">Remove</button></div></td></tr>
+      <tr><td><div class="user-cell"><div class="avatar avatar-sm">AS</div><div><div class="user-name">Amit Singh</div><div class="user-email">amit@trulearnix.com</div></div></div></td><td>Sales Manager</td><td>65432 10987</td><td>—</td><td>₹3,00,000</td><td><span class="badge badge-success">₹3,45,000</span></td><td><span class="badge badge-success">Active</span></td><td><div class="action-btns"><button class="btn btn-sm">Edit</button><button class="btn btn-sm btn-danger">Remove</button></div></td></tr>
+    </tbody>
+  </table>
+</div>
+  </main>
+</div>
+</body>
+</html>

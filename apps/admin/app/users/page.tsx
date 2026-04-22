@@ -8,7 +8,7 @@ import {
   Search, UserCheck, UserX, Shield, GraduationCap, BookOpen,
   Users, UserCog, TrendingUp, ArrowUpRight, ArrowDownRight,
   ChevronLeft, ChevronRight, Filter, Banknote, X, Loader2, Building2,
-  UserPlus, IndianRupee, Eye, EyeOff, Star, Award, Link2, HeartHandshake
+  UserPlus, IndianRupee, Eye, EyeOff, Star, Award, Link2, HeartHandshake, Pencil
 } from 'lucide-react'
 import { format, isThisMonth } from 'date-fns'
 
@@ -169,6 +169,12 @@ export default function UsersPage() {
   const [ieForm, setIeForm] = useState({ industrialEarning: '', industrialEarningSource: '', grantPartnerAccess: false, packageTier: 'starter' })
   const [ieSaving, setIeSaving] = useState(false)
 
+  // Edit Profile Modal
+  const [editModal, setEditModal] = useState<any>(null)
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', bio: '', password: '', role: '', department: '', employeeId: '', joiningDate: '' })
+  const [editSaving, setEditSaving] = useState(false)
+  const [showEditPwd, setShowEditPwd] = useState(false)
+
   // Create User Modal
   const [createModal, setCreateModal] = useState(false)
   const [createForm, setCreateForm] = useState({ name: '', email: '', phone: '', password: '', type: 'free', packageId: '', amountReceived: '', grantPartnerAccess: false })
@@ -233,6 +239,44 @@ export default function UsersPage() {
       toast.success('Package updated')
       refetch()
     } catch { toast.error('Failed to update package') }
+  }
+
+  const openEditModal = (user: any) => {
+    setEditForm({
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      bio: user.bio || '',
+      password: '',
+      role: user.role || '',
+      department: user.department || '',
+      employeeId: user.employeeId || '',
+      joiningDate: user.joiningDate ? new Date(user.joiningDate).toISOString().split('T')[0] : '',
+    })
+    setShowEditPwd(false)
+    setEditModal(user)
+  }
+
+  const saveEdit = async () => {
+    if (!editModal) return
+    setEditSaving(true)
+    try {
+      const payload: any = {
+        name: editForm.name,
+        email: editForm.email,
+        phone: editForm.phone,
+        bio: editForm.bio,
+        role: editForm.role,
+        department: editForm.department,
+        employeeId: editForm.employeeId,
+        joiningDate: editForm.joiningDate || undefined,
+      }
+      if (editForm.password) payload.password = editForm.password
+      await adminAPI.updateUserProfile(editModal._id, payload)
+      toast.success('Profile updated!')
+      setEditModal(null)
+      refetch()
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to update') } finally { setEditSaving(false) }
   }
 
   const openIeModal = (user: any) => {
@@ -596,6 +640,13 @@ export default function UsersPage() {
                               : <><UserCheck className="w-3.5 h-3.5" />Activate</>}
                           </button>
                           <button
+                            onClick={() => openEditModal(user)}
+                            title="Edit Profile"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-xs transition-all border bg-violet-500/10 border-violet-500/30 text-violet-400 hover:bg-violet-500 hover:text-white"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             onClick={() => openIeModal(user)}
                             title="Set Industrial Earning"
                             className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs transition-all border ${user.isIndustrialPartner ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' : 'bg-gray-800 border-gray-700 text-gray-500 hover:text-amber-400 hover:border-amber-500/40'}`}
@@ -671,6 +722,101 @@ export default function UsersPage() {
         )}
 
       </div>
+
+      {/* ── Edit Profile Modal ── */}
+      {editModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="fixed inset-0" onClick={() => setEditModal(null)} />
+          <div className="relative bg-gray-900 border border-violet-500/30 rounded-2xl p-6 w-full max-w-lg z-10 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm ${avatarBg(editModal.name)} overflow-hidden`}>
+                  {editModal.avatar
+                    ? <img src={editModal.avatar} className="w-full h-full object-cover rounded-full" alt="" />
+                    : editModal.name?.[0]?.toUpperCase()}
+                </div>
+                <div>
+                  <h2 className="font-bold text-white text-sm">Edit Profile</h2>
+                  <p className="text-gray-500 text-xs capitalize">{editModal.role} · {editModal.email}</p>
+                </div>
+              </div>
+              <button onClick={() => setEditModal(null)} className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="text-gray-400 text-xs font-medium mb-1 block">Full Name</label>
+                <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs font-medium mb-1 block">Email</label>
+                <input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs font-medium mb-1 block">Phone</label>
+                <input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-gray-400 text-xs font-medium mb-1 block">Bio / About</label>
+                <textarea rows={2} value={editForm.bio} onChange={e => setEditForm(f => ({ ...f, bio: e.target.value }))}
+                  placeholder="Short bio or description..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm resize-none" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs font-medium mb-1 block">Role</label>
+                <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 text-sm appearance-none">
+                  {['superadmin','admin','manager','department_head','team_lead','employee','mentor','student','salesperson'].map(r => (
+                    <option key={r} value={r} className="capitalize bg-gray-800">{r}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs font-medium mb-1 block">Department</label>
+                <input value={editForm.department} onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}
+                  placeholder="e.g. sales, hr, tech"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs font-medium mb-1 block">Employee ID</label>
+                <input value={editForm.employeeId} onChange={e => setEditForm(f => ({ ...f, employeeId: e.target.value }))}
+                  placeholder="e.g. EMP0042"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs font-medium mb-1 block">Joining Date</label>
+                <input type="date" value={editForm.joiningDate} onChange={e => setEditForm(f => ({ ...f, joiningDate: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 text-sm" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-gray-400 text-xs font-medium mb-1 block">New Password <span className="text-gray-600">(leave blank to keep current)</span></label>
+                <div className="relative">
+                  <input type={showEditPwd ? 'text' : 'password'} value={editForm.password}
+                    onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
+                    placeholder="Min 6 characters"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 pr-10 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm" />
+                  <button type="button" onClick={() => setShowEditPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                    {showEditPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setEditModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-700 text-gray-400 hover:text-white text-sm font-medium">Cancel</button>
+              <button onClick={saveEdit} disabled={editSaving}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold hover:opacity-90 transition-all text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+                {editSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : <><Pencil className="w-4 h-4" />Save Changes</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Industrial Earning Modal ── */}
       {ieModal && (

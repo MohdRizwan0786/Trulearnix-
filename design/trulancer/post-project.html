@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Post a Project - Trulancer</title>
+<link rel="stylesheet" href="../_base.css">
+</head>
+<body class="app-layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">Trulancer</div>
+  <nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><span class="nav-icon">-</span>Dashboard</a><a href="projects.html" class="nav-item"><span class="nav-icon">-</span>Browse Projects</a><a href="freelancers.html" class="nav-item"><span class="nav-icon">-</span>Find Freelancers</a><a href="post-project.html" class="nav-item active"><span class="nav-icon">-</span>Post Project</a></nav>
+</aside>
+<div class="main-area">
+  <header class="topbar">
+    <button class="sidebar-toggle">Menu</button>
+    <h1 class="topbar-title">Post a Project</h1>
+    <div class="topbar-actions"><div class="avatar">TL</div></div>
+  </header>
+  <main class="page-content">
+<div class="page-header"><h2 class="page-title">Post a Project</h2></div>
+<div style="max-width:640px;">
+  <div class="card" style="padding:var(--space-6);">
+    <h3 style="font-weight:600;margin-bottom:var(--space-4);">Project Details</h3>
+    <div class="form-group"><label class="form-label">Project Title</label><input class="form-input" placeholder="e.g., Need a digital marketing expert for my brand"></div>
+    <div class="form-group"><label class="form-label">Category</label>
+      <select class="form-input"><option>Select category</option><option>Digital Marketing</option><option>Web Development</option><option>Graphic Design</option><option>Content Writing</option><option>Finance & Accounts</option><option>AI & Automation</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Project Description</label>
+      <textarea class="form-input" rows="5" placeholder="Describe your project in detail. Include what you need done, any specific requirements, preferred tools/experience, and expected outcome..."></textarea>
+    </div>
+    <div class="form-group"><label class="form-label">Required Skills</label><input class="form-input" placeholder="e.g., SEO, Google Ads, Social Media (comma separated)"></div>
+    <h3 style="font-weight:600;margin-bottom:var(--space-4);margin-top:var(--space-6);">Budget and Timeline</h3>
+    <div class="form-group">
+      <label class="form-label">Project Type</label>
+      <div style="display:flex;gap:var(--space-3);">
+        <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;padding:var(--space-3);border:1px solid var(--primary-600);border-radius:var(--radius);flex:1;">
+          <input type="radio" name="type" checked> <div><div style="font-weight:500;">Fixed Price</div><div style="font-size:.75rem;color:var(--text-muted);">Pay a set amount</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;padding:var(--space-3);border:1px solid var(--border-color);border-radius:var(--radius);flex:1;">
+          <input type="radio" name="type"> <div><div style="font-weight:500;">Hourly</div><div style="font-size:.75rem;color:var(--text-muted);">Pay by the hour</div></div>
+        </label>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);">
+      <div class="form-group"><label class="form-label">Min Budget (Rs.)</label><input type="number" class="form-input" placeholder="5000"></div>
+      <div class="form-group"><label class="form-label">Max Budget (Rs.)</label><input type="number" class="form-input" placeholder="15000"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Expected Duration</label>
+      <select class="form-input"><option>Less than 1 week</option><option>1-2 weeks</option><option>1 month</option><option>2-3 months</option><option>Ongoing</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Attachments (optional)</label>
+      <div style="border:2px dashed var(--border-color);border-radius:var(--radius);padding:var(--space-4);text-align:center;cursor:pointer;">
+        <div style="margin-bottom:var(--space-2);">Attach files</div>
+        <div style="font-size:.75rem;color:var(--text-muted);">PDF, DOC, PNG up to 10MB</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:var(--space-2);">Post Project</button>
+    <div style="font-size:.75rem;color:var(--text-muted);text-align:center;margin-top:var(--space-3);">You will receive bids from verified freelancers within 24 hours</div>
+  </div>
+</div></main>
+</div>
+</body>
+</html>
