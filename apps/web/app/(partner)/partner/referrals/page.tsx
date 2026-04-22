@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { partnerAPI } from '@/lib/api'
+import { partnerAPI, packageAPI } from '@/lib/api'
 import {
   UserCheck, Search, ChevronLeft, ChevronRight, Package, Calendar,
   Coins, Users, CreditCard, BookOpen, TrendingUp, Crown,
@@ -39,13 +39,13 @@ function Avatar({ name, tier }: { name: string; tier: string }) {
   )
 }
 
-function TierBadge({ tier }: { tier: string }) {
+function TierBadge({ tier, pkgName }: { tier: string; pkgName?: string }) {
   const cfg = TIER_CFG[tier] || TIER_CFG.free
   const Icon = cfg.icon
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border font-bold capitalize ${cfg.badge}`}>
+    <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border font-bold ${cfg.badge}`}>
       <Icon className="w-2.5 h-2.5" />
-      {cfg.label}
+      {pkgName || cfg.label}
     </span>
   )
 }
@@ -61,6 +61,12 @@ export default function ReferralsPage() {
     queryFn: () => partnerAPI.referrals({ page, limit: 20, level }).then(r => r.data),
     placeholderData: (prev) => prev,
   })
+  const { data: pkgs } = useQuery({
+    queryKey: ['packages'],
+    queryFn: () => packageAPI.getAll().then(r => r.data.packages),
+    staleTime: 10 * 60 * 1000,
+  })
+  const getPkgName = (tier: string) => pkgs?.find((p: any) => p.tier === tier)?.name || TIER_CFG[tier]?.label || tier
 
   const referrals: any[] = data?.referrals || []
   const total: number = data?.total || 0
@@ -204,7 +210,7 @@ export default function ReferralsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <p className="text-white font-bold text-sm">{r.name}</p>
-                      <TierBadge tier={tier} />
+                      <TierBadge tier={tier} pkgName={getPkgName(tier)} />
                       {r.isAffiliate && (
                         <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border bg-violet-500/10 text-violet-400 border-violet-500/20 font-bold">
                           <Star className="w-2.5 h-2.5" /> Partner
@@ -241,7 +247,7 @@ export default function ReferralsPage() {
                     {r.packagePurchasedAt && (
                       <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/8 border border-amber-500/15">
                         <Package className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                        <span className="text-[11px] text-amber-300 font-medium capitalize">{tier} Package</span>
+                        <span className="text-[11px] text-amber-300 font-medium">{getPkgName(tier)} Package</span>
                         <span className="text-[10px] text-gray-600">· {new Date(r.packagePurchasedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                       </div>
                     )}

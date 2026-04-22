@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { userAPI } from '@/lib/api'
+import { userAPI, packageAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import {
   BookOpen, Play, CheckCircle, Clock, ChevronRight,
@@ -38,6 +38,8 @@ export default function LearnerCoursesPage() {
   })
 
   const tier = availableData?.packageTier || 'free'
+  const { data: pkgs } = useQuery({ queryKey: ['packages'], queryFn: () => packageAPI.getAll().then(r => r.data.packages), staleTime: 10 * 60 * 1000 })
+  const tierDisplayName = pkgs?.find((p: any) => p.tier === tier)?.name || tier
   const isPaid = tier !== 'free' || !!(user as any)?.isAffiliate || !!user?.enrollmentCount
     || enrolledData === undefined || (enrolledData && enrolledData.length > 0)
   const available: any[] = availableData?.courses || []
@@ -190,7 +192,7 @@ export default function LearnerCoursesPage() {
               border: '1px solid rgba(99,102,241,0.2)'
             }}>
               <Sparkles className="w-4 h-4 text-indigo-400" />
-              <span className="text-sm text-indigo-300 font-bold capitalize">{tier} Plan</span>
+              <span className="text-sm text-indigo-300 font-bold">{tierDisplayName} Plan</span>
               <span className="text-xs text-gray-400">— Enroll for free</span>
             </div>
 
