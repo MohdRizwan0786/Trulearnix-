@@ -16,7 +16,7 @@ export const s3 = new S3Client({
 
 const BUCKET = process.env.AWS_S3_BUCKET || 'trulearnix';
 const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, '');
-const UPLOAD_DIR = '/var/www/trulearnix/uploads/';
+const UPLOAD_DIR = '/var/www/trulearnix-qa/uploads/';
 
 // Store in memory first so we can process images before uploading
 export const uploadToS3 = multer({
@@ -103,13 +103,31 @@ export const getSignedVideoUrl = async (key: string, _expiresIn = 3600): Promise
   return `${process.env.API_URL || 'https://api.trulearnix.com'}/uploads/${key}`;
 };
 
-const RECORDINGS_DIR = '/var/www/trulearnix/uploads/recordings';
+const RECORDINGS_DIR = '/var/www/trulearnix-qa/uploads/recordings';
 
 /**
  * Upload a recording file to R2.
  * Waits up to 2 minutes for LiveKit to finalize the file before uploading.
  * Returns the R2 public URL, or null if R2 is not configured / upload fails.
  */
+export async function deleteRecordingFromR2(recordingUrl: string): Promise<void> {
+  try {
+    // Extract R2 key from URL: recordings/filename.mp4
+    const urlObj = new URL(recordingUrl);
+    const key = urlObj.pathname.replace(/^\//, ''); // strip leading slash
+    await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+    console.log(`[R2] Recording deleted: ${key}`);
+  } catch (e) {
+    console.warn('[R2] deleteRecordingFromR2 failed:', e);
+  }
+  // Also clean up local recordings dir if file exists there
+  try {
+    const fileName = recordingUrl.split('/').pop() || '';
+    const localPath = path.join(RECORDINGS_DIR, fileName);
+    if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+  } catch {}
+}
+
 export async function uploadRecordingToR2(fileName: string): Promise<{ url: string; size: number } | null> {
   if (!R2_PUBLIC_URL || R2_PUBLIC_URL === 'PENDING') return null;
 

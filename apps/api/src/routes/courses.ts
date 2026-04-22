@@ -82,7 +82,6 @@ router.get('/:id/sessions', protect, async (req: any, res) => {
       .select('title scheduledAt endedAt duration recordingUrl recordingSize summary mentorNotes batch attendanceRecords')
       .populate('batch', 'batchNumber label')
       .sort('scheduledAt');
-    // For each session, check if this student was present
     const result = sessions.map((s: any) => {
       const att = (s.attendanceRecords || []).find((r: any) => r.user?.toString() === req.user._id.toString());
       return {

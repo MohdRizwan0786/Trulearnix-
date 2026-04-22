@@ -211,7 +211,7 @@ export default function MentorCourseDetail({ params }: { params: { id: string } 
   const [addingModule, setAddingModule] = useState(false)
   const [moduleForm, setModuleForm] = useState({ title: '', description: '', batchId: '' })
   const [editingModule, setEditingModule] = useState<string | null>(null)
-  const [editModuleForm, setEditModuleForm] = useState({ title: '', description: '', batchId: '' })
+  const [editModuleForm, setEditModuleForm] = useState({ title: '', description: '', batchId: '', youtubePlaylistUrl: '' })
   const [addingLessonToModule, setAddingLessonToModule] = useState<string | null>(null) // moduleId
   const [newLessonForm, setNewLessonForm] = useState({ title: '', type: 'video', videoUrl: '', duration: '', isPreview: false })
   const [editingLesson, setEditingLesson] = useState<{ moduleId: string; lessonId: string } | null>(null)
@@ -573,8 +573,13 @@ export default function MentorCourseDetail({ params }: { params: { id: string } 
                         ))}
                       </select>
                     </div>
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">📺 YouTube Playlist URL (optional)</label>
+                      <input value={editModuleForm.youtubePlaylistUrl} onChange={e => setEditModuleForm(f => ({ ...f, youtubePlaylistUrl: e.target.value }))} className="input text-sm w-full" placeholder="https://www.youtube.com/playlist?list=PLxxxx" />
+                      <p className="text-[11px] text-gray-600 mt-1">Is section ki sari recordings is playlist se automatically dikhenge</p>
+                    </div>
                     <div className="flex gap-2">
-                      <button onClick={() => editModuleMutation.mutate({ moduleId: mod._id, data: { ...editModuleForm, batchId: editModuleForm.batchId || undefined } })} disabled={editModuleMutation.isPending} className="btn-primary text-xs flex items-center gap-1">
+                      <button onClick={() => editModuleMutation.mutate({ moduleId: mod._id, data: { ...editModuleForm, batchId: editModuleForm.batchId || undefined, youtubePlaylistUrl: editModuleForm.youtubePlaylistUrl || undefined } })} disabled={editModuleMutation.isPending} className="btn-primary text-xs flex items-center gap-1">
                         {editModuleMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Save
                       </button>
                       <button onClick={() => setEditingModule(null)} className="btn-outline text-xs">Cancel</button>
@@ -601,7 +606,7 @@ export default function MentorCourseDetail({ params }: { params: { id: string } 
                       {openModule === mi ? <ChevronUp className="w-4 h-4 text-gray-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0" />}
                     </button>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => { setEditingModule(mod._id); setEditModuleForm({ title: mod.title, description: mod.description || '', batchId: mod.batch?._id?.toString() || mod.batch?.toString() || '' }) }}
+                      <button onClick={() => { setEditingModule(mod._id); setEditModuleForm({ title: mod.title, description: mod.description || '', batchId: mod.batch?._id?.toString() || mod.batch?.toString() || '', youtubePlaylistUrl: mod.youtubePlaylistUrl || '' }) }}
                         className="p-1.5 text-gray-500 hover:text-primary-400 hover:bg-primary-500/10 rounded-lg transition-colors">
                         <Eye className="w-3.5 h-3.5" />
                       </button>

@@ -388,6 +388,20 @@ router.put('/courses/:id', async (req: any, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// Admin: update a specific lesson's videoUrl (for adding YouTube links after recording)
+router.patch('/courses/:courseId/lessons/:lessonId/video-url', async (req: any, res) => {
+  try {
+    const { videoUrl } = req.body;
+    const result = await Course.updateOne(
+      { _id: req.params.courseId, 'modules.lessons._id': req.params.lessonId },
+      { $set: { 'modules.$[].lessons.$[l].videoUrl': videoUrl || '' } },
+      { arrayFilters: [{ 'l._id': req.params.lessonId }] }
+    );
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, message: 'Lesson not found' });
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // ─── Batch Management ──────────────────────────────────────────────────────────
 
 // List all batches for a course
