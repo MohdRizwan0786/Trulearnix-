@@ -18,8 +18,17 @@ const TIER_COLOR: Record<string, string> = {
   proedge: 'bg-fuchsia-500/20 text-fuchsia-400',
   elite:   'bg-violet-500/20 text-violet-400',
   supreme: 'bg-yellow-500/20 text-yellow-400',
+  // Old website tier names
+  'TRU BOOSTER':          'bg-blue-500/20 text-blue-400',
+  'TRU STARTER':          'bg-indigo-500/20 text-indigo-400',
+  'TRU ADVANCE':          'bg-fuchsia-500/20 text-fuchsia-400',
+  'TRU PRO-EDGE':         'bg-violet-500/20 text-violet-400',
+  'TRU PREMIUM-INFINITY': 'bg-yellow-500/20 text-yellow-400',
 }
-const TIER_ICON: Record<string, string> = { free: '🆓', basic: '🌱', starter: '⚡', pro: '🚀', proedge: '🔥', elite: '💎', supreme: '👑' }
+const TIER_ICON: Record<string, string> = {
+  free: '🆓', basic: '🌱', starter: '⚡', pro: '🚀', proedge: '🔥', elite: '💎', supreme: '👑',
+  'TRU BOOSTER': '⚡', 'TRU STARTER': '🚀', 'TRU ADVANCE': '🔥', 'TRU PRO-EDGE': '💎', 'TRU PREMIUM-INFINITY': '👑',
+}
 const fmt = (n: number) => new Intl.NumberFormat('en-IN').format(n || 0)
 
 export default function PartnersPage() {
@@ -273,11 +282,11 @@ export default function PartnersPage() {
                     {/* Stats */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-slate-700/50 rounded-xl p-2.5">
-                        <p className="text-base font-bold text-white">₹{((p.totalEarnings || 0) / 1000).toFixed(1)}k</p>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Total Earnings</p>
+                        <p className="text-base font-bold text-white">₹{fmt(p.totalEarnings || 0)}</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Total Earned</p>
                       </div>
                       <div className="bg-slate-700/50 rounded-xl p-2.5">
-                        <p className="text-base font-bold text-emerald-400">₹{((p.wallet || 0) / 1000).toFixed(1)}k</p>
+                        <p className="text-base font-bold text-emerald-400">₹{fmt(p.wallet || 0)}</p>
                         <p className="text-[10px] text-gray-500 mt-0.5">Wallet Balance</p>
                       </div>
                       <button onClick={() => setRefModal({ id: p._id, name: p.name })}
@@ -286,10 +295,25 @@ export default function PartnersPage() {
                         <p className="text-[10px] text-gray-500 mt-0.5">Referrals →</p>
                       </button>
                       <div className="bg-slate-700/50 rounded-xl p-2.5">
-                        <p className="text-base font-bold text-violet-400">{p._perf?.commCount || 0}</p>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Commissions</p>
+                        <p className="text-base font-bold text-violet-400">₹{fmt(p._perf?.commAmount || 0)}</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">
+                          Comm · <span className="text-orange-400">{p._perf?.commCount || 0} txns</span>
+                        </p>
                       </div>
                     </div>
+                    {/* Commission breakdown */}
+                    {(p._perf?.commAmount > 0) && (
+                      <div className="flex items-center gap-2 text-[10px]">
+                        <span className="flex items-center gap-1 bg-green-500/10 text-green-400 px-2 py-1 rounded-lg">
+                          ✓ Paid ₹{fmt(p._perf?.paidAmount || 0)}
+                        </span>
+                        {(p._perf?.pendingAmount > 0) && (
+                          <span className="flex items-center gap-1 bg-orange-500/10 text-orange-400 px-2 py-1 rounded-lg">
+                            ⏳ Pending ₹{fmt(p._perf?.pendingAmount || 0)}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Sponsor row */}
                     {p.referredBy && (

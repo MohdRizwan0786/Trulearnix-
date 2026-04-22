@@ -16,6 +16,12 @@ const TIER_COLOR: Record<string, { color: string; bg: string; icon: string }> = 
   proedge: { color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/15', icon: '🔥' },
   elite:   { color: 'text-violet-400',  bg: 'bg-violet-500/15',  icon: '💎' },
   supreme: { color: 'text-yellow-400',  bg: 'bg-yellow-500/15',  icon: '👑' },
+  // Old website tier names
+  'TRU BOOSTER':          { color: 'text-blue-400',    bg: 'bg-blue-500/15',    icon: '⚡' },
+  'TRU STARTER':          { color: 'text-indigo-400',  bg: 'bg-indigo-500/15',  icon: '🚀' },
+  'TRU ADVANCE':          { color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/15', icon: '🔥' },
+  'TRU PRO-EDGE':         { color: 'text-violet-400',  bg: 'bg-violet-500/15',  icon: '💎' },
+  'TRU PREMIUM-INFINITY': { color: 'text-yellow-400',  bg: 'bg-yellow-500/15',  icon: '👑' },
 }
 const fmt = (n: number) => new Intl.NumberFormat('en-IN').format(n || 0)
 
@@ -38,8 +44,9 @@ export default function ReferralsModal({ userId, userName, onClose }: Props) {
   const referrals: any[] = data?.referrals || []
   const referrer = data?.referrer
 
-  const paid   = referrals.filter(r => r.packageTier !== 'free')
-  const unpaid = referrals.filter(r => r.packageTier === 'free')
+  const paid      = referrals.filter(r => r.packageTier && r.packageTier !== 'free')
+  const unpaid    = referrals.filter(r => !r.packageTier || r.packageTier === 'free')
+  const totalComm = referrals.reduce((s, r) => s + (r.commission?.commAmount || 0), 0)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -56,6 +63,7 @@ export default function ReferralsModal({ userId, userName, onClose }: Props) {
               <h2 className="text-white font-bold">{userName} — Referrals</h2>
               <p className="text-gray-400 text-xs mt-0.5">
                 {data?.total || 0} total · {paid.length} converted · {unpaid.length} free
+                {totalComm > 0 && <span className="text-green-400 font-semibold ml-2">· ₹{fmt(totalComm)} commission</span>}
               </p>
             </div>
           </div>
@@ -143,8 +151,10 @@ export default function ReferralsModal({ userId, userName, onClose }: Props) {
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${tier.color} ${tier.bg}`}>
                         {tier.icon} {r.packageTier}
                       </span>
-                      {r.totalEarnings > 0 && (
-                        <span className="text-green-400 text-xs font-medium">₹{fmt(r.totalEarnings)}</span>
+                      {r.commission?.commAmount > 0 ? (
+                        <span className="text-green-400 text-xs font-bold">+₹{fmt(r.commission.commAmount)}</span>
+                      ) : (
+                        <span className="text-gray-600 text-xs">No commission</span>
                       )}
                       <span className="text-gray-600 text-[10px] flex items-center gap-1">
                         <CalendarDays className="w-2.5 h-2.5" />
