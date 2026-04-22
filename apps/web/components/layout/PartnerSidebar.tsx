@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
+import { packageAPI } from '@/lib/api'
+import { useQuery } from '@tanstack/react-query'
 import Image from 'next/image'
 import {
   LayoutDashboard, TrendingUp, Trophy, Network, Users,
@@ -60,6 +62,14 @@ export default function PartnerSidebar() {
     router.push('/login')
   }
 
+  const { data: pkgs } = useQuery({
+    queryKey: ['packages'],
+    queryFn: () => packageAPI.getAll().then(r => r.data.packages),
+    staleTime: 10 * 60 * 1000,
+  })
+  const tierKey = user?.packageTier || 'free'
+  const tierDisplayName = pkgs?.find((p: any) => p.tier === tierKey)?.name || tierKey
+
   const tierColors: Record<string, string> = {
     free: 'from-gray-500 to-gray-600',
     starter: 'from-blue-500 to-blue-600',
@@ -67,7 +77,7 @@ export default function PartnerSidebar() {
     elite: 'from-amber-500 to-orange-500',
     supreme: 'from-rose-500 to-pink-600',
   }
-  const tierGrad = tierColors[user?.packageTier || 'free']
+  const tierGrad = tierColors[tierKey]
 
   const kycStatus = user?.kyc?.status
   const kycBadge = kycStatus === 'verified' ? '✓' : kycStatus === 'submitted' ? '⏳' : kycStatus === 'rejected' ? '✗' : '!'
@@ -105,7 +115,7 @@ export default function PartnerSidebar() {
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-semibold truncate">{user?.name}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className={`text-xs px-2 py-0.5 rounded-full bg-gradient-to-r ${tierGrad} text-white font-medium capitalize`}>{user?.packageTier}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full bg-gradient-to-r ${tierGrad} text-white font-medium`}>{tierDisplayName}</span>
                 <span className="text-dark-400 text-xs flex items-center gap-0.5"><Flame className="w-3 h-3 text-orange-400" />{user?.streak || 0}</span>
               </div>
             </div>
@@ -195,7 +205,7 @@ export default function PartnerSidebar() {
                 }
                 <div>
                   <p className="text-white font-semibold text-sm">{user?.name}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full bg-gradient-to-r ${tierGrad} text-white font-medium capitalize`}>{user?.packageTier}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full bg-gradient-to-r ${tierGrad} text-white font-medium`}>{tierDisplayName}</span>
                 </div>
               </div>
             </div>
