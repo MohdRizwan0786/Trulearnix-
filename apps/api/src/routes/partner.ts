@@ -363,8 +363,12 @@ router.get('/leaderboard', protect, affiliateGuard, async (req: any, res) => {
         { $group: { _id: null, total: { $sum: '$commissionAmount' } } }
       ]);
       myEarnings = myAgg[0]?.total || 0;
-      myRankPos = leaderboard.findIndex((u: any) => String(u._id) === String(req.user._id)) + 1;
-      if (myRankPos === 0) myRankPos = leaderboard.length + 1;
+      if (myEarnings > 0) {
+        myRankPos = leaderboard.findIndex((u: any) => String(u._id) === String(req.user._id)) + 1;
+        if (myRankPos === 0) myRankPos = leaderboard.length + 1;
+      } else {
+        myRankPos = 0;
+      }
     }
 
     const myData = await User.findById(req.user._id).select('name avatar packageTier totalEarnings commissionRate totalReferrals industrialEarning isIndustrialPartner').lean();
