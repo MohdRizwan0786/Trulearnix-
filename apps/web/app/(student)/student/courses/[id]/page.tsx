@@ -8,7 +8,7 @@ import {
   BarChart2, Download, FileDown, Upload,
   ExternalLink, Video, File, Image as ImgIcon, Link2,
   AlertCircle, Star, ChevronDown, ChevronUp, BookOpen, Users, Trophy, TrendingUp,
-  HelpCircle, CheckSquare, XSquare, ArrowRight
+  HelpCircle, CheckSquare, XSquare, ArrowRight, Youtube, ListVideo
 } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -31,6 +31,7 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
   const [requestingRC, setRequestingRC] = useState(false)
   const [rcRequested, setRcRequested] = useState(false)
   const [showPerformance, setShowPerformance] = useState(false)
+  const [showRecordings, setShowRecordings] = useState(false)
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -152,12 +153,23 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
 
         {/* My Performance button */}
         <button
-          onClick={() => setShowPerformance(s => !s)}
+          onClick={() => { setShowPerformance(s => !s); setShowRecordings(false) }}
           className={`w-full flex items-center gap-2.5 px-4 py-2.5 border-b border-white/5 transition-colors text-left text-xs font-semibold ${showPerformance ? 'bg-primary-500/10 text-primary-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
           <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
           My Performance & Leaderboard
           {showPerformance && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400" />}
         </button>
+
+        {/* Recordings button — only if playlist exists */}
+        {course.youtubePlaylistUrl && (
+          <button
+            onClick={() => { setShowRecordings(s => !s); setShowPerformance(false); setActiveLesson(null) }}
+            className={`w-full flex items-center gap-2.5 px-4 py-2.5 border-b border-white/5 transition-colors text-left text-xs font-semibold ${showRecordings ? 'bg-red-500/10 text-red-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+            <Youtube className="w-3.5 h-3.5 flex-shrink-0" />
+            Class Recordings
+            <span className="ml-auto text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full">Playlist</span>
+          </button>
+        )}
 
         {/* Module tree */}
         <div className="flex-1 overflow-y-auto py-2">
@@ -261,10 +273,59 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
             <ChevronLeft className="w-4 h-4" /> Back
           </Link>
           <p className="text-xs font-semibold text-white truncate flex-1">{course.title}</p>
+          {course.youtubePlaylistUrl && (
+            <button onClick={() => { setShowRecordings(s => !s); setShowPerformance(false); setActiveLesson(null) }}
+              className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${showRecordings ? 'bg-red-500/20 text-red-400' : 'text-gray-400 hover:text-red-400'}`}>
+              <Youtube className="w-3.5 h-3.5" /> Rec
+            </button>
+          )}
           <span className="text-xs text-gray-400">{progressPercent}%</span>
         </div>
 
-        {showPerformance ? (
+        {showRecordings && course.youtubePlaylistUrl ? (
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 max-w-4xl">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                <Youtube className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-white font-bold text-lg">Class Recordings</h2>
+                <p className="text-xs text-gray-500">{course.title}</p>
+              </div>
+              <a
+                href={course.youtubePlaylistUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-xl transition-colors border border-red-500/20"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> YouTube par kholo
+              </a>
+            </div>
+
+            {/* Info banner */}
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/3 border border-white/8 text-xs text-gray-400">
+              <ListVideo className="w-4 h-4 text-red-400 flex-shrink-0" />
+              Is playlist mein saari class recordings hain. Neeche player mein left-side mein sari videos ki list hai — koi bhi video click karke dekho.
+            </div>
+
+            {/* Embedded YouTube Playlist Player */}
+            <div className="rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl shadow-black/50"
+              style={{ position: 'relative', paddingBottom: '56.25%' }}>
+              <iframe
+                src={`https://www.youtube.com/embed/videoseries?list=${course.youtubePlaylistUrl.match(/[?&]list=([^&]+)/)?.[1]}&rel=0&modestbranding=1`}
+                className="absolute inset-0 w-full h-full"
+                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                title="Class Recordings Playlist"
+              />
+            </div>
+
+            <p className="text-xs text-gray-600 text-center">
+              Player ke andar right-side mein playlist icon hai — wahan se koi bhi recording seedha jump kar sakte ho
+            </p>
+          </div>
+        ) : showPerformance ? (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 max-w-3xl">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
