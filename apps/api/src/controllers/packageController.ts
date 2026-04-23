@@ -122,7 +122,10 @@ export const verifyPackagePayment = async (req: AuthRequest, res: Response) => {
     if (!purchase) return res.status(404).json({ success: false, message: 'Purchase record not found' });
 
     const tier = purchase.packageTier as PackageTier;
-    const commissionRate = COMMISSION_RATES[tier];
+    // Prefer live admin-configured commission rate over hardcoded fallback
+    const Package = (await import('../models/Package')).default;
+    const pkg = await Package.findOne({ tier });
+    const commissionRate = pkg?.commissionRate ?? COMMISSION_RATES[tier] ?? 10;
 
     // Upgrade user package
     const updatedUser = await User.findByIdAndUpdate(

@@ -140,6 +140,10 @@ const CourseSchema = new Schema<ICourse>({
   youtubePlaylistUrl: String,
 }, { timestamps: true });
 
+CourseSchema.index({ status: 1, createdAt: -1 });
+CourseSchema.index({ instructor: 1 });
+CourseSchema.index({ category: 1, status: 1 });
+
 CourseSchema.pre('save', function (next) {
   if (this.isModified('title')) {
     this.slug = this.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();

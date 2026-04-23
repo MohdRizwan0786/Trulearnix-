@@ -40,20 +40,23 @@ router.get('/stats', protect, async (req: any, res) => {
 
     // Predictive: if user upgrades to next tier, how much more could they earn?
     const paidPkgs = await Package.find({ isActive: true, tier: { $ne: 'free' } })
-      .sort({ displayOrder: 1, price: 1 }).select('tier').lean();
+      .sort({ displayOrder: 1, price: 1 }).select('tier price commissionRate').lean();
     const tierOrder = paidPkgs.map(p => p.tier).filter(Boolean) as PackageTier[];
     const currentTierIdx = tierOrder.indexOf(user!.packageTier as PackageTier);
     const nextTier = tierOrder[currentTierIdx + 1];
     let upgradeSimulation = null;
     if (nextTier && l1Count > 0) {
       const avgSale = user!.totalEarnings / Math.max(l1Count, 1);
-      const currentRate = COMMISSION_RATES[user!.packageTier as PackageTier];
-      const nextRate = COMMISSION_RATES[nextTier];
+      const currentPkg = paidPkgs.find(p => p.tier === user!.packageTier);
+      const nextPkg = paidPkgs.find(p => p.tier === nextTier);
+      const currentRate = currentPkg?.commissionRate ?? COMMISSION_RATES[user!.packageTier as PackageTier] ?? 10;
+      const nextRate = nextPkg?.commissionRate ?? COMMISSION_RATES[nextTier] ?? 10;
+      const nextPrice = nextPkg?.price ?? PACKAGE_PRICES[nextTier] ?? 0;
       upgradeSimulation = {
         nextTier,
-        nextTierPrice: PACKAGE_PRICES[nextTier],
+        nextTierPrice: nextPrice,
         currentMonthlyEst: Math.round(avgSale * 4),
-        upgradeMonthlyEst: Math.round((avgSale / currentRate) * nextRate * 4),
+        upgradeMonthlyEst: Math.round((avgSale / Math.max(currentRate, 1)) * nextRate * 4),
       };
     }
 
