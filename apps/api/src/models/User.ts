@@ -188,7 +188,6 @@ const UserSchema = new Schema<IUser>({
   }],
 }, { timestamps: true });
 
-UserSchema.index({ affiliateCode: 1 });
 UserSchema.index({ referredBy: 1 });
 UserSchema.index({ packageTier: 1, isAffiliate: 1 });
 UserSchema.index({ role: 1, isActive: 1 });

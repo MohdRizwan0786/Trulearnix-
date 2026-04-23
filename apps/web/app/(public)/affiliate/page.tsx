@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import PlatformStatsCards from '@/components/shared/PlatformStatsCards'
 import { Zap, Users, TrendingUp, Gift, Share2, Award } from 'lucide-react'
 
 export const metadata = {
@@ -67,20 +68,11 @@ export default function AffiliatePage() {
         </section>
 
         <section className="py-12 px-4">
-          <div className="max-w-3xl mx-auto grid grid-cols-3 gap-4 text-center">
-            {[
-              { val: '50K+', label: 'Students', icon: Users },
-              { val: '₹2Cr+', label: 'Paid Out', icon: TrendingUp },
-              { val: '4.9★', label: 'Rating', icon: Award },
-            ].map((s, i) => (
-              <div key={i} className="p-6 rounded-2xl"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <s.icon className="w-6 h-6 text-amber-400 mx-auto mb-2" />
-                <div className="text-2xl font-black text-white">{s.val}</div>
-                <div className="text-xs text-white/60 uppercase tracking-wide">{s.label}</div>
-              </div>
-            ))}
-          </div>
+          <PlatformStatsCards items={[
+            { key: 'totalStudents', label: 'Students', icon: 'users' },
+            { key: 'totalPayout', label: 'Paid Out', icon: 'money' },
+            { key: 'avgRating', label: 'Rating', icon: 'award' },
+          ]} />
         </section>
 
         <section className="py-16 px-4">
