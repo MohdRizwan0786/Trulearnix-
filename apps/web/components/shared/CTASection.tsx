@@ -17,7 +17,7 @@ export default function CTASection() {
   const [promoBannerText, setPromoBannerText] = useState('🎉 Limited Offer — First month FREE with code LEARN2024')
   const [promoCode, setPromoCode]             = useState('LEARN2024')
   const [headline, setHeadline]               = useState('Ready to Transform Your Career?')
-  const [subheadline, setSubheadline]         = useState('Join 50,000+ learners. Start with free courses, attend live classes, earn certificates, and grow your income — all in one platform.')
+  const [subheadline, setSubheadline]         = useState('Join our growing community. Start with free courses, attend live classes, earn certificates, and grow your income — all in one platform.')
   const [featurePills, setFeaturePills]       = useState(DEFAULT_PILLS)
   const [primaryCTAText, setPrimaryCTAText]   = useState('Start Learning Free')
   const [primaryCTAHref, setPrimaryCTAHref]   = useState('/register')
@@ -25,6 +25,7 @@ export default function CTASection() {
   const [secondaryCTAHref, setSecondaryCTAHref] = useState('/courses')
 
   useEffect(() => {
+    let subheadlineFromCms = false
     fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/cta')
       .then(r => r.json())
       .then(res => {
@@ -33,7 +34,7 @@ export default function CTASection() {
         if (d.promoBannerText)  setPromoBannerText(d.promoBannerText)
         if (d.promoCode)        setPromoCode(d.promoCode)
         if (d.headline)         setHeadline(d.headline)
-        if (d.subheadline)      setSubheadline(d.subheadline)
+        if (d.subheadline)      { setSubheadline(d.subheadline); subheadlineFromCms = true }
         if (d.featurePills?.length) setFeaturePills(d.featurePills)
         if (d.primaryCTAText)   setPrimaryCTAText(d.primaryCTAText)
         if (d.primaryCTAHref)   setPrimaryCTAHref(d.primaryCTAHref)
@@ -41,6 +42,19 @@ export default function CTASection() {
         if (d.secondaryCTAHref) setSecondaryCTAHref(d.secondaryCTAHref)
       })
       .catch(() => {})
+      .finally(() => {
+        if (subheadlineFromCms) return
+        fetch(process.env.NEXT_PUBLIC_API_URL + '/public/stats')
+          .then(r => r.json())
+          .then(d => {
+            if (!d.success) return
+            const n = d.stats.totalStudents || 0
+            if (!n) return
+            const fmt = n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+            setSubheadline(`Join ${fmt} learners. Start with free courses, attend live classes, earn certificates, and grow your income — all in one platform.`)
+          })
+          .catch(() => {})
+      })
   }, [])
 
   // Split headline at known break points for styling

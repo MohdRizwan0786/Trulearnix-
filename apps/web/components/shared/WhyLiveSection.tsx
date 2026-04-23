@@ -1,4 +1,5 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { X, Check, Zap, Video, Bot, TrendingUp, Users, WifiOff } from 'lucide-react'
 import Logo from '@/components/ui/Logo'
@@ -15,14 +16,16 @@ const comparisons = [
   { feature: 'Content Updates',      us: 'Live — always current',                   them: 'Outdated recordings' },
 ]
 
-const liveAdvantages = [
+const buildAdvantages = (communityDesc: string) => [
   { icon: Video,      color: '#a78bfa', glow: 'rgba(167,139,250,0.2)', title: 'Real Interaction',   desc: 'Ask questions mid-session. Get answers immediately. No waiting.' },
   { icon: Bot,        color: '#34d399', glow: 'rgba(52,211,153,0.2)',  title: 'AI Coach 24/7',      desc: 'Personal AI mentor round the clock. Practice, test, get feedback.' },
   { icon: TrendingUp, color: '#fbbf24', glow: 'rgba(251,191,36,0.2)', title: 'Earn While Learning', desc: 'Help friends learn skills, earn income. ₹30K–₹1L+ every month.' },
-  { icon: Users,      color: '#60a5fa', glow: 'rgba(96,165,250,0.2)', title: 'Live Community',      desc: '50,000+ learners growing together. Network, collaborate, get hired.' },
+  { icon: Users,      color: '#60a5fa', glow: 'rgba(96,165,250,0.2)', title: 'Live Community',      desc: communityDesc },
 ]
 
-function AdvantageCard({ a }: { a: typeof liveAdvantages[0] }) {
+type Advantage = { icon: any; color: string; glow: string; title: string; desc: string }
+
+function AdvantageCard({ a }: { a: Advantage }) {
   return (
     <Tilt3D intensity={12} className="rounded-3xl p-5 h-full cursor-default"
       style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${a.glow}` }}>
@@ -41,6 +44,21 @@ function AdvantageCard({ a }: { a: typeof liveAdvantages[0] }) {
 }
 
 export default function WhyLiveSection() {
+  const [communityDesc, setCommunityDesc] = useState('Learners growing together. Network, collaborate, get hired.')
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/stats`)
+      .then(r => r.json())
+      .then(d => {
+        if (!d.success) return
+        const s = d.stats
+        const fmt = (n: number) => n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+        if (s.totalStudents) setCommunityDesc(`${fmt(s.totalStudents)} learners growing together. Network, collaborate, get hired.`)
+      })
+      .catch(() => {})
+  }, [])
+
+  const liveAdvantages = buildAdvantages(communityDesc)
   const doubledAdv = [...liveAdvantages, ...liveAdvantages]
 
   return (

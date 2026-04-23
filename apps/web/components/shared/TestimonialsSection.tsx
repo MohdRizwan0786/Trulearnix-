@@ -65,6 +65,7 @@ function TestCard({ t }: { t: Testimonial }) {
 export default function TestimonialsSection() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([])
   const [loaded, setLoaded] = useState(false)
+  const [stats, setStats] = useState<any>(null)
 
   useEffect(() => {
     fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/testimonials')
@@ -83,7 +84,19 @@ export default function TestimonialsSection() {
       })
       .catch(() => {})
       .finally(() => setLoaded(true))
+
+    fetch(process.env.NEXT_PUBLIC_API_URL + '/public/stats')
+      .then(r => r.json())
+      .then(d => { if (d.success) setStats(d.stats) })
+      .catch(() => {})
   }, [])
+
+  const fmtCount = (n: number) => n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+  const trustStats = [
+    { val: stats ? fmtCount(stats.totalStudents || 0) : '—', label: 'Happy Students' },
+    { val: stats && stats.avgRating > 0 ? `${stats.avgRating.toFixed(1)}/5` : '—', label: 'Average Rating' },
+    { val: stats ? fmtCount(stats.totalEnrollments || 0) : '—', label: 'Course Enrollments' },
+  ]
 
   if (loaded && testimonials.length === 0) return null
 
@@ -137,11 +150,7 @@ export default function TestimonialsSection() {
         className="max-w-2xl mx-auto mt-14 px-4">
         <div className="rounded-2xl p-5 sm:p-6 grid grid-cols-3 sm:flex sm:flex-row items-center justify-around gap-4 sm:gap-6 text-center"
           style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)' }}>
-          {[
-            { val: '50,000+', label: 'Happy Students' },
-            { val: '4.9/5', label: 'Average Rating' },
-            { val: '98%', label: 'Would Recommend' },
-          ].map((s, i) => (
+          {trustStats.map((s, i) => (
             <div key={i}>
               <p className="text-2xl font-black gradient-text">{s.val}</p>
               <p className="text-gray-500 text-sm">{s.label}</p>
