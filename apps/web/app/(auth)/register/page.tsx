@@ -211,17 +211,17 @@ function RegisterForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
             <Field label="Full Name" icon={User} error={errors.name?.message}>
-              <input {...register('name')} placeholder="Rahul Kumar" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
+              <input {...register('name')} placeholder="Rahul Kumar" autoComplete="off" data-form-type="other" data-lpignore="true" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
             </Field>
 
             <Field label="Email Address" icon={Mail} error={errors.email?.message}>
-              <input {...register('email')} type="email" placeholder="you@example.com" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
+              <input {...register('email')} type="email" placeholder="you@example.com" autoComplete="new-password" data-form-type="other" data-lpignore="true" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
             </Field>
 
             <Field label="Mobile Number" icon={Phone} error={errors.phone?.message}>
-              <input {...register('phone')} type="tel" placeholder="9876543210" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
+              <input {...register('phone')} type="tel" placeholder="9876543210" autoComplete="off" data-form-type="other" data-lpignore="true" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
             </Field>
 
             <div className="grid grid-cols-2 gap-3">

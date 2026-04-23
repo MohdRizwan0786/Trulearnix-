@@ -329,12 +329,13 @@ function CheckoutInner() {
             <div className="rounded-2xl border p-5" style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.08)' }}>
               <p className="text-xs font-semibold text-white/35 uppercase tracking-widest mb-4">Your Details</p>
               {showGuestForm ? (
-                <div className="space-y-3">
+                <form className="space-y-3" autoComplete="off" onSubmit={e => e.preventDefault()}>
                   <div>
                     <label className="block text-xs text-white/40 mb-1.5">Full Name</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                       <input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Enter your full name"
+                        autoComplete="off" data-form-type="other" data-lpignore="true" name="tlx_guest_name"
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
                     </div>
                   </div>
@@ -343,6 +344,7 @@ function CheckoutInner() {
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                       <input value={guestEmail} onChange={e => setGuestEmail(e.target.value)} placeholder="Enter your email" type="email"
+                        autoComplete="new-password" data-form-type="other" data-lpignore="true" name="tlx_guest_email"
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
                     </div>
                   </div>
@@ -351,6 +353,7 @@ function CheckoutInner() {
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                       <input value={guestPhone} onChange={e => setGuestPhone(e.target.value)} placeholder="Enter your mobile number" type="tel"
+                        autoComplete="off" data-form-type="other" data-lpignore="true" name="tlx_guest_phone"
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
                     </div>
                   </div>
@@ -372,7 +375,7 @@ function CheckoutInner() {
                     </div>
                   </div>
                   <p className="text-white/25 text-xs">Your account & login credentials will be sent to your WhatsApp after payment.</p>
-                </div>
+                </form>
               ) : (
                 <div className="space-y-3">
                   <div className="grid sm:grid-cols-2 gap-3">
