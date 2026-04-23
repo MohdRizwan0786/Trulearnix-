@@ -254,6 +254,42 @@ app.get('/api/public/validate-early-access', async (req, res) => {
   } catch { res.json({ valid: false }); }
 });
 
+// Public aggregated platform stats — real counts from DB for marketing pages
+app.get('/api/public/stats', async (_req, res) => {
+  try {
+    const User = (await import('./models/User')).default;
+    const Course = (await import('./models/Course')).default;
+    const Payment = (await import('./models/Payment')).default;
+    const Certificate = (await import('./models/Certificate')).default;
+    const Enrollment = (await import('./models/Enrollment')).default;
+
+    const [totalStudents, totalMentors, totalCourses, totalCertificates, totalEnrollments, payoutAgg, ratingAgg] = await Promise.all([
+      User.countDocuments({ role: 'student' }),
+      User.countDocuments({ role: 'mentor' }),
+      Course.countDocuments({ status: 'published' }),
+      Certificate.countDocuments(),
+      Enrollment.countDocuments(),
+      Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Course.aggregate([{ $match: { rating: { $gt: 0 } } }, { $group: { _id: null, avg: { $avg: '$rating' } } }]),
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        totalStudents,
+        totalMentors,
+        totalCourses,
+        totalCertificates,
+        totalEnrollments,
+        totalPayout: payoutAgg[0]?.total || 0,
+        avgRating: Number((ratingAgg[0]?.avg || 0).toFixed(1)),
+      },
+    });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // Health
 app.get('/health', (_, res) => res.json({ status: 'ok', service: 'TureLearnix API', version: '2.1' }));
 

@@ -1,5 +1,6 @@
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import MentorStats from './MentorStats'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import {
@@ -71,11 +72,11 @@ const subjects = [
   'Python / AI', 'E-Commerce', 'YouTube Growth',
 ]
 
-const stats = [
-  { value: '10K+', label: 'Active Learners' },
-  { value: '50+', label: 'Courses Live' },
-  { value: '₹50K+', label: 'Avg Mentor Earnings/mo' },
-  { value: '4.8★', label: 'Mentor Satisfaction' },
+const statSlots = [
+  { key: 'totalStudents', label: 'Active Learners' },
+  { key: 'totalCourses', label: 'Courses Live' },
+  { key: 'totalMentors', label: 'Expert Mentors' },
+  { key: 'avgRating', label: 'Platform Rating' },
 ]
 
 export default function BecomeMentorPage() {
@@ -120,14 +121,7 @@ export default function BecomeMentorPage() {
 
       {/* ── Stats ── */}
       <section className="max-w-5xl mx-auto px-4 pb-16">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {stats.map((s) => (
-            <div key={s.label} className="p-5 rounded-2xl bg-white/3 border border-white/5 text-center">
-              <p className="text-3xl font-black text-white mb-1">{s.value}</p>
-              <p className="text-gray-500 text-sm">{s.label}</p>
-            </div>
-          ))}
-        </div>
+        <MentorStats items={statSlots} />
       </section>
 
       {/* ── Perks ── */}

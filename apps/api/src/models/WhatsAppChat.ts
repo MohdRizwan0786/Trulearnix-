@@ -48,7 +48,6 @@ const WhatsAppChatSchema = new Schema<IWhatsAppChat>({
   assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
-WhatsAppChatSchema.index({ contactPhone: 1 });
 WhatsAppChatSchema.index({ lastMessageAt: -1 });
 WhatsAppChatSchema.index({ userId: 1 });
 WhatsAppChatSchema.index({ leadId: 1 });

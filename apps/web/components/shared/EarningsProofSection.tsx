@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { IndianRupee, Users, Star, ArrowRight, Zap, Crown, Flame, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import { type Affiliate } from '@/lib/affiliateData'
 
 const DEFAULT_STEPS = [
   { num: '01', title: 'Join & Learn',     desc: 'Enroll in any plan. Start your Pro or Elite membership.',                                       color: '#a78bfa' },
