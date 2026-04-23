@@ -113,7 +113,7 @@ function CaptureLeadForm() {
             <h2 className="text-white font-black text-lg mb-1">Get a Free Callback</h2>
             <p className="text-gray-500 text-xs mb-5">Fill in your details — we'll reach out within 24 hours</p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
               {/* Name */}
               <div>
                 <label className="text-gray-400 text-xs font-medium mb-1.5 block">Full Name *</label>
@@ -123,6 +123,10 @@ function CaptureLeadForm() {
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Your full name"
+                    autoComplete="off"
+                    data-form-type="other"
+                    data-lpignore="true"
+                    name="tlx_lead_name"
                     className="w-full bg-[#1a1a2e] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm transition-colors"
                   />
                 </div>
@@ -138,6 +142,10 @@ function CaptureLeadForm() {
                     onChange={e => setForm(f => ({ ...f, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
                     placeholder="10-digit mobile number"
                     inputMode="numeric"
+                    autoComplete="off"
+                    data-form-type="other"
+                    data-lpignore="true"
+                    name="tlx_lead_phone"
                     className="w-full bg-[#1a1a2e] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm transition-colors"
                   />
                 </div>
@@ -153,6 +161,10 @@ function CaptureLeadForm() {
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     placeholder="your@email.com"
                     type="email"
+                    autoComplete="new-password"
+                    data-form-type="other"
+                    data-lpignore="true"
+                    name="tlx_lead_email"
                     className="w-full bg-[#1a1a2e] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm transition-colors"
                   />
                 </div>
