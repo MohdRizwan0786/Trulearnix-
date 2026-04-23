@@ -12,7 +12,7 @@ interface User {
   wallet?: number;
   totalEarnings?: number;
   totalWithdrawn?: number;
-  packageTier?: 'free' | 'starter' | 'pro' | 'elite' | 'supreme';
+  packageTier?: string;
   isAffiliate?: boolean;
   affiliateCode?: string;
   commissionRate?: number;

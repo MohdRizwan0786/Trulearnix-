@@ -319,7 +319,7 @@ async function executeTool(name: string, args: any): Promise<string> {
         all_students: { role: 'student', isActive: true },
         purchased: { role: 'student', packageTier: { $nin: ['free', null] }, isActive: true },
         free: { role: 'student', $or: [{ packageTier: 'free' }, { packageTier: null }] },
-        all_paid_tiers: { packageTier: { $in: ['basic', 'starter', 'pro', 'proedge', 'elite', 'supreme'] }, isActive: true },
+        all_paid_tiers: { packageTier: { $nin: ['free', null, ''] }, isActive: true },
         mentors: { role: 'mentor', isActive: true },
         employees: { role: { $in: ['admin', 'employee', 'manager'] }, isActive: true },
         partners: { isAffiliate: true, isActive: true },

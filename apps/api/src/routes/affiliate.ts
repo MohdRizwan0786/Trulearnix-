@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import User, { COMMISSION_RATES, PACKAGE_PRICES, PackageTier } from '../models/User';
+import Package from '../models/Package';
 import Commission from '../models/Commission';
 import Transaction from '../models/Transaction';
 import Withdrawal from '../models/Withdrawal';
@@ -38,7 +39,9 @@ router.get('/stats', protect, async (req: any, res) => {
     ]);
 
     // Predictive: if user upgrades to next tier, how much more could they earn?
-    const tierOrder: PackageTier[] = ['starter', 'pro', 'elite', 'supreme'];
+    const paidPkgs = await Package.find({ isActive: true, tier: { $ne: 'free' } })
+      .sort({ displayOrder: 1, price: 1 }).select('tier').lean();
+    const tierOrder = paidPkgs.map(p => p.tier).filter(Boolean) as PackageTier[];
     const currentTierIdx = tierOrder.indexOf(user!.packageTier as PackageTier);
     const nextTier = tierOrder[currentTierIdx + 1];
     let upgradeSimulation = null;

@@ -795,7 +795,7 @@ export default function ReportsPage() {
 
   const report = REPORTS.find(r => r.id === active)!
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
-  const tiers = tierPackages.length > 0 ? tierPackages.map(p => p.tier) : ['free', 'starter', 'pro', 'elite', 'supreme']
+  const tiers = tierPackages.map((p: any) => p.tier).filter(Boolean)
   const depts = ['hr', 'sales', 'marketing', 'content', 'finance', 'operations', 'support', 'tech', 'general']
   const roles = ['admin', 'manager', 'employee', 'salesperson', 'department_head', 'team_lead']
 

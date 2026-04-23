@@ -340,17 +340,28 @@ export const getMyPackage = async (req: AuthRequest, res: Response) => {
 
 // GET /api/packages/commission-matrix — show the full commission matrix
 export const getCommissionMatrix = async (_req: any, res: Response) => {
-  const tiers = ['starter', 'pro', 'elite', 'supreme'];
-  const prices = { starter: 4999, pro: 9999, elite: 19999, supreme: 29999 };
-  const rates = { starter: 10, pro: 15, elite: 22, supreme: 30 };
+  const pkgs = await Package.find({ isActive: true, tier: { $ne: 'free' } })
+    .sort({ displayOrder: 1, price: 1 })
+    .select('tier price commissionRate commissionRateType')
+    .lean();
+
+  const tiers = pkgs.map(p => p.tier).filter(Boolean);
+  const prices: Record<string, number> = {};
+  const rates: Record<string, number> = {};
+  for (const p of pkgs) {
+    if (!p.tier) continue;
+    prices[p.tier] = p.price;
+    // Flat commission is converted to a 0% rate at the matrix level (handled per-sale elsewhere).
+    rates[p.tier] = p.commissionRateType === 'flat' ? 0 : (p.commissionRate || 0);
+  }
 
   const matrix = tiers.map(myTier => ({
     myTier,
-    myRate: rates[myTier as keyof typeof rates],
+    myRate: rates[myTier] || 0,
     earnings: tiers.map(saleTier => ({
       saleTier,
-      salePrice: prices[saleTier as keyof typeof prices],
-      l1Earn: Math.round(prices[saleTier as keyof typeof prices] * rates[myTier as keyof typeof rates] / 100),
+      salePrice: prices[saleTier] || 0,
+      l1Earn: Math.round((prices[saleTier] || 0) * (rates[myTier] || 0) / 100),
     }))
   }));
 

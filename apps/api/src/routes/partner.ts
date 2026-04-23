@@ -234,8 +234,11 @@ router.get('/earnings', protect, affiliateGuard, async (req: any, res) => {
       l3: byLevel.find((r: any) => r._id === 3)?.total || 0,
     };
 
-    // Convert byTier array to {tier: amount} object, normalizing tier name variants to slug
-    const TIER_SLUGS = ['supreme', 'elite', 'pro', 'starter'];
+    // Convert byTier array to {tier: amount} object, normalizing tier name variants to slug.
+    // Fetch tiers from Package collection so admin-added tiers work automatically.
+    // Sort by length desc so longer tiers (e.g. 'proedge') are matched before shorter substrings ('pro').
+    const allTiers = (await Package.distinct('tier', { isActive: true })).filter(Boolean) as string[];
+    const TIER_SLUGS = allTiers.map(t => t.toLowerCase()).sort((a, b) => b.length - a.length);
     const normalizeTierKey = (val: string) => {
       if (!val) return val;
       const lower = val.toLowerCase();
@@ -419,7 +422,7 @@ router.get('/referrals', protect, affiliateGuard, async (req: any, res) => {
       filter = { upline3: req.user._id };
     }
 
-    const PAID_TIERS = ['starter', 'pro', 'elite', 'supreme'];
+    const PAID_TIERS = (await Package.distinct('tier', { isActive: true, tier: { $ne: 'free' } })).filter(Boolean) as string[];
 
     const [refs, total] = await Promise.all([
       User.find(filter)
@@ -695,7 +698,7 @@ router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
       l1Paid,
       totalEarnings: user?.totalEarnings || 0,
       l1Count,
-      tierUpgrade: ['pro','elite','supreme'].includes(user?.packageTier || '') ? 999999 : 0,
+      tierUpgrade: ['pro','proedge','elite','supreme'].includes(user?.packageTier || '') ? 999999 : 0,
     };
 
     // Load from DB; fall back to hardcoded defaults if none exist
@@ -723,7 +726,7 @@ router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
         { id: 'earn_50k', title: '₹50,000 Club', description: 'Total earnings cross ₹50,000', icon: '🥇', reward: '₹2,000 Bonus + Certificate', rewardType: 'certificate', target: 50000, current: user?.totalEarnings || 0, unit: '₹ earned', achieved: (user?.totalEarnings || 0) >= 50000, badgeGradient: 'from-rose-500 to-pink-600', certificateEnabled: true },
         { id: 'earn_1l', title: 'Lakhpati Partner', description: 'Total earnings cross ₹1,00,000', icon: '👑', reward: 'Supreme Upgrade + Hall of Fame', rewardType: 'upgrade', target: 100000, current: user?.totalEarnings || 0, unit: '₹ earned', achieved: (user?.totalEarnings || 0) >= 100000, badgeGradient: 'from-yellow-400 to-amber-500', certificateEnabled: true },
         { id: 'team_25', title: 'Team Builder', description: 'Build a team of 25+ partners', icon: '👥', reward: 'Team Builder Trophy', rewardType: 'trophy', target: 25, current: l1Count, unit: 'L1 partners', achieved: l1Count >= 25, badgeGradient: 'from-cyan-500 to-blue-600', certificateEnabled: true },
-        { id: 'pro_tier', title: 'Pro Partner', description: 'Upgrade to Pro or higher tier', icon: '🚀', reward: 'Pro Exclusive Benefits', rewardType: 'upgrade', target: 1, current: ['pro','elite','supreme'].includes(user?.packageTier || '') ? 999999 : 0, unit: 'tier upgrade', achieved: ['pro','elite','supreme'].includes(user?.packageTier || ''), badgeGradient: 'from-indigo-500 to-violet-600', certificateEnabled: false },
+        { id: 'pro_tier', title: 'Pro Partner', description: 'Upgrade to Pro or higher tier', icon: '🚀', reward: 'Pro Exclusive Benefits', rewardType: 'upgrade', target: 1, current: ['pro','proedge','elite','supreme'].includes(user?.packageTier || '') ? 999999 : 0, unit: 'tier upgrade', achieved: ['pro','proedge','elite','supreme'].includes(user?.packageTier || ''), badgeGradient: 'from-indigo-500 to-violet-600', certificateEnabled: false },
       ];
     }
 
@@ -810,7 +813,7 @@ router.get('/achievements', protect, affiliateGuard, async (req: any, res) => {
         case 'earn_amount': earned = (user?.totalEarnings || 0) >= ach.triggerValue; break;
         case 'referrals': earned = l1Count >= ach.triggerValue; break;
         case 'paid_referrals': earned = l1Paid >= ach.triggerValue; break;
-        case 'tier': earned = ['pro','elite','supreme'].includes(user?.packageTier || ''); break;
+        case 'tier': earned = ['pro','proedge','elite','supreme'].includes(user?.packageTier || ''); break;
       }
       if (earned) toUnlock.push(ach._id.toString());
     }
