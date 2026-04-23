@@ -1,6 +1,13 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+process.on('unhandledRejection', (reason: any) => {
+  console.error('[UnhandledRejection]', reason?.message || reason);
+});
+process.on('uncaughtException', (err: Error) => {
+  console.error('[UncaughtException]', err.message, err.stack);
+});
+
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
