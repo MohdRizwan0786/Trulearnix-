@@ -209,19 +209,22 @@ export const login = async (req: Request, res: Response) => {
     if (!user.isVerified) return res.status(401).json({ success: false, message: 'Please verify your account first' });
     if (!user.isActive) return res.status(401).json({ success: false, message: 'Account suspended. Contact support.' });
 
-    user.lastLogin = new Date();
     const validTiers = ['free', 'starter', 'pro', 'elite', 'supreme'];
-    if (!validTiers.includes(user.packageTier)) user.packageTier = 'free' as any;
+    const packageTier = validTiers.includes(user.packageTier) ? user.packageTier : 'free';
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
-    user.refreshToken = refreshToken;
-    await user.save();
+    await User.findByIdAndUpdate(user._id, {
+      lastLogin: new Date(),
+      packageTier,
+      refreshToken,
+      $inc: { loginCount: 1 },
+    });
 
     res.json({
       success: true,
       accessToken,
       refreshToken,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, wallet: user.wallet, isAffiliate: user.isAffiliate, packageTier: user.packageTier, commissionRate: user.commissionRate, affiliateCode: user.affiliateCode, department: (user as any).department, permissions: (user as any).permissions || [] }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, wallet: user.wallet, isAffiliate: user.isAffiliate, packageTier, commissionRate: user.commissionRate, affiliateCode: user.affiliateCode, department: (user as any).department, permissions: (user as any).permissions || [] }
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -251,7 +254,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email?.toLowerCase().trim() });
     if (!user) return res.status(404).json({ success: false, message: 'No account with this email' });
 
     const otp = generateOTP();
@@ -265,7 +268,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     if (process.env.NODE_ENV !== 'production') r3._devOtp = otp;
     res.json(r3);
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Something went wrong. Please try again.' });
   }
 };
 
