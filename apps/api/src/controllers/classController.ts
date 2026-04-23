@@ -154,7 +154,7 @@ export const cancelClass = async (req: AuthRequest, res: Response) => {
 export const getPublicLiveClasses = async (_req: any, res: Response) => {
   try {
     const now = new Date();
-    const cutoff = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    const cutoff = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
     const classes = await LiveClass.find({
       status: { $in: ['live', 'scheduled'] },
       $or: [
