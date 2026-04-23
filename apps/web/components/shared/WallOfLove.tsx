@@ -205,6 +205,7 @@ export default function WallOfLove() {
   const [heading, setHeading] = useState('')
   const [subheading, setSubheading] = useState('')
   const [loaded, setLoaded] = useState(false)
+  const [stats, setStats] = useState<any>(null)
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/wall`)
@@ -223,7 +224,20 @@ export default function WallOfLove() {
       })
       .catch(() => {})
       .finally(() => setLoaded(true))
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/stats`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setStats(d.stats) })
+      .catch(() => {})
   }, [])
+
+  const fmtCount = (n: number) => n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+  const trustStrip = [
+    { emoji: '🎥', val: videos.length ? `${videos.length}+` : '—', label: 'Video Reviews',   color: '#ec4899' },
+    { emoji: '⭐', val: stats && stats.avgRating > 0 ? `${stats.avgRating.toFixed(1)}/5` : '—',  label: 'Avg Rating', color: '#fbbf24' },
+    { emoji: '👥', val: stats ? fmtCount(stats.totalStudents || 0) : '—', label: 'Happy Learners', color: '#34d399' },
+    { emoji: '📚', val: stats ? fmtCount(stats.totalCourses || 0) : '—', label: 'Courses Live', color: '#a78bfa' },
+  ]
 
   if (loaded && videos.length === 0) return null
 
@@ -296,12 +310,7 @@ export default function WallOfLove() {
         {/* Trust strip */}
         <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { emoji: '🎥', val: '2,400+', label: 'Video Reviews',   color: '#ec4899' },
-            { emoji: '⭐', val: '4.9/5',  label: 'Avg Rating',      color: '#fbbf24' },
-            { emoji: '✅', val: '100%',   label: 'Unsponsored',     color: '#34d399' },
-            { emoji: '🌍', val: '28+',    label: 'Cities Covered',  color: '#a78bfa' },
-          ].map((s, i) => (
+          {trustStrip.map((s, i) => (
             <motion.div key={i}
               initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }} transition={{ delay: i * 0.06 }}
