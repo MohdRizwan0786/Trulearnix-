@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
 import { CheckCircle2, Loader2, User, Phone, Mail, Sparkles, BookOpen, Award, TrendingUp, ArrowRight, Shield } from 'lucide-react'
@@ -12,6 +12,14 @@ function CaptureLeadForm() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Randomized per-render field-name suffix so browser-saved autofill entries
+  // keyed on fixed names can't match on revisit (shared-device scenario).
+  const fid = useMemo(() => Math.random().toString(36).slice(2, 10), [])
+
+  const handleStartFresh = () => {
+    try { localStorage.clear(); sessionStorage.clear() } catch {}
+    window.location.reload()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,8 +118,16 @@ function CaptureLeadForm() {
           {/* Form card */}
           <div className="relative overflow-hidden bg-[#13131f] border border-white/10 rounded-2xl p-5 sm:p-6">
             <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
-            <h2 className="text-white font-black text-lg mb-1">Get a Free Callback</h2>
-            <p className="text-gray-500 text-xs mb-5">Fill in your details — we'll reach out within 24 hours</p>
+            <div className="flex items-start justify-between gap-3 mb-5">
+              <div>
+                <h2 className="text-white font-black text-lg mb-1">Get a Free Callback</h2>
+                <p className="text-gray-500 text-xs">Fill in your details — we'll reach out within 24 hours</p>
+              </div>
+              <button type="button" onClick={handleStartFresh}
+                className="text-[11px] text-gray-500 hover:text-violet-400 underline decoration-dotted underline-offset-4 whitespace-nowrap mt-1">
+                Start fresh
+              </button>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
               {/* Name */}
@@ -126,7 +142,7 @@ function CaptureLeadForm() {
                     autoComplete="off"
                     data-form-type="other"
                     data-lpignore="true"
-                    name="tlx_lead_name"
+                    name={`tlx_n_${fid}`}
                     className="w-full bg-[#1a1a2e] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm transition-colors"
                   />
                 </div>
@@ -145,7 +161,7 @@ function CaptureLeadForm() {
                     autoComplete="off"
                     data-form-type="other"
                     data-lpignore="true"
-                    name="tlx_lead_phone"
+                    name={`tlx_p_${fid}`}
                     className="w-full bg-[#1a1a2e] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm transition-colors"
                   />
                 </div>
@@ -164,7 +180,7 @@ function CaptureLeadForm() {
                     autoComplete="new-password"
                     data-form-type="other"
                     data-lpignore="true"
-                    name="tlx_lead_email"
+                    name={`tlx_e_${fid}`}
                     className="w-full bg-[#1a1a2e] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm transition-colors"
                   />
                 </div>
