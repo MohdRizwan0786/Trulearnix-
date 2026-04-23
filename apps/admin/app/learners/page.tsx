@@ -298,10 +298,10 @@ function BrandDrawer({ learnerId, onClose, tierConfig }: { learnerId: string; on
                 <h3 className="font-bold text-white text-sm mb-2 flex items-center gap-2">
                   <Globe className="w-3.5 h-3.5 text-green-400" /> Portfolio URL
                 </h3>
-                <a href={`https://trulearnix.com/portfolio/${u.name.toLowerCase().replace(/\s+/g, '-')}`}
+                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://trulearnix.com'}/portfolio/${u.name.toLowerCase().replace(/\s+/g, '-')}`}
                   target="_blank" rel="noopener noreferrer"
                   className="text-sm text-green-400 hover:underline break-all">
-                  trulearnix.com/portfolio/{u.name.toLowerCase().replace(/\s+/g, '-')}
+                  {(process.env.NEXT_PUBLIC_WEB_URL || 'https://trulearnix.com').replace(/^https?:\/\//, '')}/portfolio/{u.name.toLowerCase().replace(/\s+/g, '-')}
                 </a>
               </div>
             )}

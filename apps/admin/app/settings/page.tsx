@@ -86,15 +86,15 @@ export default function SettingsPage() {
     } catch { toast.error('Failed to delete token') }
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://trulearnix.com'
+
   const copyLink = (token: string) => {
-    const link = `https://trulearnix.com/?early_access=${token}`
+    const link = `${siteUrl}/?early_access=${token}`
     navigator.clipboard.writeText(link).then(() => {
       setCopiedToken(token)
       setTimeout(() => setCopiedToken(null), 2000)
     })
   }
-
-  const siteUrl = 'https://trulearnix.com'
 
   if (loading) return (
     <AdminLayout>

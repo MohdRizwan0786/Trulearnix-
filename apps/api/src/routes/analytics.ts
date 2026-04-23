@@ -185,8 +185,8 @@ router.get('/unit-economics', async (_req, res) => {
     ]);
 
     const totalRevenue = totalPurchases[0]?.total || 0;
-    const purchaseCount = totalPurchases[0]?.count || 1;
-    const avgOrderValue = Math.round(totalRevenue / purchaseCount);
+    const purchaseCount = totalPurchases[0]?.count || 0;
+    const avgOrderValue = purchaseCount > 0 ? Math.round(totalRevenue / purchaseCount) : 0;
     const commissionPaid = commissions[0]?.total || 0;
 
     // Estimated CAC (platform runs ads — assume 20% of revenue)
