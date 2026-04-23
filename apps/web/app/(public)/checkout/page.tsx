@@ -135,6 +135,7 @@ function CheckoutInner() {
   const [couponStatus, setCouponStatus] = useState<'idle' | 'valid' | 'invalid'>('idle')
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponLoading, setCouponLoading] = useState(false)
+  const [couponErrorMsg, setCouponErrorMsg] = useState('')
 
   const [paying, setPaying] = useState(false)
 
@@ -221,10 +222,11 @@ function CheckoutInner() {
     setCouponLoading(true)
     try {
       const { data } = await checkoutAPI.validateCode({ code: couponCode, codeType: 'coupon', type: itemType, packageId: packageId || undefined, tier: tier || undefined, courseId, amount: basePrice })
-      setCouponStatus('valid'); setCouponDiscount(data?.discount || 0)
+      setCouponStatus('valid'); setCouponDiscount(data?.discount || 0); setCouponErrorMsg('')
       toast.success(data?.message || 'Coupon applied!')
-    } catch {
-      setCouponStatus('invalid'); setCouponDiscount(0)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Invalid or expired coupon'
+      setCouponStatus('invalid'); setCouponDiscount(0); setCouponErrorMsg(msg)
     } finally { setCouponLoading(false) }
   }, [couponCode, itemType, packageId, tier, courseId, basePrice])
 
@@ -413,9 +415,10 @@ function CheckoutInner() {
                 accentColor={tc.accentColor} loading={promoLoading}
                 successMsg={promoSuccessMsg} errorMsg={promoErrorMsg} />
               <CodeField label="Coupon Code (Optional)" icon={Ticket} placeholder="E.g. SAVE20"
-                value={couponCode} onChange={v => { setCouponCode(v); setCouponStatus('idle') }}
+                value={couponCode} onChange={v => { setCouponCode(v); setCouponStatus('idle'); setCouponErrorMsg('') }}
                 onValidate={handleCoupon} status={couponStatus}
-                accentColor={tc.accentColor} loading={couponLoading} />
+                accentColor={tc.accentColor} loading={couponLoading}
+                errorMsg={couponErrorMsg} />
             </div>
 
             {/* Payment mode */}
