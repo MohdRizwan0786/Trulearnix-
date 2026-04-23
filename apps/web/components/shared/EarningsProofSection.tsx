@@ -5,7 +5,7 @@ import { IndianRupee, Users, Star, ArrowRight, Zap, Crown, Flame, ChevronRight }
 import Link from 'next/link'
 
 const DEFAULT_STEPS = [
-  { num: '01', title: 'Join & Learn',     desc: 'Enroll in any plan. Start your Pro or Elite membership.',                                       color: '#a78bfa' },
+  { num: '01', title: 'Join & Learn',     desc: 'Enroll in any plan. Start your learning journey.',                                            color: '#a78bfa' },
   { num: '02', title: 'Share Your Link',  desc: 'Get your personal partner link. Share it with friends, family, and on social media.',             color: '#34d399' },
   { num: '03', title: 'Earn Every Month', desc: 'Help others learn skills — earn 10–25% income on every successful enrollment, every month.',     color: '#fbbf24' },
 ]

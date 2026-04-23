@@ -1,6 +1,7 @@
 'use client'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle } from '@/lib/usePackages'
 import { useEffect, useState } from 'react'
 import {
   TrendingDown, Users, ShoppingCart, CreditCard, Zap,
@@ -19,12 +20,6 @@ const STAGE_CFG: Record<string, { label: string; color: string; bg: string; text
   lost:            { label: 'Lost ✗',          color: 'bg-red-500',     bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30' },
 }
 
-const TIER_COLORS: Record<string, string> = {
-  elite: 'bg-amber-500',
-  pro: 'bg-violet-500',
-  basic: 'bg-blue-500',
-  free: 'bg-slate-500',
-}
 
 function fmt(n: number) {
   if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`
@@ -34,6 +29,7 @@ function fmt(n: number) {
 }
 
 export default function FunnelPage() {
+  const { packages } = usePackages()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -251,7 +247,7 @@ export default function FunnelPage() {
                     {(funnel.purchasesByTier || []).map((t: any) => {
                       const maxRev = Math.max(...(funnel.purchasesByTier || []).map((x: any) => x.revenue), 1)
                       const barW = Math.max(8, (t.revenue / maxRev) * 100)
-                      const color = TIER_COLORS[t._id] || 'bg-violet-500'
+                      const color = tierStyle(t._id, packages).chartBg
                       return (
                         <div key={t._id}>
                           <div className="flex items-center justify-between mb-1">

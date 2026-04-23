@@ -2,11 +2,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import AdminLayout from '@/components/AdminLayout'
 import { Search, UserCheck, ExternalLink, Star } from 'lucide-react'
 import { format } from 'date-fns'
 
 export default function TruLanceFreelancersPage() {
+  const { packages } = usePackages()
   const [search, setSearch] = useState('')
 
   const { data, isLoading } = useQuery({
@@ -100,15 +102,9 @@ export default function TruLanceFreelancersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize font-medium ${
-                        u.packageTier === 'basic'   ? 'bg-teal-500/15 text-teal-400'
-                        : u.packageTier === 'starter' ? 'bg-sky-500/15 text-sky-400'
-                        : u.packageTier === 'pro'     ? 'bg-violet-500/15 text-violet-400'
-                        : u.packageTier === 'proedge' ? 'bg-fuchsia-500/15 text-fuchsia-400'
-                        : u.packageTier === 'elite'   ? 'bg-amber-500/15 text-amber-400'
-                        : u.packageTier === 'supreme' ? 'bg-rose-500/15 text-rose-400'
-                        : 'bg-gray-500/15 text-gray-400'
-                      }`}>{u.packageTier || 'free'}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize font-medium ${tierStyle(u.packageTier, packages).chip}`}>
+                        {tierName(u.packageTier, packages)}
+                      </span>
                     </td>
                     <td className="px-4 py-4">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${u.isActive !== false ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>

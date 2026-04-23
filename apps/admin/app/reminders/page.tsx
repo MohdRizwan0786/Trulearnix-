@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
+import { usePackages } from '@/lib/usePackages'
 import toast from 'react-hot-toast'
 import { Plus, X, Bell, Clock, Send, Mail, Smartphone, Repeat, Trash2 } from 'lucide-react'
 
@@ -17,6 +18,7 @@ const empty = {
 }
 
 export default function RemindersPage() {
+  const { packages } = usePackages()
   const [reminders, setReminders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -130,10 +132,24 @@ export default function RemindersPage() {
                   </select>
                 </div>
               </div>
-              {form.targetType !== 'all' && (
-                <input value={form.targetValue} onChange={e => setForm((p: any) => ({ ...p, targetValue: e.target.value }))}
-                  placeholder={form.targetType === 'role' ? 'student / mentor' : 'starter / pro / elite / supreme'}
-                  className="w-full bg-slate-700 text-white rounded-xl px-4 py-2.5 text-sm border border-white/10 outline-none" />
+              {form.targetType === 'role' && (
+                <select value={form.targetValue} onChange={e => setForm((p: any) => ({ ...p, targetValue: e.target.value }))}
+                  className="w-full bg-slate-700 text-white rounded-xl px-3 py-2.5 text-sm border border-white/10 outline-none">
+                  <option value="">Select role…</option>
+                  <option value="student">Student</option>
+                  <option value="mentor">Mentor</option>
+                  <option value="manager">Manager</option>
+                  <option value="salesperson">Salesperson</option>
+                </select>
+              )}
+              {form.targetType === 'tier' && (
+                <select value={form.targetValue} onChange={e => setForm((p: any) => ({ ...p, targetValue: e.target.value }))}
+                  className="w-full bg-slate-700 text-white rounded-xl px-3 py-2.5 text-sm border border-white/10 outline-none">
+                  <option value="">Select tier…</option>
+                  {packages.map(p => (
+                    <option key={p._id} value={p.tier}>{p.name}</option>
+                  ))}
+                </select>
               )}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.isRecurring} onChange={e => setForm((p: any) => ({ ...p, isRecurring: e.target.checked }))} className="w-4 h-4 accent-violet-500" />

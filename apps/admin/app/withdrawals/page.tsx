@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import toast from 'react-hot-toast'
 import {
   ArrowDownToLine, Clock, CheckCircle, XCircle, RefreshCw,
@@ -24,21 +25,13 @@ const PAYMENT_STATUS_BADGE: Record<string, string> = {
   rejected:   'bg-rose-500/15 text-rose-400 border border-rose-500/30',
 }
 
-const TIER_BADGE: Record<string, string> = {
-  free:    'bg-slate-500/20 text-slate-400',
-  basic:   'bg-teal-500/20 text-teal-400',
-  starter: 'bg-blue-500/20 text-blue-400',
-  pro:     'bg-purple-500/20 text-purple-400',
-  proedge: 'bg-fuchsia-500/20 text-fuchsia-400',
-  elite:   'bg-amber-500/20 text-amber-400',
-  supreme: 'bg-rose-500/20 text-rose-400',
-}
 
 const fmt = (n: number) =>
   '₹' + (n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
 
 /* ─── Component ─────────────────────────────────────────────────────────── */
 export default function WithdrawalsPage() {
+  const { packages } = usePackages()
   const [withdrawals, setWithdrawals] = useState<any[]>([])
   const [loading, setLoading]         = useState(true)
   const [hrFilter, setHrFilter]       = useState('pending')
@@ -271,8 +264,8 @@ export default function WithdrawalsPage() {
                             {w.user?.name || 'Unknown Partner'}
                           </span>
                           {w.user?.packageTier && (
-                            <span className={`badge capitalize ${TIER_BADGE[w.user.packageTier] || TIER_BADGE.free}`}>
-                              {w.user.packageTier}
+                            <span className={`badge capitalize ${tierStyle(w.user.packageTier, packages).chip}`}>
+                              {tierName(w.user.packageTier, packages)}
                             </span>
                           )}
                         </div>
@@ -397,8 +390,8 @@ export default function WithdrawalsPage() {
                     <p className="text-slate-400 text-xs">{selected.user?.email}</p>
                   </div>
                   {selected.user?.packageTier && (
-                    <span className={`badge capitalize ml-auto ${TIER_BADGE[selected.user.packageTier] || TIER_BADGE.free}`}>
-                      {selected.user.packageTier}
+                    <span className={`badge capitalize ml-auto ${tierStyle(selected.user.packageTier, packages).chip}`}>
+                      {tierName(selected.user.packageTier, packages)}
                     </span>
                   )}
                 </div>

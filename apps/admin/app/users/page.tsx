@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import AdminLayout from '@/components/AdminLayout'
 import toast from 'react-hot-toast'
 import {
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react'
 import { format, isThisMonth } from 'date-fns'
 
-function PerfCell({ user, typeTab }: { user: any; typeTab: string }) {
+function PerfCell({ user, typeTab, allPackages }: { user: any; typeTab: string; allPackages: any[] }) {
   const p = user._perf || {}
   const fmt = (n: number) => new Intl.NumberFormat('en-IN').format(n || 0)
 
@@ -90,8 +91,11 @@ function PerfCell({ user, typeTab }: { user: any; typeTab: string }) {
     const base = roleWeight[user.role] ?? 40
     const days = user.createdAt ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / 86400000) : 0
     const recency = Math.max(0, 30 - Math.floor(days / 10))
-    const tierBonus: Record<string, number> = { supreme: 10, elite: 7, pro: 4, starter: 0 }
-    return Math.min(100, base + recency + (tierBonus[user.packageTier] ?? 0) + (user.isActive ? 5 : -20))
+    // Tier bonus scales with package price (higher package = more engagement bonus, max 10)
+    const pkg = user.packageTier ? allPackages.find(p => p.tier?.toLowerCase() === user.packageTier.toLowerCase()) : null
+    const maxPrice = Math.max(1, ...allPackages.map(p => p.price || 0))
+    const tierBonus = pkg ? Math.round((pkg.price / maxPrice) * 10) : 0
+    return Math.min(100, base + recency + tierBonus + (user.isActive ? 5 : -20))
   })()
   const col = score >= 80 ? 'bg-emerald-400' : score >= 60 ? 'bg-violet-400' : score >= 40 ? 'bg-amber-400' : 'bg-rose-400'
   const tcol = score >= 80 ? 'text-emerald-400' : score >= 60 ? 'text-violet-400' : score >= 40 ? 'text-amber-400' : 'text-rose-400'
@@ -128,17 +132,6 @@ const roleColor = (r: string) => {
   return map[r] || 'text-gray-400 bg-gray-500/20 border border-gray-500/30'
 }
 
-const tierColor = (t: string) => {
-  const map: Record<string, string> = {
-    basic:   'text-teal-400 bg-teal-500/20 border border-teal-500/30',
-    starter: 'text-sky-400 bg-sky-500/20 border border-sky-500/30',
-    pro:     'text-violet-400 bg-violet-500/20 border border-violet-500/30',
-    proedge: 'text-fuchsia-400 bg-fuchsia-500/20 border border-fuchsia-500/30',
-    elite:   'text-amber-400 bg-amber-500/20 border border-amber-500/30',
-    supreme: 'text-rose-400 bg-rose-500/20 border border-rose-500/30',
-  }
-  return map[t] || 'text-gray-400 bg-gray-500/20 border border-gray-500/30'
-}
 
 const avatarBg = (name: string) => {
   const colors = [
@@ -157,6 +150,7 @@ const avatarBg = (name: string) => {
 
 
 export default function UsersPage() {
+  const { packages: allPackages } = usePackages()
   const [typeTab, setTypeTab]   = useState('all')
   const [role, setRole]         = useState('')
   const [tier, setTier]         = useState('')
@@ -165,7 +159,7 @@ export default function UsersPage() {
   const [updatingId, setUpdatingId] = useState('')
   const [statusTab, setStatusTab]   = useState<'all' | 'active' | 'suspended'>('all')
   const [ieModal, setIeModal] = useState<any>(null) // user for industrial earning modal
-  const [ieForm, setIeForm] = useState({ industrialEarning: '', industrialEarningSource: '', grantPartnerAccess: false, packageTier: 'starter' })
+  const [ieForm, setIeForm] = useState({ industrialEarning: '', industrialEarningSource: '', grantPartnerAccess: false, packageTier: '' })
   const [ieSaving, setIeSaving] = useState(false)
 
   // Edit Profile Modal
@@ -283,7 +277,7 @@ export default function UsersPage() {
       industrialEarning: user.industrialEarning ? String(user.industrialEarning) : '',
       industrialEarningSource: user.industrialEarningSource || '',
       grantPartnerAccess: user.isAffiliate || false,
-      packageTier: user.packageTier !== 'free' ? user.packageTier : 'starter',
+      packageTier: user.packageTier && user.packageTier !== 'free' ? user.packageTier : (allPackages[0]?.tier || ''),
     })
     setIeModal(user)
   }
@@ -588,7 +582,7 @@ export default function UsersPage() {
                         <select
                           value={user.packageTier || ''}
                           onChange={e => changeTier(user._id, e.target.value)}
-                          className={`badge ${tierColor(user.packageTier)} capitalize cursor-pointer bg-transparent outline-none text-xs`}
+                          className={`badge ${tierStyle(user.packageTier, allPackages).chip} capitalize cursor-pointer bg-transparent outline-none text-xs`}
                         >
                           <option value="" className="bg-slate-800 text-white">None</option>
                           {(packagesData || []).map((p: any) => <option key={p.tier} value={p.tier} className="bg-slate-800 text-white">{p.name || tierLabel(p.tier)}</option>)}
@@ -614,7 +608,7 @@ export default function UsersPage() {
 
                       {/* Performance */}
                       <td className="px-4 py-3.5">
-                        <PerfCell user={user} typeTab={typeTab} />
+                        <PerfCell user={user} typeTab={typeTab} allPackages={allPackages} />
                       </td>
 
                       {/* Joined date */}

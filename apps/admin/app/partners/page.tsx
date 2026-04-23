@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import toast from 'react-hot-toast'
 import ReferralsModal from '@/components/ReferralsModal'
 import {
@@ -10,28 +11,10 @@ import {
   Phone, Star, Package, Activity, Award, UserPlus, Link2
 } from 'lucide-react'
 
-const TIER_COLOR: Record<string, string> = {
-  free:    'bg-gray-500/20 text-gray-400',
-  basic:   'bg-teal-500/20 text-teal-400',
-  starter: 'bg-blue-500/20 text-blue-400',
-  pro:     'bg-indigo-500/20 text-indigo-400',
-  proedge: 'bg-fuchsia-500/20 text-fuchsia-400',
-  elite:   'bg-violet-500/20 text-violet-400',
-  supreme: 'bg-yellow-500/20 text-yellow-400',
-  // Old website tier names
-  'TRU BOOSTER':          'bg-blue-500/20 text-blue-400',
-  'TRU STARTER':          'bg-indigo-500/20 text-indigo-400',
-  'TRU ADVANCE':          'bg-fuchsia-500/20 text-fuchsia-400',
-  'TRU PRO-EDGE':         'bg-violet-500/20 text-violet-400',
-  'TRU PREMIUM-INFINITY': 'bg-yellow-500/20 text-yellow-400',
-}
-const TIER_ICON: Record<string, string> = {
-  free: '🆓', basic: '🌱', starter: '⚡', pro: '🚀', proedge: '🔥', elite: '💎', supreme: '👑',
-  'TRU BOOSTER': '⚡', 'TRU STARTER': '🚀', 'TRU ADVANCE': '🔥', 'TRU PRO-EDGE': '💎', 'TRU PREMIUM-INFINITY': '👑',
-}
 const fmt = (n: number) => new Intl.NumberFormat('en-IN').format(n || 0)
 
 export default function PartnersPage() {
+  const { packages } = usePackages()
   const [tab, setTab] = useState<'partners' | 'managers'>('partners')
   const [partners, setPartners]       = useState<any[]>([])
   const [managers, setManagers]       = useState<any[]>([])
@@ -283,8 +266,8 @@ export default function PartnersPage() {
                           <p className="text-gray-500 text-xs font-mono">{p.affiliateCode}</p>
                         </div>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded-lg capitalize font-semibold flex items-center gap-1 ${TIER_COLOR[p.packageTier] || TIER_COLOR.free}`}>
-                        {TIER_ICON[p.packageTier]} {pkgList.find((pkg: any) => pkg.tier?.toLowerCase() === p.packageTier?.toLowerCase())?.name || p.packageTier}
+                      <span className={`text-xs px-2 py-1 rounded-lg capitalize font-semibold flex items-center gap-1 ${tierStyle(p.packageTier, packages).chip}`}>
+                        {tierName(p.packageTier, packages)}
                       </span>
                     </div>
 

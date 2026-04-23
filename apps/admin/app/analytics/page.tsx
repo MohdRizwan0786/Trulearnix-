@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle } from '@/lib/usePackages'
 import AdminLayout from '@/components/AdminLayout'
 import {
   TrendingUp, Users, IndianRupee, ShoppingCart, Target,
@@ -106,12 +107,9 @@ const PERIODS = [
   { label: 'Custom', value: 'custom' },
 ]
 
-const TIER_COLORS: Record<string, string> = {
-  elite: 'bg-amber-500', pro: 'bg-violet-500', basic: 'bg-blue-500',
-  free: 'bg-slate-500', silver: 'bg-slate-400', gold: 'bg-yellow-500',
-}
 
 export default function AnalyticsPage() {
+  const { packages } = usePackages()
   const [period, setPeriod] = useState('30d')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
@@ -322,7 +320,7 @@ export default function AnalyticsPage() {
                   <div className="space-y-3">
                     {breakdown.revByTier.map((t: any) => {
                       const pct = Math.round((t.revenue / maxTierRev) * 100)
-                      const color = TIER_COLORS[t._id] || 'bg-violet-500'
+                      const color = tierStyle(t._id, packages).chartBg
                       return (
                         <div key={t._id}>
                           <div className="flex items-center justify-between mb-1">
@@ -353,7 +351,7 @@ export default function AnalyticsPage() {
                       const maxU = Math.max(...breakdown.usersByTier.map((t: any) => t.count), 1)
                       return breakdown.usersByTier.map((t: any) => {
                         const pct = Math.round((t.count / maxU) * 100)
-                        const color = TIER_COLORS[t._id] || 'bg-blue-500'
+                        const color = tierStyle(t._id, packages).chartBg
                         return (
                           <div key={t._id}>
                             <div className="flex items-center justify-between mb-1">
