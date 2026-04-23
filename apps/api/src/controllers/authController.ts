@@ -204,8 +204,24 @@ export const login = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
+    // Imported users (from old website) ka password null hota hai — auto-send reset OTP
     if (!user.password) {
-      return res.status(401).json({ success: false, message: 'Password not set. Please use Forgot Password to set your password.' });
+      const otp = generateOTP();
+      try { await redisClient.setEx(`reset:${user._id}`, 600, otp); } catch {}
+      const waMsg = `🔐 TruLearnix Password Setup OTP: *${otp}*\n\nValid for 10 minutes.`;
+      const [waOk, emailOk] = await Promise.all([
+        sendWhatsAppText(user.phone, waMsg).catch(() => false),
+        sendPasswordResetEmail(user.email, otp, user.name).then(() => true).catch((e) => { console.error('[login-reset-email]', e.message); return false; }),
+      ]);
+      if (!waOk && !emailOk) {
+        return res.status(503).json({ success: false, message: 'Password setup OTP bhej nahi paaye. Kripya thodi der baad try karein ya support se contact karein.' });
+      }
+      return res.status(200).json({
+        success: true,
+        needsPasswordSetup: true,
+        userId: user._id,
+        message: 'Aapka account purani website se migrate hua hai. Password setup ke liye OTP aapke email' + (waOk ? ' aur WhatsApp' : '') + ' par bhej diya hai.',
+      });
     }
     if (!(await user.comparePassword(password))) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -259,19 +275,42 @@ export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email: email?.toLowerCase().trim() });
-    if (!user) return res.status(404).json({ success: false, message: 'No account with this email' });
+    if (!user) return res.status(404).json({ success: false, message: 'Is email se koi account nahi mila' });
 
     const otp = generateOTP();
-    await redisClient.setEx(`reset:${user._id}`, 600, otp);
+    try {
+      await redisClient.setEx(`reset:${user._id}`, 600, otp);
+    } catch (e: any) {
+      console.error('[forgot-password] redis failure:', e.message);
+      return res.status(503).json({ success: false, message: 'Service temporarily unavailable. Kripya thodi der baad try karein.' });
+    }
 
     const waMsg = `🔐 TruLearnix Password Reset OTP: *${otp}*\n\nValid for 10 minutes. If you didn't request this, ignore this message.`;
-    try { await sendWhatsAppText(user.phone, waMsg); } catch {}
-    try { await sendPasswordResetEmail(user.email, otp, user.name); } catch {}
+    const [waOk, emailOk] = await Promise.all([
+      sendWhatsAppText(user.phone, waMsg).catch((e: any) => { console.error('[forgot-password-wa]', e?.message); return false; }),
+      sendPasswordResetEmail(user.email, otp, user.name).then(() => true).catch((e: any) => { console.error('[forgot-password-email]', e?.message); return false; }),
+    ]);
 
-    const r3: any = { success: true, message: 'Password reset OTP sent to your email and WhatsApp', userId: user._id };
+    if (!waOk && !emailOk) {
+      // Clean up OTP since we could not deliver it
+      try { await redisClient.del(`reset:${user._id}`); } catch {}
+      return res.status(502).json({
+        success: false,
+        message: 'OTP aapke email/WhatsApp pe nahi bhej paaye. Kripya support se contact karein ya thodi der baad try karein.',
+      });
+    }
+
+    const channels = [emailOk ? 'email' : null, waOk ? 'WhatsApp' : null].filter(Boolean).join(' aur ');
+    const r3: any = {
+      success: true,
+      message: `Password reset OTP aapke ${channels} par bhej diya hai (10 min valid).`,
+      userId: user._id,
+      deliveredVia: { email: emailOk, whatsapp: waOk },
+    };
     if (process.env.NODE_ENV !== 'production') r3._devOtp = otp;
     res.json(r3);
   } catch (error: any) {
+    console.error('[forgot-password]', error);
     res.status(500).json({ success: false, message: error.message || 'Something went wrong. Please try again.' });
   }
 };

@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { BookOpen, Mail, ArrowLeft, Loader2, CheckCircle2, KeyRound, Eye, EyeOff } from 'lucide-react'
 import Logo from '@/components/ui/Logo'
 import { authAPI } from '@/lib/api'
@@ -11,6 +11,7 @@ type Step = 'email' | 'otp' | 'newpass' | 'done'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [step, setStep] = useState<Step>('email')
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
@@ -19,15 +20,18 @@ export default function ForgotPasswordPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const autoTriggered = useRef(false)
 
-  const handleSendOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) return toast.error('Email required')
+  const sendOTP = async (targetEmail: string) => {
     setLoading(true)
     try {
-      const res = await authAPI.forgotPassword({ email })
+      const res = await authAPI.forgotPassword({ email: targetEmail })
       setUserId(res.data.userId)
-      toast.success('OTP sent to your email!')
+      const channels = res.data?.deliveredVia
+      if (channels?.email && channels?.whatsapp) toast.success('OTP email aur WhatsApp dono par bhej diya!')
+      else if (channels?.email) toast.success('OTP aapke email par bhej diya!')
+      else if (channels?.whatsapp) toast.success('OTP aapke WhatsApp par bhej diya!')
+      else toast.success(res.data?.message || 'OTP sent!')
       setStep('otp')
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Could not send OTP')
@@ -35,6 +39,23 @@ export default function ForgotPasswordPage() {
       setLoading(false)
     }
   }
+
+  const handleSendOTP = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email) return toast.error('Email required')
+    await sendOTP(email)
+  }
+
+  // If redirected from login with ?email=&setup=1, auto-send OTP
+  useEffect(() => {
+    const qEmail = searchParams.get('email')
+    const setup = searchParams.get('setup')
+    if (qEmail && setup === '1' && !autoTriggered.current) {
+      autoTriggered.current = true
+      setEmail(qEmail)
+      sendOTP(qEmail)
+    }
+  }, [searchParams])
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault()
