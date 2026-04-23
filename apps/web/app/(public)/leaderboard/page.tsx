@@ -7,7 +7,8 @@ export const metadata = {
 
 async function fetchLeaderboard() {
   try {
-    const res = await fetch('http://localhost:5000/api/affiliate/leaderboard', { next: { revalidate: 300 } })
+    const base = process.env.INTERNAL_API_URL || 'http://localhost:5000'
+    const res = await fetch(`${base}/api/affiliate/leaderboard`, { next: { revalidate: 300 } })
     const data = await res.json()
     return data.leaderboard || []
   } catch {

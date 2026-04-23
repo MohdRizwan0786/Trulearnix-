@@ -499,10 +499,13 @@ router.post('/verify', protect, async (req: any, res) => {
       const tier = purchase.packageTier as any;
 
       // ── CRITICAL: grant package access ───────────────────────────────────
+      // Prefer live admin-configured rate from the Package doc
+      const liveRate = (pkg && typeof pkg.commissionRate === 'number') ? pkg.commissionRate : null;
+      const fallbackRate = COMMISSION_RATES[tier as keyof typeof COMMISSION_RATES] ?? 10;
       await User.findByIdAndUpdate(req.user._id, {
         packageTier: tier,
         isAffiliate: true,
-        commissionRate: COMMISSION_RATES[tier as keyof typeof COMMISSION_RATES] || 10,
+        commissionRate: liveRate ?? fallbackRate,
         packagePurchasedAt: new Date(),
         packageSuspended: false,
         $inc: { xpPoints: 500 },

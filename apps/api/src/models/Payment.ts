@@ -29,4 +29,9 @@ const PaymentSchema = new Schema<IPayment>({
   affiliateCommission: Number
 }, { timestamps: true });
 
+PaymentSchema.index({ status: 1, createdAt: -1 });
+PaymentSchema.index({ user: 1, createdAt: -1 });
+PaymentSchema.index({ affiliateUser: 1 });
+PaymentSchema.index({ course: 1 });
+
 export default mongoose.model<IPayment>('Payment', PaymentSchema);
