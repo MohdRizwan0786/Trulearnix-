@@ -48,8 +48,16 @@ const seedPackages = async () => {
 
 export const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI as string);
+    const conn = await mongoose.connect(process.env.MONGODB_URI as string, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 20,
+    });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+
+    mongoose.connection.on('error', (err) => console.error('MongoDB error:', err));
+    mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected — Mongoose will auto-reconnect'));
+
     await seedPackages();
   } catch (error) {
     console.error('MongoDB connection error:', error);
