@@ -9,9 +9,9 @@ const DEFAULT: any = {
   headingLine2: 'into Excellence.',
   heroDesc: "India's most practical digital skills platform. We don't just teach — we transform learners into earners.",
   heroStats: [
-    { n: '10K+', l: 'Learners' },
-    { n: '50+', l: 'Courses' },
-    { n: '95%', l: 'Success Rate' },
+    { n: '—', l: 'Learners' },
+    { n: '—', l: 'Courses' },
+    { n: '—', l: 'Mentors' },
     { n: '3', l: 'Earning Paths' },
   ],
   storyBadge: 'Our Story',
@@ -87,10 +87,36 @@ export default function AboutPage() {
   const [d, setD] = useState(DEFAULT)
 
   useEffect(() => {
+    let cmsHeroStats = false
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/about`)
       .then(r => r.json())
-      .then(res => { if (res.success && res.data) setD((prev: any) => ({ ...prev, ...res.data })) })
+      .then(res => {
+        if (res.success && res.data) {
+          if (Array.isArray(res.data.heroStats) && res.data.heroStats.length) cmsHeroStats = true
+          setD((prev: any) => ({ ...prev, ...res.data }))
+        }
+      })
       .catch(() => {})
+      .finally(() => {
+        if (cmsHeroStats) return
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/stats`)
+          .then(r => r.json())
+          .then(res => {
+            if (!res.success) return
+            const s = res.stats
+            const fmt = (n: number) => n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+            setD((prev: any) => ({
+              ...prev,
+              heroStats: [
+                { n: fmt(s.totalStudents || 0), l: 'Learners' },
+                { n: fmt(s.totalCourses || 0),  l: 'Courses' },
+                { n: fmt(s.totalMentors || 0),  l: 'Mentors' },
+                { n: '3', l: 'Earning Paths' },
+              ],
+            }))
+          })
+          .catch(() => {})
+      })
   }, [])
 
   return (

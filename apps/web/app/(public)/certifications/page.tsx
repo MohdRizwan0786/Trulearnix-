@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Award, CheckCircle, Shield, Star, Zap, ArrowRight, FileText, Globe, TrendingUp, Users } from 'lucide-react'
 import Link from 'next/link'
@@ -66,6 +66,21 @@ const FEATURES = [
 
 export default function CertificationsPage() {
   const [hovered, setHovered] = useState<number | null>(null)
+  const [stats, setStats] = useState<any>(null)
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/stats`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setStats(d.stats) })
+      .catch(() => {})
+  }, [])
+
+  const fmtCount = (n: number) => n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+  const certStats = [
+    { val: stats ? fmtCount(stats.totalCertificates || 0) : '—', label: 'Certificates Issued', icon: Award },
+    { val: stats && stats.avgRating > 0 ? `${stats.avgRating.toFixed(1)}★` : '—', label: 'Avg Learner Rating', icon: Star },
+    { val: stats ? fmtCount(stats.totalCourses || 0) : '—', label: 'Certified Courses', icon: Users },
+  ]
 
   return (
     <>
@@ -202,11 +217,7 @@ export default function CertificationsPage() {
         <section className="pb-16 px-4">
           <div className="max-w-4xl mx-auto">
             <div className="grid grid-cols-3 gap-4 sm:gap-8 text-center">
-              {[
-                { val: '10K+', label: 'Certificates Issued', icon: Award },
-                { val: '4.9★', label: 'Avg Learner Rating', icon: Star },
-                { val: '50+', label: 'Partner Employers', icon: Users },
-              ].map((s, i) => (
+              {certStats.map((s, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.08 }} viewport={{ once: true }}>
                   <div className="text-2xl sm:text-3xl font-black text-white mb-1">{s.val}</div>
