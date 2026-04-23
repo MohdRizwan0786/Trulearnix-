@@ -1,19 +1,16 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { adminAPI } from '@/lib/api'
+import { usePackages } from '@/lib/usePackages'
 import AdminLayout from '@/components/AdminLayout'
 import toast from 'react-hot-toast'
 import { Bell, Send, Users, Megaphone } from 'lucide-react'
 
-const AUDIENCES = [
+const BASE_AUDIENCES = [
   { value: 'all', label: 'All Users' },
   { value: 'students', label: 'Students Only' },
   { value: 'mentors', label: 'Mentors Only' },
   { value: 'affiliates', label: 'Partners' },
-  { value: 'starter', label: 'Starter Tier' },
-  { value: 'pro', label: 'Pro Tier' },
-  { value: 'elite', label: 'Elite Tier' },
-  { value: 'supreme', label: 'Supreme Tier' },
 ]
 
 const TEMPLATES = [
@@ -24,6 +21,12 @@ const TEMPLATES = [
 ]
 
 export default function NotificationsPage() {
+  const { packages } = usePackages()
+  const AUDIENCES = useMemo(() => [
+    ...BASE_AUDIENCES,
+    ...packages.map(p => ({ value: p.tier, label: `${p.name} Tier` })),
+  ], [packages])
+
   const [form, setForm] = useState({ title: '', message: '', audience: 'all', type: 'general', link: '' })
   const [sending, setSending] = useState(false)
   const [history, setHistory] = useState<any[]>([])

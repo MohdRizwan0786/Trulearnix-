@@ -106,7 +106,6 @@ function PerfCell({ user, typeTab }: { user: any; typeTab: string }) {
 }
 
 const ROLES = ['superadmin', 'admin', 'manager', 'mentor', 'student', 'salesperson']
-const TIERS = ['basic', 'starter', 'pro', 'proedge', 'elite', 'supreme']
 
 const TYPE_TABS = [
   { key: 'all',       label: 'All Users',        icon: Users,        color: 'text-violet-400', bg: 'bg-violet-500/15 border-violet-500/30', roleFilter: undefined,    affiliateFilter: undefined },
@@ -494,7 +493,7 @@ export default function UsersPage() {
               className="search-input capitalize text-sm cursor-pointer"
             >
               <option value="">All Tiers</option>
-              {TIERS.map(t => <option key={t} value={t}>{tierLabel(t)}</option>)}
+              {(packagesData || []).map((p: any) => <option key={p.tier} value={p.tier}>{p.name || tierLabel(p.tier)}</option>)}
             </select>
           </div>
         </div>
@@ -592,7 +591,7 @@ export default function UsersPage() {
                           className={`badge ${tierColor(user.packageTier)} capitalize cursor-pointer bg-transparent outline-none text-xs`}
                         >
                           <option value="" className="bg-slate-800 text-white">None</option>
-                          {TIERS.map(t => <option key={t} value={t} className="bg-slate-800 text-white">{tierLabel(t)}</option>)}
+                          {(packagesData || []).map((p: any) => <option key={p.tier} value={p.tier} className="bg-slate-800 text-white">{p.name || tierLabel(p.tier)}</option>)}
                         </select>
                       </td>
 
@@ -885,7 +884,7 @@ export default function UsersPage() {
                     onChange={e => setIeForm(f => ({ ...f, packageTier: e.target.value }))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 text-sm appearance-none"
                   >
-                    {TIERS.map(t => <option key={t} value={t}>{tierLabel(t)}</option>)}
+                    {(packagesData || []).map((p: any) => <option key={p.tier} value={p.tier}>{p.name || tierLabel(p.tier)}</option>)}
                   </select>
                 </div>
               )}
