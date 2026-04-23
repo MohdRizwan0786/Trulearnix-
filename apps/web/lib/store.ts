@@ -86,3 +86,10 @@ export const useAuthStore = create<AuthStore>()(
     }
   )
 );
+
+// Hydrate from localStorage as soon as this module is loaded in the browser.
+// skipHydration:true prevents SSR mismatch but requires an explicit rehydrate call —
+// without this, the store stays empty after every page refresh, causing immediate logout.
+if (typeof window !== 'undefined') {
+  useAuthStore.persist.rehydrate();
+}
