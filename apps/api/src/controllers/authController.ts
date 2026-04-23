@@ -53,7 +53,7 @@ export const register = async (req: Request, res: Response) => {
     if (process.env.NODE_ENV !== 'production') response._devOtp = otp;
     res.status(201).json(response);
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Something went wrong. Please try again.' });
   }
 };
 
@@ -129,8 +129,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
       const accessToken = generateAccessToken(user.id);
       const refreshToken = generateRefreshToken(user.id);
-      user.refreshToken = refreshToken;
-      await user.save();
+      await User.findByIdAndUpdate(user._id, { refreshToken });
 
       return res.json({
         success: true,
@@ -147,8 +146,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
-    user.refreshToken = refreshToken;
-    await user.save();
+    await User.findByIdAndUpdate(user._id, { refreshToken });
 
     res.json({
       success: true,
@@ -158,7 +156,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
       user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, wallet: user.wallet, isAffiliate: user.isAffiliate, packageTier: user.packageTier, commissionRate: user.commissionRate, affiliateCode: user.affiliateCode },
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Something went wrong. Please try again.' });
   }
 };
 
@@ -193,7 +191,7 @@ export const resendOTP = async (req: Request, res: Response) => {
     if (process.env.NODE_ENV !== 'production') r2._devOtp = otp;
     res.json(r2);
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Something went wrong. Please try again.' });
   }
 };
 
@@ -227,7 +225,7 @@ export const login = async (req: Request, res: Response) => {
       user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, wallet: user.wallet, isAffiliate: user.isAffiliate, packageTier, commissionRate: user.commissionRate, affiliateCode: user.affiliateCode, department: (user as any).department, permissions: (user as any).permissions || [] }
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Something went wrong. Please try again.' });
   }
 };
 
@@ -295,7 +293,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     res.json({ success: true, message: 'Password reset successful' });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Something went wrong. Please try again.' });
   }
 };
 
@@ -305,6 +303,6 @@ export const logout = async (req: any, res: Response) => {
     await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } });
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Something went wrong. Please try again.' });
   }
 };
