@@ -28,9 +28,9 @@ const DEFAULT_SIDEBAR_EXTRAS = [
 ]
 
 const DEFAULT_SIDEBAR_STATS = [
-  { val: '50K+', label: 'Students',  color: 'text-violet-400' },
-  { val: '4.9★', label: 'Rating',   color: 'text-amber-400'  },
-  { val: '₹2Cr+', label: 'Paid Out', color: 'text-green-400'  },
+  { val: '—', label: 'Students',  color: 'text-violet-400' },
+  { val: '—', label: 'Rating',   color: 'text-amber-400'  },
+  { val: '—', label: 'Paid Out', color: 'text-green-400'  },
 ]
 
 const ICON_MAP: Record<string, any> = {
