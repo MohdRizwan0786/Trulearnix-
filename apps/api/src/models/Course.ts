@@ -58,7 +58,7 @@ export interface ICourse extends Document {
   enrolledCount: number;
   rating: number;
   ratingCount: number;
-  reviews: { user: mongoose.Types.ObjectId; rating: number; comment: string; createdAt: Date }[];
+  reviews: { user?: mongoose.Types.ObjectId; name?: string; avatar?: string; rating: number; comment: string; createdAt: Date }[];
   certificate: boolean;
   passingScore: number;
   batchSettings: IBatchSettings;
@@ -122,6 +122,8 @@ const CourseSchema = new Schema<ICourse>({
   ratingCount: { type: Number, default: 0 },
   reviews: [{
     user: { type: Schema.Types.ObjectId, ref: 'User' },
+    name: String,
+    avatar: String,
     rating: { type: Number, min: 1, max: 5 },
     comment: String,
     createdAt: { type: Date, default: Date.now }
