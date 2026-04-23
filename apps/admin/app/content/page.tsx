@@ -2011,7 +2011,7 @@ function MovementTab() {
   const [subheading, setSubheading] = useState('Learn skills, earn income, and grow a community around you.')
   const [sectionHeading, setSectionHeading] = useState('How Earning Works')
   const [steps, setSteps] = useState([
-    { num: '01', title: 'Join & Learn',     desc: 'Enroll in any plan. Start your Pro or Elite membership.' },
+    { num: '01', title: 'Join & Learn',     desc: 'Enroll in any plan. Start your learning journey.' },
     { num: '02', title: 'Share Your Link',  desc: 'Get your personal partner link. Share it with friends, family, and on social media.' },
     { num: '03', title: 'Earn Every Month', desc: 'Help others learn skills — earn 10–25% income on every successful enrollment, every month.' },
   ])

@@ -13,15 +13,6 @@ const GRADIENTS = [
 ]
 const RESULT_COLORS = ['#34d399','#fbbf24','#a78bfa','#34d399','#fb923c','#38bdf8']
 
-const DEFAULT_VIDEOS = [
-  { id: 1, name: 'Priya Mehta',  role: 'Full Stack Dev',  company: 'Infosys',     result: 'Got placed in 6 weeks',    quote: 'I went from zero to getting a job at Infosys in just 6 weeks. The live classes felt like real college!',           duration: '1:42', videoId: 'dQw4w9WgXcQ', avatarUrl: '', videoUrl: '' },
-  { id: 2, name: 'Rahul Singh',  role: 'Skill Partner',   company: 'Self-Employed',result: '₹1.2L last month',        quote: 'I earn more through skill partnerships than my old 9-to-5 job. This platform is absolutely insane and life-changing!',duration: '0:58', videoId: 'dQw4w9WgXcQ', avatarUrl: '', videoUrl: '' },
-  { id: 3, name: 'Ananya Verma', role: 'Data Scientist',  company: 'Amazon',       result: '40% salary hike',          quote: 'The AI certificate is legit — Amazon HR specifically asked about TruLearnix. That was my moment!',                  duration: '1:15', videoId: 'dQw4w9WgXcQ', avatarUrl: '', videoUrl: '' },
-  { id: 4, name: 'Karan Patel',  role: 'Freelancer',      company: 'Toptal',       result: '₹50K/month freelancing',   quote: 'Live classes gave me the confidence to charge premium rates to international clients. Best investment ever.',          duration: '2:03', videoId: 'dQw4w9WgXcQ', avatarUrl: '', videoUrl: '' },
-  { id: 5, name: 'Sneha Joshi',  role: 'UI/UX Designer',  company: 'Razorpay',     result: 'Dream job at Razorpay',    quote: 'The portfolio projects from TruLearnix bootcamp got me directly shortlisted at Razorpay. No other platform does this.', duration: '1:28', videoId: 'dQw4w9WgXcQ', avatarUrl: '', videoUrl: '' },
-  { id: 6, name: 'Vikram Nair',  role: 'Cloud Engineer',  company: 'AWS Partner',  result: 'AWS certified in 30 days', quote: 'Structured path plus live doubt sessions — I got AWS certified in a single month. That still blows my mind!',           duration: '1:10', videoId: 'dQw4w9WgXcQ', avatarUrl: '', videoUrl: '' },
-]
-
 function enrichVideo(v: any, i: number) {
   const initials = v.name.split(' ').map((p: string) => p[0]).slice(0,2).join('')
   return { ...v, gradient: GRADIENTS[i % GRADIENTS.length], resultColor: RESULT_COLORS[i % RESULT_COLORS.length], avatar: initials || v.name.slice(0,2).toUpperCase() }

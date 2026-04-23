@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import toast from 'react-hot-toast'
 import {
   ShieldCheck, ShieldAlert, Clock, CheckCircle, XCircle, Search,
@@ -18,12 +19,6 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
 }
 const getStatus = (s: string) => STATUS_CFG[s] || STATUS_CFG.pending
 
-const TIER_BADGE: Record<string, string> = {
-  free: 'bg-gray-500/20 text-gray-400', basic: 'bg-teal-500/20 text-teal-400',
-  starter: 'bg-blue-500/20 text-blue-400', pro: 'bg-purple-500/20 text-purple-400',
-  proedge: 'bg-fuchsia-500/20 text-fuchsia-400', elite: 'bg-amber-500/20 text-amber-400',
-  supreme: 'bg-rose-500/20 text-rose-400',
-}
 
 function PhotoViewer({ url, label }: { url?: string; label: string }) {
   const [open, setOpen] = useState(false)
@@ -59,6 +54,7 @@ function PhotoViewer({ url, label }: { url?: string; label: string }) {
 }
 
 export default function KYCReviewPage() {
+  const { packages } = usePackages()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('submitted')
@@ -169,8 +165,8 @@ export default function KYCReviewPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-white font-bold text-sm">{u.name}</p>
                         {u.packageTier && (
-                          <span className={`text-[10px] font-semibold px-1.5 py-px rounded-full ${TIER_BADGE[u.packageTier] || TIER_BADGE.free}`}>
-                            {u.packageTier}
+                          <span className={`text-[10px] font-semibold px-1.5 py-px rounded-full ${tierStyle(u.packageTier, packages).chip}`}>
+                            {tierName(u.packageTier, packages)}
                           </span>
                         )}
                       </div>

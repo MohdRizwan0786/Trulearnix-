@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
+import { tierStyle } from '@/lib/usePackages'
 import AdminLayout from '@/components/AdminLayout'
 import toast from 'react-hot-toast'
 import {
@@ -10,38 +11,7 @@ import {
   TrendingUp, IndianRupee, Info, Video, Link, Calendar, Trash2, CheckCircle2
 } from 'lucide-react'
 
-const TIER_COLORS: Record<string, string> = {
-  basic:   'from-teal-500/20 to-teal-600/10 border-teal-500/30',
-  starter: 'from-sky-500/20 to-sky-600/10 border-sky-500/30',
-  pro: 'from-violet-500/20 to-violet-600/10 border-violet-500/30',
-  proedge: 'from-fuchsia-500/20 to-fuchsia-600/10 border-fuchsia-500/30',
-  elite: 'from-amber-500/20 to-amber-600/10 border-amber-500/30',
-  supreme: 'from-rose-500/20 to-rose-600/10 border-rose-500/30',
-}
-const TIER_ACCENT: Record<string, string> = {
-  basic:   'text-teal-400',
-  starter: 'text-sky-400',
-  pro: 'text-violet-400',
-  proedge: 'text-fuchsia-400',
-  elite: 'text-amber-400',
-  supreme: 'text-rose-400',
-}
-const TIER_BORDER: Record<string, string> = {
-  basic:   'border-teal-500/50',
-  starter: 'border-sky-500/50',
-  pro: 'border-violet-500/50',
-  proedge: 'border-fuchsia-500/50',
-  elite: 'border-amber-500/50',
-  supreme: 'border-rose-500/50',
-}
-const TIER_ICON: Record<string, any> = {
-  basic:   Zap,
-  starter: Zap,
-  pro: Star,
-  proedge: Star,
-  elite: TrendingUp,
-  supreme: Shield,
-}
+const TIER_ICONS = [Zap, Star, TrendingUp, Shield, Package, BookOpen]
 
 const TABS = [
   { id: 'packages', label: 'Packages', icon: Package },
@@ -50,8 +20,6 @@ const TABS = [
   { id: 'referral', label: 'Course Referral', icon: BookOpen },
   { id: 'resources', label: 'Partner Resources', icon: Link },
 ]
-
-const EARNER_TIERS = ['starter', 'pro', 'elite', 'supreme'] as const
 
 const makePartnerEarnings = (pkgList: any[]) =>
   pkgList.map(p => ({
@@ -62,11 +30,7 @@ const makePartnerEarnings = (pkgList: any[]) =>
     l3Type: 'percentage', l3Value: 0,
   }))
 
-const defaultPartnerEarnings = () => EARNER_TIERS.map(t => ({
-  earnerTier: t, type: 'percentage', value: 0,
-  l2Type: 'percentage', l2Value: 0,
-  l3Type: 'percentage', l3Value: 0,
-}))
+const defaultPartnerEarnings = () => [] as any[]
 
 const DEFAULT_FORM = {
   name: '', price: 0, description: '', tier: '',
@@ -123,7 +87,7 @@ function MatrixEditor({ packages, onSave }: { packages: any[], onSave: (soldPkgI
         <tr className="border-b border-white/10">
           <th className="text-left pb-3 pr-6 text-gray-400 font-medium">Earner ↓ / Sells →</th>
           {packages.map((pkg: any) => (
-            <th key={pkg._id} className={`text-center pb-3 px-3 font-bold ${TIER_ACCENT[pkg.tier] || 'text-gray-400'}`}>
+            <th key={pkg._id} className={`text-center pb-3 px-3 font-bold ${tierStyle(pkg.tier, packages).text}`}>
               {pkg.name}<br/><span className="text-gray-500 font-normal text-xs">₹{(pkg.price||0).toLocaleString()}</span>
             </th>
           ))}
@@ -133,7 +97,7 @@ function MatrixEditor({ packages, onSave }: { packages: any[], onSave: (soldPkgI
         {packages.map((earnerPkg: any) => (
           <tr key={earnerPkg._id} className="hover:bg-white/[0.02]">
             <td className="py-2 pr-6">
-              <span className={`font-bold text-sm ${TIER_ACCENT[earnerPkg.tier] || 'text-gray-300'}`}>{earnerPkg.name}</span>
+              <span className={`font-bold text-sm ${tierStyle(earnerPkg.tier, packages).text}`}>{earnerPkg.name}</span>
               <span className="text-gray-500 text-xs ml-1">partner</span>
             </td>
             {packages.map((soldPkg: any) => {
@@ -463,9 +427,10 @@ export default function PackagesPage() {
         {/* ── PACKAGES TAB ── */}
         {activeTab === 'packages' && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {packages.map((pkg: any) => {
+            {packages.map((pkg: any, pkgIdx: number) => {
               const tier = (pkg.tier || '').toLowerCase()
-              const TierIcon = TIER_ICON[tier] || Package
+              const style = tierStyle(tier, packages)
+              const TierIcon = TIER_ICONS[pkgIdx % TIER_ICONS.length]
               const l2Label = pkg.commissionLevel2Type === 'flat'
                 ? `₹${(pkg.commissionLevel2 || 0).toLocaleString()}`
                 : `${pkg.commissionLevel2 || 0}%`
@@ -473,7 +438,7 @@ export default function PackagesPage() {
                 ? `₹${(pkg.commissionLevel3 || 0).toLocaleString()}`
                 : `${pkg.commissionLevel3 || 0}%`
               return (
-                <div key={pkg._id} className={`card bg-gradient-to-br ${TIER_COLORS[tier] || 'from-gray-500/20 to-gray-600/10 border-gray-500/30'} border relative group`}>
+                <div key={pkg._id} className={`card border relative group`} style={{ background: `linear-gradient(135deg, ${style.hex}22, ${style.hex}08)`, borderColor: `${style.hex}55` }}>
                   {pkg.badge && (
                     <div className="absolute -top-2.5 left-4">
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
@@ -485,10 +450,10 @@ export default function PackagesPage() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className={`p-2 rounded-lg bg-white/5`}>
-                        <TierIcon className={`w-4 h-4 ${TIER_ACCENT[tier] || 'text-gray-400'}`} />
+                        <TierIcon className={`w-4 h-4 ${style.text}`} />
                       </div>
                       <div>
-                        <span className={`text-xs font-bold uppercase tracking-wider ${TIER_ACCENT[tier] || 'text-gray-400'}`}>{tier}</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider ${style.text}`}>{tier}</span>
                         <p className="text-base font-black text-white leading-tight">{pkg.name}</p>
                       </div>
                     </div>
@@ -504,7 +469,7 @@ export default function PackagesPage() {
                     </div>
                   </div>
 
-                  <p className={`text-2xl font-black ${TIER_ACCENT[tier] || 'text-gray-400'} mb-3`}>
+                  <p className={`text-2xl font-black ${style.text} mb-3`}>
                     ₹{(pkg.price || 0).toLocaleString()}
                   </p>
 
@@ -572,7 +537,7 @@ export default function PackagesPage() {
                   <ul className="space-y-1">
                     {(pkg.features || []).slice(0, 3).map((f: string, i: number) => (
                       <li key={i} className="flex items-center gap-1.5 text-xs text-gray-300">
-                        <Check className={`w-3 h-3 flex-shrink-0 ${TIER_ACCENT[tier] || 'text-gray-400'}`} />
+                        <Check className={`w-3 h-3 flex-shrink-0 ${style.text}`} />
                         {f}
                       </li>
                     ))}
@@ -633,6 +598,7 @@ export default function PackagesPage() {
                 <tbody className="divide-y divide-white/5">
                   {packages.map((pkg: any) => {
                     const tier = (pkg.tier || '').toLowerCase()
+                    const style = tierStyle(tier, packages)
                     const salesVal = pkg.salesTeamCommission?.type === 'flat'
                       ? `₹${pkg.salesTeamCommission?.value || 0}`
                       : `${pkg.salesTeamCommission?.value || 0}%`
@@ -649,8 +615,8 @@ export default function PackagesPage() {
                       <tr key={pkg._id} className="hover:bg-white/[0.02]">
                         <td className="py-3 pr-4">
                           <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full bg-current ${TIER_ACCENT[tier] || 'text-gray-400'}`} />
-                            <span className={`font-semibold ${TIER_ACCENT[tier] || 'text-gray-300'}`}>{pkg.name}</span>
+                            <span className={`w-2 h-2 rounded-full bg-current ${style.text}`} />
+                            <span className={`font-semibold ${style.text}`}>{pkg.name}</span>
                           </div>
                         </td>
                         <td className="py-3 px-3 text-white font-medium">₹{(pkg.price || 0).toLocaleString()}</td>
@@ -675,15 +641,16 @@ export default function PackagesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {packages.slice(0, 2).map((pkg: any) => {
                 const tier = (pkg.tier || '').toLowerCase()
+                const style = tierStyle(tier, packages)
                 const price = pkg.price || 0
                 const l1 = pkg.commissionRateType === 'flat' ? (pkg.commissionRate || 0) : Math.round(price * (pkg.commissionRate || 0) / 100)
                 const salesEarn = pkg.salesTeamCommission?.type === 'flat'
                   ? pkg.salesTeamCommission?.value || 0
                   : Math.round(price * (pkg.salesTeamCommission?.value || 0) / 100)
                 return (
-                  <div key={pkg._id} className={`card bg-gradient-to-br ${TIER_COLORS[tier] || ''} border ${TIER_BORDER[tier] || ''}`}>
+                  <div key={pkg._id} className={`card border`} style={{ background: `linear-gradient(135deg, ${style.hex}22, ${style.hex}08)`, borderColor: `${style.hex}55` }}>
                     <div className="flex items-center gap-2 mb-3">
-                      <TrendingUp className={`w-4 h-4 ${TIER_ACCENT[tier] || 'text-gray-400'}`} />
+                      <TrendingUp className={`w-4 h-4 ${style.text}`} />
                       <h3 className="font-bold text-white text-sm">Earning Example — {pkg.name} (₹{price.toLocaleString()})</h3>
                     </div>
                     <div className="space-y-1.5 text-xs">
@@ -843,13 +810,14 @@ export default function PackagesPage() {
               <div className="space-y-3">
                 {packages.map((pkg: any) => {
                   const tier = (pkg.tier || '').toLowerCase()
+                  const style = tierStyle(tier, packages)
                   const cr = pkg.courseReferralCommission || { type: 'percentage', value: 0 }
                   const exampleCoursePrice = 2999
                   const earn = cr.type === 'flat' ? cr.value : Math.round(exampleCoursePrice * cr.value / 100)
                   return (
-                    <div key={pkg._id} className={`flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r ${TIER_COLORS[tier] || ''} border ${TIER_BORDER[tier] || 'border-white/10'}`}>
+                    <div key={pkg._id} className={`flex items-center gap-4 p-4 rounded-xl border`} style={{ background: `linear-gradient(to right, ${style.hex}22, ${style.hex}08)`, borderColor: `${style.hex}55` }}>
                       <div className="w-28">
-                        <span className={`text-xs font-bold uppercase ${TIER_ACCENT[tier] || 'text-gray-400'}`}>{tier}</span>
+                        <span className={`text-xs font-bold uppercase ${style.text}`}>{tier}</span>
                         <p className="text-sm font-semibold text-white">{pkg.name}</p>
                       </div>
                       <div className="flex items-center gap-2 flex-1">
@@ -874,7 +842,7 @@ export default function PackagesPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-500">On ₹{exampleCoursePrice} course</p>
-                        <p className={`text-sm font-bold ${TIER_ACCENT[tier] || 'text-gray-400'}`}>₹{earn}</p>
+                        <p className={`text-sm font-bold ${style.text}`}>₹{earn}</p>
                       </div>
                     </div>
                   )
@@ -1209,7 +1177,7 @@ export default function PackagesPage() {
                   ) : (
                     <div className="space-y-2">
                       {myEarnings.map((row: any, idx: number) => {
-                        const accentColor = TIER_ACCENT[row.soldPkgTier] || 'text-indigo-400'
+                        const accentColor = tierStyle(row.soldPkgTier, packages).text
                         const earn = row.type === 'percentage'
                           ? Math.round((row.soldPkgPrice || 0) * (row.value || 0) / 100)
                           : (row.value || 0)
@@ -1266,7 +1234,7 @@ export default function PackagesPage() {
                   ) : (
                     <div className="space-y-2">
                       {allPkgL2L3.map((row: any, idx: number) => {
-                        const accentColor = TIER_ACCENT[row.pkgTier] || 'text-gray-400'
+                        const accentColor = tierStyle(row.pkgTier, packages).text
                         const l2Earn = row.l2Type === 'flat' ? (row.l2Value || 0) : Math.round((row.pkgPrice || 0) * (row.l2Value || 0) / 100)
                         const l3Earn = row.l3Type === 'flat' ? (row.l3Value || 0) : Math.round((row.pkgPrice || 0) * (row.l3Value || 0) / 100)
                         const updateRow = (patch: any) => {

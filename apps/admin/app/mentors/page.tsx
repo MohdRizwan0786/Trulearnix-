@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
-import { usePackages } from '@/lib/usePackages'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import AdminLayout from '@/components/AdminLayout'
 import toast from 'react-hot-toast'
 import {
@@ -26,15 +26,6 @@ const statusConfig: Record<string, { label: string; cls: string }> = {
   rejected: { label: 'Rejected', cls: 'badge bg-rose-500/20 text-rose-400 border border-rose-500/30' },
 }
 
-const tierConfig: Record<string, { cls: string; gradient: string }> = {
-  free:    { cls: 'badge bg-gray-500/20 text-gray-400',      gradient: 'from-gray-500 to-slate-500' },
-  basic:   { cls: 'badge bg-teal-500/20 text-teal-400',      gradient: 'from-teal-500 to-cyan-600' },
-  starter: { cls: 'badge bg-sky-500/20 text-sky-400',        gradient: 'from-sky-500 to-cyan-500' },
-  pro:     { cls: 'badge bg-violet-500/20 text-violet-400',  gradient: 'from-violet-500 to-purple-600' },
-  proedge: { cls: 'badge bg-fuchsia-500/20 text-fuchsia-400', gradient: 'from-fuchsia-500 to-pink-600' },
-  elite:   { cls: 'badge bg-amber-500/20 text-amber-400',    gradient: 'from-amber-500 to-orange-500' },
-  supreme: { cls: 'badge bg-rose-500/20 text-rose-400',      gradient: 'from-rose-500 to-pink-600' },
-}
 
 /* Pick a gradient for avatar initials based on name */
 const avatarGradients = [
@@ -310,7 +301,7 @@ export default function MentorsPage() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             {mentors.map((mentor: any) => {
               const sc = statusConfig[mentor.mentorStatus] ?? { label: mentor.mentorStatus, cls: 'badge bg-gray-500/20 text-gray-400' }
-              const tc = tierConfig[mentor.packageTier] ?? tierConfig.free
+              const tc = { cls: `badge ${tierStyle(mentor.packageTier, tierPackages).chip}`, label: tierName(mentor.packageTier, tierPackages) }
               const initials = (mentor.name || 'M').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
               const joinDate = mentor.mentorApplication?.appliedAt || mentor.createdAt
 
@@ -332,7 +323,7 @@ export default function MentorsPage() {
                         <span className={sc.cls}>{sc.label}</span>
                         {mentor.packageTier && mentor.packageTier !== 'free' && (
                           <span className={tc.cls + ' capitalize'}>
-                            <Award className="w-3 h-3 mr-1 inline" />{mentor.packageTier}
+                            <Award className="w-3 h-3 mr-1 inline" />{tc.label}
                           </span>
                         )}
                       </div>
@@ -489,7 +480,7 @@ export default function MentorsPage() {
                               <button
                                 key={pkg.tier}
                                 onClick={() => givePackage(mentor._id, mentor.name, pkg.tier)}
-                                className={`w-full text-left px-3 py-2 text-xs capitalize hover:bg-white/5 transition-colors ${tierConfig[pkg.tier]?.cls ?? ''}`}>
+                                className={`w-full text-left px-3 py-2 text-xs capitalize hover:bg-white/5 transition-colors badge ${tierStyle(pkg.tier, tierPackages).chip}`}>
                                 {pkg.name}
                               </button>
                             ))}

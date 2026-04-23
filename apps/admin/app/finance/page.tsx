@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import toast from 'react-hot-toast'
 import {
   TrendingUp, TrendingDown, DollarSign, Receipt,
@@ -44,12 +45,6 @@ const catBar: Record<string,string> = {
   server:'bg-blue-500', marketing:'bg-pink-500', salary:'bg-violet-500',
   tools:'bg-cyan-500', office:'bg-amber-500', refund:'bg-red-500',
   legal:'bg-orange-500', other:'bg-gray-500',
-}
-const tierColors: Record<string,string> = {
-  free:'text-gray-400 bg-gray-500/20', basic:'text-teal-400 bg-teal-500/20',
-  starter:'text-sky-400 bg-sky-500/20', pro:'text-violet-400 bg-violet-500/20',
-  proedge:'text-fuchsia-400 bg-fuchsia-500/20', elite:'text-amber-400 bg-amber-500/20',
-  supreme:'text-rose-400 bg-rose-500/20'
 }
 
 function GrowthBadge({ value }: { value: number }) {
@@ -127,6 +122,7 @@ function BarChart({ data, height = 80, barColor = '#7c3aed', label2Color }: {
 
 export default function FinanceDashboard() {
   const searchParams = useSearchParams()
+  const { packages } = usePackages()
   const [tab, setTab] = useState<Tab>(() => {
     const t = searchParams?.get('tab') as Tab
     return (['overview','pnl','gst','tds','expenses','purchases','commissions'] as Tab[]).includes(t) ? t : 'overview'
@@ -426,7 +422,7 @@ export default function FinanceDashboard() {
                           return (
                             <div key={t._id}>
                               <div className="flex items-center justify-between text-xs mb-1.5">
-                                <span className={`px-2 py-0.5 rounded-lg font-semibold capitalize ${tierColors[t._id]||'text-gray-400 bg-gray-500/20'}`}>{t._id}</span>
+                                <span className={`px-2 py-0.5 rounded-lg font-semibold capitalize ${tierStyle(t._id, packages).chip}`}>{tierName(t._id, packages)}</span>
                                 <span className="text-white font-bold">{fmtShort(t.total)} <span className="text-gray-500 font-normal">({t.count})</span></span>
                               </div>
                               <div className="flex items-center gap-2">
@@ -661,7 +657,7 @@ export default function FinanceDashboard() {
                         return (
                           <div key={i}>
                             <div className="flex items-center justify-between mb-1.5">
-                              <span className={`text-xs px-2 py-0.5 rounded-lg font-semibold capitalize ${tierColors[t._id]||'text-gray-400 bg-gray-500/20'}`}>{t._id}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-lg font-semibold capitalize ${tierStyle(t._id, packages).chip}`}>{tierName(t._id, packages)}</span>
                               <div className="text-right">
                                 <span className="text-white text-sm font-semibold">{fmtShort(t.gstCollected)}</span>
                                 <span className="text-gray-600 text-xs ml-1">({t.count})</span>
@@ -738,7 +734,7 @@ export default function FinanceDashboard() {
                             <td className="px-4 py-3 text-white font-medium">{row.user?.name||'—'}</td>
                             <td className="px-3 py-3 text-gray-500 text-xs">{row.user?.email}</td>
                             <td className="px-3 py-3 text-center">
-                              <span className={`text-xs px-2 py-0.5 rounded-lg font-semibold capitalize ${tierColors[row.user?.packageTier]||'text-gray-400 bg-gray-500/20'}`}>{row.user?.packageTier||'—'}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-lg font-semibold capitalize ${tierStyle(row.user?.packageTier, packages).chip}`}>{tierName(row.user?.packageTier, packages)}</span>
                             </td>
                             <td className="px-3 py-3 text-right text-amber-400 font-semibold">{fmtShort(row.totalCommission)}</td>
                             <td className="px-3 py-3 text-right text-red-400 font-semibold">{fmtShort(row.tdsAmount)}</td>
@@ -1038,12 +1034,9 @@ export default function FinanceDashboard() {
                   className="bg-gray-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500"
                 >
                   <option value="">All Tiers</option>
-                  <option value="basic">Basic</option>
-                  <option value="starter">Starter</option>
-                  <option value="pro">Pro</option>
-                  <option value="proedge">ProEdge</option>
-                  <option value="elite">Elite</option>
-                  <option value="supreme">Supreme</option>
+                  {packages.map(p => (
+                    <option key={p._id} value={p.tier}>{p.name}</option>
+                  ))}
                 </select>
                 <select
                   value={purchaseMethod}
