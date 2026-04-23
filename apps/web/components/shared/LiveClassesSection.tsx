@@ -5,12 +5,15 @@ import { Video, Users, Clock, ChevronRight, Mic, MonitorPlay, Calendar, Sparkles
 import Link from 'next/link'
 import { classAPI } from '@/lib/api'
 
-const FALLBACK_CLASSES = [
-  { _id:'1', title:'Full Stack Web Dev — Batch 12', mentor:{ name:'Aryan Kapoor' }, attendees:Array(247).fill({}), scheduledAt: new Date().toISOString(), status:'live', course:{ title:'Full Stack Development', category:'Web Dev' }, tag:'Web Dev' },
-  { _id:'2', title:'Data Science with Python',      mentor:{ name:'Priya Mehta' },  attendees:Array(3).fill({}), scheduledAt: new Date(Date.now()+3*3600000).toISOString(), status:'scheduled', course:{ title:'Data Science', category:'Data Science' }, tag:'Data Science' },
-  { _id:'3', title:'UI/UX Design Masterclass',      mentor:{ name:'Sakshi Jain' },  attendees:Array(2).fill({}), scheduledAt: new Date(Date.now()+5*3600000).toISOString(), status:'scheduled', course:{ title:'UI/UX Design', category:'Design' }, tag:'Design' },
-  { _id:'4', title:'React Native — Mobile Apps',    mentor:{ name:'Vikram Singh' }, attendees:Array(4).fill({}), scheduledAt: new Date(Date.now()+22*3600000).toISOString(), status:'scheduled', course:{ title:'Mobile Dev', category:'Mobile' }, tag:'Mobile Dev' },
-]
+function makeFallbackClasses() {
+  const now = Date.now()
+  return [
+    { _id:'1', title:'Full Stack Web Dev — Batch 12', mentor:{ name:'Aryan Kapoor' }, attendees:Array(247).fill({}), scheduledAt: new Date(now).toISOString(), status:'live', course:{ title:'Full Stack Development', category:'Web Dev' }, tag:'Web Dev' },
+    { _id:'2', title:'Data Science with Python',      mentor:{ name:'Priya Mehta' },  attendees:Array(3).fill({}), scheduledAt: new Date(now+3*3600000).toISOString(), status:'scheduled', course:{ title:'Data Science', category:'Data Science' }, tag:'Data Science' },
+    { _id:'3', title:'UI/UX Design Masterclass',      mentor:{ name:'Sakshi Jain' },  attendees:Array(2).fill({}), scheduledAt: new Date(now+5*3600000).toISOString(), status:'scheduled', course:{ title:'UI/UX Design', category:'Design' }, tag:'Design' },
+    { _id:'4', title:'React Native — Mobile Apps',    mentor:{ name:'Vikram Singh' }, attendees:Array(4).fill({}), scheduledAt: new Date(now+22*3600000).toISOString(), status:'scheduled', course:{ title:'Mobile Dev', category:'Mobile' }, tag:'Mobile Dev' },
+  ]
+}
 
 const TAG_COLORS: Record<string,string> = {
   'Web Dev': 'from-violet-600 to-indigo-600',
@@ -121,15 +124,15 @@ const features = [
 ]
 
 export default function LiveClassesSection() {
-  const [classes, setClasses] = useState<any[]>(FALLBACK_CLASSES)
+  const [classes, setClasses] = useState<any[]>([])
 
   useEffect(() => {
     classAPI.getPublic()
       .then(res => {
         const data = res.data?.classes || []
-        if (data.length > 0) setClasses(data)
+        setClasses(data.length > 0 ? data : makeFallbackClasses())
       })
-      .catch(() => {})
+      .catch(() => { setClasses(makeFallbackClasses()) })
   }, [])
 
   return (
