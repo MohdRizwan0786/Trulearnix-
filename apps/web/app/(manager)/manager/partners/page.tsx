@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { managerAPI } from '@/lib/api'
+import { useAllTiers } from '@/lib/tiers'
 import { Search, Users, TrendingUp, IndianRupee, Target, ChevronRight, Loader2, UserCheck, Filter, Phone, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -16,6 +17,7 @@ export default function ManagerPartnersPage() {
   const [search, setSearch] = useState('')
   const [tier, setTier]     = useState('')
   const [page, setPage]     = useState(1)
+  const { tiers: allTiers } = useAllTiers()
 
   const { data, isLoading } = useQuery({
     queryKey: ['manager-partners', search, tier, page],
@@ -48,7 +50,7 @@ export default function ManagerPartnersPage() {
         <select value={tier} onChange={e => { setTier(e.target.value); setPage(1) }}
           className="bg-dark-800 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/40">
           <option value="">All Tiers</option>
-          {['free','starter','pro','elite','supreme'].map(t => <option key={t} value={t} className="capitalize">{t}</option>)}
+          {allTiers.map(t => <option key={t} value={t} className="capitalize">{t}</option>)}
         </select>
       </div>
 

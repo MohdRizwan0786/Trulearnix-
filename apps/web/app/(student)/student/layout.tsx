@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store'
+import { usePaidTiers } from '@/lib/tiers'
 import LearnerSidebar from '@/components/layout/LearnerSidebar'
 import { Lock, Zap, Star, ArrowRight, CheckCircle2 } from 'lucide-react'
 
@@ -12,8 +13,6 @@ const FREE_ALLOWED_PREFIXES = [
   '/student/upgrade',
   '/student/support',
 ]
-
-const PAID_TIERS = ['starter', 'pro', 'elite', 'supreme']
 
 function PaywallScreen() {
   return (
@@ -64,6 +63,7 @@ function PaywallScreen() {
 
 export default function LearnerLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuthStore()
+  const { tiers: paidTiers } = usePaidTiers()
   const router = useRouter()
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
@@ -82,7 +82,7 @@ export default function LearnerLayout({ children }: { children: React.ReactNode 
   const isLiveRoom = /^\/student\/classes\/[^/]+$/.test(pathname)
   if (isLiveRoom) return <>{children}</>
 
-  const hasPurchased = PAID_TIERS.includes(user.packageTier || '')
+  const hasPurchased = paidTiers.includes(user.packageTier || '')
   const isAllowed = FREE_ALLOWED_PREFIXES.some(p => pathname.startsWith(p))
 
   if (!hasPurchased && !isAllowed) {

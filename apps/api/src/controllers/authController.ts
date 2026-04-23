@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
+import Package from '../models/Package';
 import { generateAccessToken, generateRefreshToken, generateOTP } from '../utils/generateToken';
 import redisClient from '../config/redis';
 import jwt from 'jsonwebtoken';
@@ -229,7 +230,7 @@ export const login = async (req: Request, res: Response) => {
     if (!user.isVerified) return res.status(401).json({ success: false, message: 'Please verify your account first' });
     if (!user.isActive) return res.status(401).json({ success: false, message: 'Account suspended. Contact support.' });
 
-    const validTiers = ['free', 'starter', 'pro', 'elite', 'supreme'];
+    const validTiers = ['free', ...(await Package.distinct('tier', { isActive: true }))];
     const packageTier = validTiers.includes(user.packageTier) ? user.packageTier : 'free';
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
@@ -328,7 +329,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const validTiers = ['free', 'starter', 'pro', 'elite', 'supreme'];
+    const validTiers = ['free', ...(await Package.distinct('tier', { isActive: true }))];
     if (!validTiers.includes(user.packageTier)) user.packageTier = 'free' as any;
 
     user.password = newPassword;
