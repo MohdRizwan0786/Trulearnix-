@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
+import { usePackages } from '@/lib/usePackages'
 import toast from 'react-hot-toast'
 import {
   MessageSquare, Mail, Send, Plus, Trash2, X, Loader2,
@@ -34,7 +35,6 @@ const catBadge: Record<string, string> = {
 }
 
 const ROLES = ['student', 'mentor', 'manager', 'admin']
-const TIERS = ['free', 'starter', 'pro', 'elite', 'supreme']
 const CATS = ['promotional', 'welcome', 'followup', 'reminder', 'announcement', 'custom']
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
@@ -54,6 +54,7 @@ function StatCard({ icon: Icon, label, value, sub, color }: any) {
 }
 
 export default function MarketingPage() {
+  const { packages: tierPackages } = usePackages({ includeFree: true })
   const [tab, setTab] = useState<Tab>('overview')
   const qc = useQueryClient()
 
@@ -667,10 +668,10 @@ export default function MarketingPage() {
                 <div>
                   <p className="text-xs text-gray-400 mb-2">By Package Tier</p>
                   <div className="flex flex-wrap gap-2">
-                    {TIERS.map(t => (
-                      <button key={t} onClick={() => setCampaignForm(p => ({ ...p, tiers: p.tiers.includes(t) ? p.tiers.filter(x => x !== t) : [...p.tiers, t] }))}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all capitalize ${campaignForm.tiers.includes(t) ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-400 border border-white/10'}`}>
-                        {t}
+                    {tierPackages.map(p => (
+                      <button key={p.tier} onClick={() => setCampaignForm(prev => ({ ...prev, tiers: prev.tiers.includes(p.tier) ? prev.tiers.filter(x => x !== p.tier) : [...prev.tiers, p.tier] }))}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all capitalize ${campaignForm.tiers.includes(p.tier) ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-400 border border-white/10'}`}>
+                        {p.name}
                       </button>
                     ))}
                   </div>

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
+import { usePackages } from '@/lib/usePackages'
 import AdminLayout from '@/components/AdminLayout'
 import toast from 'react-hot-toast'
 import {
@@ -11,7 +12,6 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 
-const TIERS = ['starter', 'pro', 'elite', 'supreme']
 
 const STATUS_TABS = [
   { value: 'all',      label: 'All' },
@@ -49,6 +49,7 @@ const nameGradient = (name: string) =>
   avatarGradients[(name?.charCodeAt(0) ?? 0) % avatarGradients.length]
 
 export default function MentorsPage() {
+  const { packages: tierPackages } = usePackages()
   const [status, setStatus]             = useState('all')
   const [search, setSearch]             = useState('')
   const [page, setPage]                 = useState(1)
@@ -484,12 +485,12 @@ export default function MentorsPage() {
                             <ChevronDown className="w-3 h-3" />
                           </button>
                           <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-xl shadow-xl z-10 min-w-[130px] py-1 hidden group-hover:block">
-                            {TIERS.map(tier => (
+                            {tierPackages.map(pkg => (
                               <button
-                                key={tier}
-                                onClick={() => givePackage(mentor._id, mentor.name, tier)}
-                                className={`w-full text-left px-3 py-2 text-xs capitalize hover:bg-white/5 transition-colors ${tierConfig[tier]?.cls ?? ''}`}>
-                                {tier}
+                                key={pkg.tier}
+                                onClick={() => givePackage(mentor._id, mentor.name, pkg.tier)}
+                                className={`w-full text-left px-3 py-2 text-xs capitalize hover:bg-white/5 transition-colors ${tierConfig[pkg.tier]?.cls ?? ''}`}>
+                                {pkg.name}
                               </button>
                             ))}
                           </div>

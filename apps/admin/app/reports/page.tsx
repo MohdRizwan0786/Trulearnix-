@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
+import { usePackages } from '@/lib/usePackages'
 import {
   FileText, Download, FileSpreadsheet, Filter, Calendar,
   TrendingUp, Users, IndianRupee, Percent, Award, Building2,
@@ -757,6 +758,7 @@ function FilterGroup({ label, children }: { label: string; children: React.React
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
+  const { packages: tierPackages } = usePackages({ includeFree: true })
   const currentYear = new Date().getFullYear()
   const [active, setActive] = useState('gst')
 
@@ -793,7 +795,7 @@ export default function ReportsPage() {
 
   const report = REPORTS.find(r => r.id === active)!
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
-  const tiers = ['free', 'starter', 'pro', 'elite', 'supreme']
+  const tiers = tierPackages.length > 0 ? tierPackages.map(p => p.tier) : ['free', 'starter', 'pro', 'elite', 'supreme']
   const depts = ['hr', 'sales', 'marketing', 'content', 'finance', 'operations', 'support', 'tech', 'general']
   const roles = ['admin', 'manager', 'employee', 'salesperson', 'department_head', 'team_lead']
 
@@ -883,7 +885,7 @@ export default function ReportsPage() {
         </FilterGroup>
         <FilterGroup label="Package Tier">
           {['', ...tiers].map(t => (
-            <FilterChip key={t} label={t || 'All'} active={salesTier === t} onClick={() => setSalesTier(t)} />
+            <FilterChip key={t} label={t ? (tierPackages.find(p => p.tier === t)?.name || t) : 'All'} active={salesTier === t} onClick={() => setSalesTier(t)} />
           ))}
         </FilterGroup>
       </FilterPanel>
@@ -962,7 +964,7 @@ export default function ReportsPage() {
         </FilterGroup>
         <FilterGroup label="Package Tier">
           {['', ...tiers].map(t => (
-            <FilterChip key={t} label={t || 'All'} active={learnerTier === t} onClick={() => setLearnerTier(t)} />
+            <FilterChip key={t} label={t ? (tierPackages.find(p => p.tier === t)?.name || t) : 'All'} active={learnerTier === t} onClick={() => setLearnerTier(t)} />
           ))}
         </FilterGroup>
         <FilterGroup label="Status">
