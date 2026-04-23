@@ -69,8 +69,11 @@ const server = http.createServer(app);
 
 const allowedOrigins = [
   process.env.WEB_URL || 'https://trulearnix.com',
+  'https://www.trulearnix.com',
   process.env.ADMIN_URL || 'https://admin.trulearnix.com',
+  'https://www.admin.trulearnix.com',
   'https://trulancer.trulearnix.com',
+  'https://www.trulancer.trulearnix.com',
   'http://localhost:3000',
   'http://localhost:3002',
   'http://localhost:3003',
