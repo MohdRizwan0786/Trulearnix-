@@ -201,7 +201,13 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email?.toLowerCase().trim() }).select('+password');
 
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+    if (!user.password) {
+      return res.status(401).json({ success: false, message: 'Password not set. Please use Forgot Password to set your password.' });
+    }
+    if (!(await user.comparePassword(password))) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
     if (!user.isVerified) return res.status(401).json({ success: false, message: 'Please verify your account first' });
