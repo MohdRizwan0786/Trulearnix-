@@ -14,6 +14,8 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_TRULANCE_URL: process.env.NEXT_PUBLIC_TRULANCE_URL,
+    NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
   }
 }
 module.exports = nextConfig

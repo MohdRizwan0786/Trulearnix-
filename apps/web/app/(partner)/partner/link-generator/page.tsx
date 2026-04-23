@@ -110,7 +110,7 @@ export default function LinkGeneratorPage() {
   const selectedPkg = packageLinks.find(p => p.id === selectedPackageId) || packageLinks[0]
   const selectedCourse = courseLinks.find(c => c.id === selectedCourseId) || courseLinks[0]
 
-  const baseWebUrl = 'https://trulearnix.com'
+  const baseWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://trulearnix.com'
   const pkgUrl = selectedPkg ? `${baseWebUrl}/checkout?type=package&packageId=${selectedPkg.id}&promo=${code}` : ''
   const pkgRegUrl = `${baseWebUrl}/register?ref=${code}`
   const courseUrl = selectedCourse ? `${baseWebUrl}/courses/${selectedCourse.slug}?ref=${code}` : ''
