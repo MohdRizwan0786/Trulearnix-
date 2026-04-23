@@ -31,6 +31,11 @@ function LoginForm() {
     try {
       setLoading(true)
       const res = await authAPI.login(data)
+      if (res.data?.needsPasswordSetup) {
+        toast.success(res.data.message || 'OTP sent. Please set your password.')
+        router.push(`/forgot-password?email=${encodeURIComponent(data.email)}&setup=1`)
+        return
+      }
       const { user, accessToken, refreshToken } = res.data
       setAuth(user, accessToken, refreshToken)
       toast.success(`Welcome back, ${user.name}!`)
