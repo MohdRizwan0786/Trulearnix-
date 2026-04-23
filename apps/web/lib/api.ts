@@ -16,7 +16,10 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const url: string = original?.url || '';
+    // Skip refresh-token dance on public auth endpoints — a 401 there is a credentials error, not an expired session
+    const isPublicAuth = /\/auth\/(login|register|verify-otp|resend-otp|forgot-password|reset-password|refresh-token|mentor-apply)(?:$|\?)/.test(url);
+    if (error.response?.status === 401 && !original._retry && !isPublicAuth) {
       original._retry = true;
       try {
         const refreshToken = Cookies.get('refreshToken') || localStorage.getItem('refreshToken');
