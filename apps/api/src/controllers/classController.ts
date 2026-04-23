@@ -154,13 +154,14 @@ export const cancelClass = async (req: AuthRequest, res: Response) => {
 export const getPublicLiveClasses = async (_req: any, res: Response) => {
   try {
     const now = new Date();
-    const cutoff = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    const future = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days ahead
+    const recent = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24-hour grace for classes not yet marked ended
     const classes = await LiveClass.find({
       status: { $in: ['live', 'scheduled'] },
       $or: [
         { status: 'live' },
-        { scheduledAt: { $gte: now, $lte: cutoff } }
-      ]
+        { scheduledAt: { $gte: recent, $lte: future } },
+      ],
     })
       .populate('mentor', 'name avatar')
       .populate('course', 'title category')
