@@ -19,12 +19,12 @@ interface Coupon {
   description?: string
 }
 
-const TIERS = [
-  { tier: 'starter', name: 'Starter' },
-  { tier: 'pro', name: 'Pro' },
-  { tier: 'elite', name: 'Elite' },
-  { tier: 'supreme', name: 'Supreme' },
-]
+interface PackageTier {
+  _id: string
+  tier: string
+  name: string
+  displayOrder: number
+}
 
 const emptyForm = {
   code: '', type: 'percent', value: 10, maxUses: 100,
@@ -33,6 +33,7 @@ const emptyForm = {
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([])
+  const [packages, setPackages] = useState<PackageTier[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -47,7 +48,20 @@ export default function CouponsPage() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { loadCoupons() }, [])
+  const loadPackages = async () => {
+    try {
+      const res = await adminAPI.packages()
+      const pkgs: PackageTier[] = (res.data.packages || [])
+        .filter((p: any) => p.tier && p.tier !== 'free')
+        .sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0))
+      setPackages(pkgs)
+    } catch {}
+  }
+
+  useEffect(() => {
+    loadCoupons()
+    loadPackages()
+  }, [])
 
   const openCreate = () => {
     setEditId(null)
@@ -224,7 +238,9 @@ export default function CouponsPage() {
                   <span className="text-gray-500">(leave empty = all packages &amp; courses)</span>
                 </label>
                 <div className="flex gap-2 flex-wrap">
-                  {TIERS.map(({ tier, name }) => (
+                  {packages.length === 0 ? (
+                    <p className="text-xs text-gray-500">Loading packages…</p>
+                  ) : packages.map(({ tier, name }) => (
                     <button key={tier} type="button" onClick={() => tierToggle(tier)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${
                         form.applicableTiers.includes(tier)
@@ -235,7 +251,7 @@ export default function CouponsPage() {
                     </button>
                   ))}
                 </div>
-                {form.applicableTiers.length === 0 && (
+                {form.applicableTiers.length === 0 && packages.length > 0 && (
                   <p className="text-xs text-emerald-400 mt-1.5">✓ Applies to all packages and courses</p>
                 )}
               </div>
@@ -336,7 +352,7 @@ export default function CouponsPage() {
                       Applies to:{' '}
                       <span className="text-violet-400">
                         {c.applicableTiers.length > 0
-                          ? c.applicableTiers.map(t => TIERS.find(p => p.tier === t)?.name || t).join(', ')
+                          ? c.applicableTiers.map(t => packages.find(p => p.tier === t)?.name || t).join(', ')
                           : 'All packages & courses'}
                       </span>
                     </p>
