@@ -180,14 +180,13 @@ export default function UsersPage() {
     if (Array.isArray(d?.packages)) return d.packages
     return []
   }) })
+  const safePackages: any[] = Array.isArray(packagesData) ? packagesData : []
 
   const tierToName = useMemo(() => {
     const map: Record<string, string> = {}
-    if (Array.isArray(packagesData)) {
-      packagesData.forEach((p: any) => { if (p.tier && p.name) map[p.tier] = p.name })
-    }
+    safePackages.forEach((p: any) => { if (p.tier && p.name) map[p.tier] = p.name })
     return map
-  }, [packagesData])
+  }, [safePackages])
 
   const tierLabel = (t: string) => tierToName[t] || (t.charAt(0).toUpperCase() + t.slice(1))
 
@@ -492,7 +491,7 @@ export default function UsersPage() {
               className="search-input capitalize text-sm cursor-pointer"
             >
               <option value="">All Tiers</option>
-              {(packagesData || []).map((p: any) => <option key={p.tier} value={p.tier}>{p.name || tierLabel(p.tier)}</option>)}
+              {safePackages.map((p: any) => <option key={p.tier} value={p.tier}>{p.name || tierLabel(p.tier)}</option>)}
             </select>
           </div>
         </div>
@@ -590,7 +589,7 @@ export default function UsersPage() {
                           className={`badge ${tierStyle(user.packageTier, allPackages).chip} capitalize cursor-pointer bg-transparent outline-none text-xs`}
                         >
                           <option value="" className="bg-slate-800 text-white">None</option>
-                          {(packagesData || []).map((p: any) => <option key={p.tier} value={p.tier} className="bg-slate-800 text-white">{p.name || tierLabel(p.tier)}</option>)}
+                          {safePackages.map((p: any) => <option key={p.tier} value={p.tier} className="bg-slate-800 text-white">{p.name || tierLabel(p.tier)}</option>)}
                         </select>
                       </td>
 
@@ -883,7 +882,7 @@ export default function UsersPage() {
                     onChange={e => setIeForm(f => ({ ...f, packageTier: e.target.value }))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 text-sm appearance-none"
                   >
-                    {(packagesData || []).map((p: any) => <option key={p.tier} value={p.tier}>{p.name || tierLabel(p.tier)}</option>)}
+                    {safePackages.map((p: any) => <option key={p.tier} value={p.tier}>{p.name || tierLabel(p.tier)}</option>)}
                   </select>
                 </div>
               )}
@@ -973,7 +972,7 @@ export default function UsersPage() {
                     <select value={createForm.packageId} onChange={e => setCreateForm(f => ({ ...f, packageId: e.target.value }))}
                       className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 text-sm appearance-none">
                       <option value="">-- Select Package --</option>
-                      {(packagesData || []).map((pkg: any) => (
+                      {safePackages.map((pkg: any) => (
                         <option key={pkg._id} value={pkg._id} className="bg-gray-800">
                           {pkg.name} — ₹{pkg.price?.toLocaleString()} ({pkg.tier})
                         </option>
