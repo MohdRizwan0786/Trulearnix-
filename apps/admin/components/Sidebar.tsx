@@ -13,7 +13,7 @@ import {
   Trophy, MousePointerClick, TrendingUp, Layers, PanelTop,
   Briefcase, UserCheck, UserX, GraduationCap, MessageSquare, ShoppingBag, UserPlus,
   ClipboardList, HeartHandshake, CreditCard, ShieldCheck, Award, Megaphone, IndianRupee,
-  Calendar, Flag, Radio, Settings,
+  Calendar, Flag, Radio, Settings, Pencil,
 } from 'lucide-react'
 
 // permission key matches what's stored in localStorage adminPermissions
@@ -57,6 +57,7 @@ const navItems = [
       { label: 'All Classes',  href: '/live-classes', icon: Video,       perm: 'live-classes' },
       { label: 'Recordings',   href: '/recordings',   icon: PlayCircle,  perm: 'recordings' },
       { label: 'Webinars',     href: '/webinars',     icon: Radio,       perm: 'webinars' },
+      { label: 'Air Drawer',   href: '/air-drawer',   icon: Pencil,      perm: 'live-classes' },
     ]
   },
   { label: 'Blog',            href: '/blog',         icon: FileText,        perm: 'blog' },
