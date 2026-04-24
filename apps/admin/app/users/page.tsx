@@ -174,7 +174,12 @@ export default function UsersPage() {
   const [createSaving, setCreateSaving] = useState(false)
   const [showCreatePwd, setShowCreatePwd] = useState(false)
 
-  const { data: packagesData } = useQuery({ queryKey: ['admin-packages'], queryFn: () => adminAPI.packages().then(r => r.data.packages || r.data) })
+  const { data: packagesData } = useQuery({ queryKey: ['admin-packages'], queryFn: () => adminAPI.packages().then(r => {
+    const d = r.data
+    if (Array.isArray(d)) return d
+    if (Array.isArray(d?.packages)) return d.packages
+    return []
+  }) })
 
   const tierToName = useMemo(() => {
     const map: Record<string, string> = {}
