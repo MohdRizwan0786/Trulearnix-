@@ -10,7 +10,7 @@ import Cookies from 'js-cookie'
 import {
   ArrowLeft, Check, Loader2, Upload, X, Plus, Trash2,
   ChevronDown, ChevronUp, Image, Users, BookOpen,
-  DollarSign, FileText, Layers, Award
+  DollarSign, FileText, Layers, Award, Youtube, PlaySquare, ExternalLink
 } from 'lucide-react'
 
 const CATEGORIES = ['Business', 'Marketing', 'Sales', 'Development', 'Design', 'Data Science', 'Finance', 'Personal Development', 'Communication', 'Leadership', 'Other']
@@ -212,7 +212,7 @@ export default function EditCoursePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'curriculum' | 'details' | 'batch'>('basic')
+  const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'curriculum' | 'details' | 'batch' | 'recordings'>('basic')
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-course', id],
@@ -257,6 +257,7 @@ export default function EditCoursePage() {
         maxStrength: c.batchSettings?.maxStrength || 50,
         closingDays: c.batchSettings?.closingDays || 30,
         durationDays: c.batchSettings?.durationDays || 0,
+        youtubePlaylistUrl: c.youtubePlaylistUrl || '',
       })
       // Load curriculum modules
       if (c.modules && c.modules.length > 0) {
@@ -307,6 +308,7 @@ export default function EditCoursePage() {
         tags: form.tags, status: form.status, certificate: form.certificate, passingScore: form.passingScore,
         requirements: form.requirements, outcomes: form.outcomes, highlights: form.highlights, faqs: form.faqs,
         modules: processedModules,
+        youtubePlaylistUrl: form.youtubePlaylistUrl || undefined,
         batchSettings: {
           enabled: form.batchEnabled,
           minStrength: form.minStrength,
@@ -337,7 +339,14 @@ export default function EditCoursePage() {
     { id: 'curriculum', label: 'Curriculum', icon: Layers },
     { id: 'details', label: 'Details', icon: FileText },
     { id: 'batch', label: 'Batches', icon: Users },
+    { id: 'recordings', label: 'Recordings', icon: Youtube },
   ] as const
+
+  function getPlaylistId(url: string) {
+    if (!url) return null
+    const m = url.match(/[?&]list=([^&]+)/)
+    return m ? m[1] : null
+  }
 
   const totalLessons = modules.reduce((s, m) => s + m.lessons.length, 0)
 
@@ -583,6 +592,64 @@ export default function EditCoursePage() {
                   <Layers className="w-4 h-4" /> View & Manage Batches
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Recordings */}
+          {activeTab === 'recordings' && (
+            <div className="space-y-6">
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
+                <Youtube className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-white font-semibold text-sm">YouTube Playlist — Class Recordings</p>
+                  <p className="text-gray-400 text-xs mt-1">Yahan YouTube playlist ka link daalo. Learner ke panel par saari recordings dikhegi aur woh seedha wahan se dekh sakenge.</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="label">YouTube Playlist URL</label>
+                <div className="flex gap-2">
+                  <input
+                    value={form.youtubePlaylistUrl}
+                    onChange={e => set('youtubePlaylistUrl', e.target.value)}
+                    placeholder="https://www.youtube.com/playlist?list=PLxxxxxx"
+                    className="input flex-1 text-sm"
+                  />
+                  {form.youtubePlaylistUrl && (
+                    <button type="button" onClick={() => set('youtubePlaylistUrl', '')}
+                      className="px-3 py-2 rounded-xl bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors text-sm flex items-center gap-1.5">
+                      <X className="w-4 h-4" /> Remove
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1.5">YouTube playlist URL paste karo — e.g. https://www.youtube.com/playlist?list=PLxxxxxx</p>
+              </div>
+
+              {form.youtubePlaylistUrl && getPlaylistId(form.youtubePlaylistUrl) ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white">Preview</p>
+                    <a href={form.youtubePlaylistUrl} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300">
+                      <ExternalLink className="w-3.5 h-3.5" /> YouTube par kholo
+                    </a>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden border border-white/10 bg-black" style={{ paddingBottom: '56.25%', position: 'relative' }}>
+                    <iframe
+                      src={`https://www.youtube.com/embed/videoseries?list=${getPlaylistId(form.youtubePlaylistUrl)}&rel=0`}
+                      className="absolute inset-0 w-full h-full"
+                      allowFullScreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 text-center">Learner ko bilkul aise hi dikhega — playlist ke saare videos player mein accessible rahenge</p>
+                </div>
+              ) : form.youtubePlaylistUrl ? (
+                <div className="flex items-center gap-2 p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm">
+                  <PlaySquare className="w-4 h-4 flex-shrink-0" />
+                  Valid YouTube playlist URL daalo (list= parameter hona chahiye)
+                </div>
+              ) : null}
             </div>
           )}
         </div>

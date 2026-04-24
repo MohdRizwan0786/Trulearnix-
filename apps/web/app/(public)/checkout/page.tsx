@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import api, { checkoutAPI, phonepeAPI } from '@/lib/api'
@@ -111,7 +111,7 @@ function CodeField({ label, icon: Icon, placeholder, value, onChange, onValidate
 function CheckoutInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, _hasHydrated, setAuth } = useAuthStore()
+  const { user, _hasHydrated, setAuth, logout } = useAuthStore()
 
   const itemType = (searchParams.get('type') || 'package') as 'package' | 'course'
   const tier = searchParams.get('tier') || ''
@@ -135,6 +135,7 @@ function CheckoutInner() {
   const [couponStatus, setCouponStatus] = useState<'idle' | 'valid' | 'invalid'>('idle')
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponLoading, setCouponLoading] = useState(false)
+  const [couponErrorMsg, setCouponErrorMsg] = useState('')
 
   const [paying, setPaying] = useState(false)
 
@@ -145,6 +146,15 @@ function CheckoutInner() {
   const [guestAge, setGuestAge] = useState('')
   const [guestState, setGuestState] = useState('')
   const [guestPaying, setGuestPaying] = useState(false)
+  // Randomized per-render field-name suffix so browser-saved autofill entries
+  // keyed on fixed names can't match on revisit (shared-device scenario).
+  const fid = useMemo(() => Math.random().toString(36).slice(2, 10), [])
+
+  const handleStartFresh = () => {
+    try { logout() } catch {}
+    try { localStorage.clear(); sessionStorage.clear() } catch {}
+    window.location.reload()
+  }
 
   useEffect(() => {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
@@ -221,10 +231,11 @@ function CheckoutInner() {
     setCouponLoading(true)
     try {
       const { data } = await checkoutAPI.validateCode({ code: couponCode, codeType: 'coupon', type: itemType, packageId: packageId || undefined, tier: tier || undefined, courseId, amount: basePrice })
-      setCouponStatus('valid'); setCouponDiscount(data?.discount || 0)
+      setCouponStatus('valid'); setCouponDiscount(data?.discount || 0); setCouponErrorMsg('')
       toast.success(data?.message || 'Coupon applied!')
-    } catch {
-      setCouponStatus('invalid'); setCouponDiscount(0)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Invalid or expired coupon'
+      setCouponStatus('invalid'); setCouponDiscount(0); setCouponErrorMsg(msg)
     } finally { setCouponLoading(false) }
   }, [couponCode, itemType, packageId, tier, courseId, basePrice])
 
@@ -325,14 +336,21 @@ function CheckoutInner() {
 
             {/* Account */}
             <div className="rounded-2xl border p-5" style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.08)' }}>
-              <p className="text-xs font-semibold text-white/35 uppercase tracking-widest mb-4">Your Details</p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-semibold text-white/35 uppercase tracking-widest">Your Details</p>
+                <button type="button" onClick={handleStartFresh}
+                  className="text-[11px] text-white/35 hover:text-violet-400 underline decoration-dotted underline-offset-4">
+                  Not you? Start fresh
+                </button>
+              </div>
               {showGuestForm ? (
-                <div className="space-y-3">
+                <form className="space-y-3" autoComplete="off" onSubmit={e => e.preventDefault()}>
                   <div>
                     <label className="block text-xs text-white/40 mb-1.5">Full Name</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                       <input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Enter your full name"
+                        autoComplete="off" data-form-type="other" data-lpignore="true" name={`tlx_n_${fid}`}
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
                     </div>
                   </div>
@@ -341,6 +359,7 @@ function CheckoutInner() {
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                       <input value={guestEmail} onChange={e => setGuestEmail(e.target.value)} placeholder="Enter your email" type="email"
+                        autoComplete="new-password" data-form-type="other" data-lpignore="true" name={`tlx_e_${fid}`}
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
                     </div>
                   </div>
@@ -349,6 +368,7 @@ function CheckoutInner() {
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                       <input value={guestPhone} onChange={e => setGuestPhone(e.target.value)} placeholder="Enter your mobile number" type="tel"
+                        autoComplete="off" data-form-type="other" data-lpignore="true" name={`tlx_p_${fid}`}
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
                     </div>
                   </div>
@@ -370,7 +390,7 @@ function CheckoutInner() {
                     </div>
                   </div>
                   <p className="text-white/25 text-xs">Your account & login credentials will be sent to your WhatsApp after payment.</p>
-                </div>
+                </form>
               ) : (
                 <div className="space-y-3">
                   <div className="grid sm:grid-cols-2 gap-3">
@@ -413,9 +433,10 @@ function CheckoutInner() {
                 accentColor={tc.accentColor} loading={promoLoading}
                 successMsg={promoSuccessMsg} errorMsg={promoErrorMsg} />
               <CodeField label="Coupon Code (Optional)" icon={Ticket} placeholder="E.g. SAVE20"
-                value={couponCode} onChange={v => { setCouponCode(v); setCouponStatus('idle') }}
+                value={couponCode} onChange={v => { setCouponCode(v); setCouponStatus('idle'); setCouponErrorMsg('') }}
                 onValidate={handleCoupon} status={couponStatus}
-                accentColor={tc.accentColor} loading={couponLoading} />
+                accentColor={tc.accentColor} loading={couponLoading}
+                errorMsg={couponErrorMsg} />
             </div>
 
             {/* Payment mode */}

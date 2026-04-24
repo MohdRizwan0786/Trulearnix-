@@ -16,16 +16,6 @@ const COLORS = [
   { color: 'text-fuchsia-400',glow: 'rgba(217,70,239,0.15)', shadow: 'rgba(217,70,239,0.35)'},
 ]
 
-const DEFAULT_STATS = [
-  { value: '50,000+', label: 'Active Students' },
-  { value: '1,200+',  label: 'Live Sessions Done' },
-  { value: '500+',    label: 'Expert Courses' },
-  { value: '20,000+', label: 'Certificates Issued' },
-  { value: '₹2Cr+',   label: 'Partner Earnings' },
-  { value: '4.9/5',   label: 'Platform Rating' },
-  { value: '50+',     label: 'Cities Covered' },
-  { value: '98%',     label: 'Completion Rate' },
-]
 
 type StatItem = { value: string; label: string; icon?: any; color?: string; glow?: string; shadow?: string }
 
@@ -56,15 +46,39 @@ export default function StatsSection() {
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
+    let cmsFilled = false
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/site-content/stats`)
       .then(r => r.json())
       .then(d => {
         if (d.success && d.data?.stats?.length) {
+          cmsFilled = true
           setStats(d.data.stats.map((s: any, i: number) => ({ ...s, icon: ICONS[i % ICONS.length], ...COLORS[i % COLORS.length] })))
         }
       })
       .catch(() => {})
-      .finally(() => setLoaded(true))
+      .finally(() => {
+        if (cmsFilled) { setLoaded(true); return }
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/stats`)
+          .then(r => r.json())
+          .then(d => {
+            if (!d.success) return
+            const s = d.stats
+            const fmtCount = (n: number) => n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+            const fmtMoney = (n: number) => n >= 10000000 ? `₹${(n / 10000000).toFixed(1)}Cr+` : n >= 100000 ? `₹${Math.floor(n / 100000)}L+` : n >= 1000 ? `₹${Math.floor(n / 1000)}K+` : `₹${n}`
+            const real = [
+              { value: fmtCount(s.totalStudents || 0),     label: 'Active Students' },
+              { value: fmtCount(s.totalCourses || 0),      label: 'Expert Courses' },
+              { value: fmtCount(s.totalEnrollments || 0),  label: 'Enrollments' },
+              { value: fmtCount(s.totalCertificates || 0), label: 'Certificates Issued' },
+              { value: fmtMoney(s.totalPayout || 0),       label: 'Partner Earnings' },
+              { value: s.avgRating > 0 ? `${s.avgRating.toFixed(1)}/5` : '—', label: 'Platform Rating' },
+              { value: fmtCount(s.totalMentors || 0),      label: 'Expert Mentors' },
+            ].filter(item => item.value !== '—' && item.value !== '0+')
+            if (real.length) setStats(real.map((item, i) => ({ ...item, icon: ICONS[i % ICONS.length], ...COLORS[i % COLORS.length] })))
+          })
+          .catch(() => {})
+          .finally(() => setLoaded(true))
+      })
   }, [])
 
   if (loaded && stats.length === 0) return null

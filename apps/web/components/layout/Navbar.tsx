@@ -28,9 +28,9 @@ const DEFAULT_SIDEBAR_EXTRAS = [
 ]
 
 const DEFAULT_SIDEBAR_STATS = [
-  { val: '50K+', label: 'Students',  color: 'text-violet-400' },
-  { val: '4.9★', label: 'Rating',   color: 'text-amber-400'  },
-  { val: '₹2Cr+', label: 'Paid Out', color: 'text-green-400'  },
+  { val: '—', label: 'Students',  color: 'text-violet-400' },
+  { val: '—', label: 'Rating',   color: 'text-amber-400'  },
+  { val: '—', label: 'Paid Out', color: 'text-green-400'  },
 ]
 
 const ICON_MAP: Record<string, any> = {
@@ -58,6 +58,8 @@ export default function Navbar() {
   const [sidebarExtras, setSidebarExtras]   = useState(DEFAULT_SIDEBAR_EXTRAS as any[])
 
   useEffect(() => {
+    let cmsStatsUsed = false
+
     fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/navbar')
       .then(r => r.json())
       .then(res => {
@@ -66,13 +68,13 @@ export default function Navbar() {
         if (d.logoUrl)       setLogoUrl(d.logoUrl)
         if (d.ctaText)       setCtaText(d.ctaText)
         if (d.navLinks?.length) {
-          // Merge CMS links with icon info from defaults
           setNavLinks(d.navLinks.map((l: any) => {
             const match = DEFAULT_NAV_LINKS.find(n => n.href === l.href)
             return { ...l, icon: match?.icon || Home, badge: match?.badge }
           }))
         }
         if (d.sidebarStats?.length) {
+          cmsStatsUsed = true
           setSidebarStats(d.sidebarStats.map((s: any, i: number) => ({
             ...s,
             color: DEFAULT_SIDEBAR_STATS[i]?.color || 'text-violet-400',
@@ -86,6 +88,23 @@ export default function Navbar() {
         }
       })
       .catch(() => {})
+      .finally(() => {
+        if (cmsStatsUsed) return
+        fetch(process.env.NEXT_PUBLIC_API_URL + '/public/stats')
+          .then(r => r.json())
+          .then(d => {
+            if (!d.success) return
+            const s = d.stats
+            const fmtCount = (n: number) => n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+            const fmtMoney = (n: number) => n >= 10000000 ? `₹${(n / 10000000).toFixed(1)}Cr+` : n >= 100000 ? `₹${Math.floor(n / 100000)}L+` : n >= 1000 ? `₹${Math.floor(n / 1000)}K+` : `₹${n}`
+            setSidebarStats([
+              { val: fmtCount(s.totalStudents || 0), label: 'Students', color: 'text-violet-400' },
+              { val: s.avgRating > 0 ? `${s.avgRating.toFixed(1)}★` : '—', label: 'Rating', color: 'text-amber-400' },
+              { val: fmtMoney(s.totalPayout || 0), label: 'Paid Out', color: 'text-green-400' },
+            ])
+          })
+          .catch(() => {})
+      })
   }, [])
 
   useEffect(() => {

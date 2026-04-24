@@ -54,7 +54,7 @@ export default function TruLanceProjectsPage() {
             </h1>
             <p className="text-gray-400 text-sm mt-1">{total} total projects</p>
           </div>
-          <a href="https://trulancer.trulearnix.com" target="_blank" rel="noopener noreferrer"
+          <a href={process.env.NEXT_PUBLIC_TRULANCE_URL || 'https://trulancer.trulearnix.com'} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-teal-400 border border-teal-500/30 hover:bg-teal-500/10 transition-colors">
             <ExternalLink className="w-4 h-4" /> Visit TruLance
           </a>

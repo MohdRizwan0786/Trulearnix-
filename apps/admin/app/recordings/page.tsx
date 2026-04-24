@@ -1,9 +1,14 @@
 'use client'
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
 import AdminLayout from '@/components/AdminLayout'
-import { Download, Video, Search, RefreshCw, Calendar, Clock, User, BookOpen, PlayCircle, FileVideo, Cloud, HardDrive } from 'lucide-react'
+import toast from 'react-hot-toast'
+import {
+  Download, Video, Search, RefreshCw, Calendar, Clock, User, BookOpen,
+  PlayCircle, FileVideo, Cloud, HardDrive, Trash2, Link2, X, Check,
+  ChevronDown, Loader2, AlertTriangle
+} from 'lucide-react'
 import { format } from 'date-fns'
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://api.trulearnix.com').replace(/\/api$/, '')
@@ -15,9 +20,221 @@ const TYPE_TABS = [
   { key: 'workshop', label: 'Workshops' },
 ]
 
+// ── Link to Lesson Modal ─────────────────────────────────────────────────────
+function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
+  const recBatchId = rec.batch?._id || rec.batch || ''
+  const recBatchLabel = rec.batch ? `Batch #${rec.batch.batchNumber}${rec.batch.label ? ' — ' + rec.batch.label : ''}` : ''
+
+  const [courseId, setCourseId] = useState(rec.course?._id || rec.course || '')
+  const [moduleIdx, setModuleIdx] = useState('')
+  const [lessonId, setLessonId] = useState('')
+  const [ytUrl, setYtUrl] = useState('')
+  // batchMode: 'batch' = sirf is batch ke liye, 'all' = sabke liye (default videoUrl)
+  const [batchMode, setBatchMode] = useState<'batch' | 'all'>(recBatchId ? 'batch' : 'all')
+  const qc = useQueryClient()
+
+  const { data: courseData, isLoading: courseLoading } = useQuery({
+    queryKey: ['admin-course', courseId],
+    queryFn: () => adminAPI.getCourse(courseId).then(r => r.data),
+    enabled: !!courseId,
+  })
+  const { data: coursesData } = useQuery({
+    queryKey: ['admin-all-courses-sm'],
+    queryFn: () => adminAPI.allCourses({ limit: 200 }).then(r => r.data),
+  })
+
+  const courses = coursesData?.courses || []
+  const modules: any[] = courseData?.course?.modules || []
+  const lessons: any[] = moduleIdx !== '' ? (modules[Number(moduleIdx)]?.lessons || []) : []
+
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      if (batchMode === 'batch' && recBatchId) {
+        return adminAPI.updateBatchLessonVideoUrl(courseId, lessonId, recBatchId, ytUrl)
+      }
+      return adminAPI.updateLessonVideoUrl(courseId, lessonId, ytUrl)
+    },
+    onSuccess: () => {
+      toast.success(batchMode === 'batch'
+        ? `${recBatchLabel} ke lesson mein YouTube link add ho gaya!`
+        : 'Lesson mein YouTube link add ho gaya (sabke liye)!')
+      qc.invalidateQueries({ queryKey: ['admin-course', courseId] })
+      onClose()
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to save'),
+  })
+
+  const canSave = courseId && lessonId && ytUrl.trim()
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <div className="flex items-center gap-2.5">
+            <Link2 className="w-5 h-5 text-violet-400" />
+            <h2 className="text-white font-bold text-sm">Lesson mein Recording Link daalo</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Recording info */}
+          <div className="p-3 rounded-xl bg-white/5 border border-white/8 text-xs text-gray-400 space-y-0.5">
+            <p className="text-white font-semibold text-sm">{rec.title}</p>
+            {rec.course?.title && <p className="text-violet-400">{rec.course.title}</p>}
+            {recBatchLabel && <p className="text-emerald-400">{recBatchLabel}</p>}
+          </div>
+
+          {/* YouTube URL */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-1.5 font-medium">YouTube Video URL <span className="text-red-400">*</span></label>
+            <input
+              value={ytUrl}
+              onChange={e => setYtUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="input w-full text-sm"
+            />
+          </div>
+
+          {/* Batch mode toggle — only if recording has a batch */}
+          {recBatchId && (
+            <div className="flex gap-2">
+              <button onClick={() => setBatchMode('batch')}
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors ${batchMode === 'batch' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'border-white/10 text-gray-500 hover:text-gray-300'}`}>
+                Sirf {recBatchLabel}
+              </button>
+              <button onClick={() => setBatchMode('all')}
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors ${batchMode === 'all' ? 'bg-violet-500/20 border-violet-500/40 text-violet-300' : 'border-white/10 text-gray-500 hover:text-gray-300'}`}>
+                Saare Batches
+              </button>
+            </div>
+          )}
+
+          {/* Course selector */}
+          {!rec.course?._id && (
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 font-medium">Course <span className="text-red-400">*</span></label>
+              <select value={courseId} onChange={e => { setCourseId(e.target.value); setModuleIdx(''); setLessonId('') }}
+                className="input w-full text-sm">
+                <option value="">Course select karo</option>
+                {courses.map((c: any) => <option key={c._id} value={c._id}>{c.title}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Module selector */}
+          {courseId && (
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 font-medium">Module <span className="text-red-400">*</span></label>
+              {courseLoading ? (
+                <div className="flex items-center gap-2 text-xs text-gray-500 py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading...
+                </div>
+              ) : (
+                <select value={moduleIdx} onChange={e => { setModuleIdx(e.target.value); setLessonId('') }}
+                  className="input w-full text-sm">
+                  <option value="">Module select karo</option>
+                  {modules.map((m: any, i: number) => (
+                    <option key={i} value={i}>{m.title || `Module ${i + 1}`}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
+          {/* Lesson selector */}
+          {moduleIdx !== '' && (
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5 font-medium">Lesson <span className="text-red-400">*</span></label>
+              <select value={lessonId} onChange={e => setLessonId(e.target.value)} className="input w-full text-sm">
+                <option value="">Lesson select karo</option>
+                {lessons.map((l: any) => (
+                  <option key={l._id} value={l._id}>{l.title || 'Lesson'}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {canSave && (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-xs text-violet-300">
+              <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              {batchMode === 'batch' && recBatchId
+                ? `Sirf ${recBatchLabel} ke students ko yeh recording dikhegi is lesson mein.`
+                : 'Saare batches ke students ko yeh recording dikhegi is lesson mein.'}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 px-5 pb-5">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-sm">
+            Cancel
+          </button>
+          <button
+            onClick={() => saveMutation.mutate()}
+            disabled={!canSave || saveMutation.isPending}
+            className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Save Link
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Delete Confirm Modal ──────────────────────────────────────────────────────
+function DeleteModal({ rec, onClose }: { rec: any; onClose: () => void }) {
+  const qc = useQueryClient()
+  const deleteMutation = useMutation({
+    mutationFn: () => adminAPI.deleteRecording(rec._id),
+    onSuccess: () => {
+      toast.success('Recording R2 se delete ho gayi!')
+      qc.invalidateQueries({ queryKey: ['admin-recordings'] })
+      onClose()
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Delete failed'),
+  })
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+          </div>
+          <div>
+            <h2 className="text-white font-bold">Recording Delete karo?</h2>
+            <p className="text-gray-400 text-xs mt-0.5">Cloudflare R2 se permanently delete ho jayegi</p>
+          </div>
+        </div>
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-300">
+          <p className="font-semibold">{rec.title}</p>
+          {rec.course?.title && <p className="text-red-400/70 mt-0.5">{rec.course.title}</p>}
+          <p className="mt-1.5 text-red-400/70">Pehle YouTube link lesson mein add karo, phir hi delete karo!</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-sm">
+            Cancel
+          </button>
+          <button onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}
+            className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+            {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Delete from R2
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function RecordingsPage() {
   const [search, setSearch] = useState('')
   const [typeTab, setTypeTab] = useState('all')
+  const [linkRec, setLinkRec] = useState<any>(null)
+  const [deleteRec, setDeleteRec] = useState<any>(null)
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-recordings'],
@@ -29,14 +246,12 @@ export default function RecordingsPage() {
       r.title?.toLowerCase().includes(search.toLowerCase()) ||
       r.mentor?.name?.toLowerCase().includes(search.toLowerCase()) ||
       r.course?.title?.toLowerCase().includes(search.toLowerCase())
-
     const matchType =
       typeTab === 'all' ? true :
       typeTab === 'class' ? r._recordingType === 'class' :
       typeTab === 'webinar' ? (r._recordingType === 'webinar' && r.type !== 'workshop') :
       typeTab === 'workshop' ? (r._recordingType === 'webinar' && r.type === 'workshop') :
       true
-
     return matchSearch && matchType
   })
 
@@ -64,17 +279,23 @@ export default function RecordingsPage() {
           </button>
         </div>
 
+        {/* Workflow hint */}
+        <div className="flex items-start gap-3 p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 text-sm">
+          <div className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-full bg-violet-500 text-white flex items-center justify-center text-xs font-bold">!</div>
+          <div className="text-violet-200 space-y-1 text-xs">
+            <p className="font-semibold text-violet-100">Workflow: Download → YouTube Upload → Link → Delete</p>
+            <p>1. Recording <b>Download</b> karo &nbsp;→&nbsp; 2. YouTube pe upload karo &nbsp;→&nbsp; 3. <b>"Add to Lesson"</b> se YouTube link lesson mein daalo &nbsp;→&nbsp; 4. <b>"Delete"</b> se R2 space free karo</p>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Search */}
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by class, mentor, course..."
               className="w-full bg-slate-800 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-violet-500 transition-colors" />
           </div>
-
-          {/* Type tabs */}
           <div className="flex gap-1 bg-slate-800/60 border border-white/10 rounded-xl p-1">
             {TYPE_TABS.map(t => (
               <button key={t.key} onClick={() => setTypeTab(t.key)}
@@ -102,10 +323,9 @@ export default function RecordingsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/10 bg-slate-700/30">
-                    <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide">Title</th>
+                    <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide">Title / Course</th>
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide hidden md:table-cell">Mentor</th>
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide hidden lg:table-cell">Date</th>
-                    <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide hidden xl:table-cell">Duration</th>
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide">Size</th>
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide">Storage</th>
                     <th className="text-left px-5 py-4 text-gray-400 font-medium text-xs uppercase tracking-wide">Actions</th>
@@ -126,27 +346,26 @@ export default function RecordingsPage() {
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
                               recType === 'workshop' ? 'bg-orange-500/20' :
-                              recType === 'webinar' ? 'bg-amber-500/20' :
-                              'bg-violet-500/20'
+                              recType === 'webinar' ? 'bg-amber-500/20' : 'bg-violet-500/20'
                             }`}>
                               <Video className={`w-5 h-5 ${
                                 recType === 'workshop' ? 'text-orange-400' :
-                                recType === 'webinar' ? 'text-amber-400' :
-                                'text-violet-400'
+                                recType === 'webinar' ? 'text-amber-400' : 'text-violet-400'
                               }`} />
                             </div>
                             <div>
                               <p className="text-white font-semibold text-sm leading-tight max-w-[200px] truncate">{rec.title}</p>
-                              {recType === 'workshop' ? (
-                                <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 font-medium">Workshop</span>
-                              ) : recType === 'webinar' ? (
-                                <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Webinar</span>
-                              ) : rec.course?.title ? (
+                              {rec.course?.title ? (
                                 <p className="text-violet-400/70 text-xs mt-0.5 flex items-center gap-1 truncate max-w-[200px]">
                                   <BookOpen className="w-3 h-3 flex-shrink-0" /> {rec.course.title}
+                                  {rec.batch && <span className="ml-1 text-gray-500">· Batch #{rec.batch.batchNumber}</span>}
                                 </p>
                               ) : (
-                                <span className="text-xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 font-medium">Class</span>
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                  recType === 'workshop' ? 'bg-orange-500/20 text-orange-400' :
+                                  recType === 'webinar' ? 'bg-amber-500/20 text-amber-400' :
+                                  'bg-violet-500/20 text-violet-400'
+                                } font-medium`}>{recType}</span>
                               )}
                             </div>
                           </div>
@@ -171,37 +390,38 @@ export default function RecordingsPage() {
                             {rec.endedAt ? format(new Date(rec.endedAt), 'hh:mm a') : ''}
                           </p>
                         </td>
-                        <td className="px-5 py-4 hidden xl:table-cell">
-                          <span className="text-gray-400 text-xs">{rec.duration} min</span>
-                        </td>
                         <td className="px-5 py-4">
-                          {sizeMB ? (
-                            <span className="text-gray-400 text-xs">{sizeMB} MB</span>
-                          ) : (
-                            <span className="text-gray-600 text-xs">—</span>
-                          )}
+                          {sizeMB ? <span className="text-gray-400 text-xs">{sizeMB} MB</span> : <span className="text-gray-600 text-xs">—</span>}
                         </td>
                         <td className="px-5 py-4">
                           {isR2 ? (
-                            <span className="flex items-center gap-1 text-xs text-emerald-400">
-                              <Cloud className="w-3.5 h-3.5" /> R2 Cloud
-                            </span>
+                            <span className="flex items-center gap-1 text-xs text-emerald-400"><Cloud className="w-3.5 h-3.5" /> R2 Cloud</span>
                           ) : (
-                            <span className="flex items-center gap-1 text-xs text-gray-500">
-                              <HardDrive className="w-3.5 h-3.5" /> Local
-                            </span>
+                            <span className="flex items-center gap-1 text-xs text-gray-500"><HardDrive className="w-3.5 h-3.5" /> Local</span>
                           )}
                         </td>
                         <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {/* Watch */}
                             <a href={fileUrl} target="_blank" rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors">
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors">
                               <PlayCircle className="w-3.5 h-3.5" /> Watch
                             </a>
+                            {/* Download */}
                             <a href={fileUrl} download
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors">
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors">
                               <Download className="w-3.5 h-3.5" /> Download
                             </a>
+                            {/* Add to Lesson */}
+                            <button onClick={() => setLinkRec(rec)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors">
+                              <Link2 className="w-3.5 h-3.5" /> Add to Lesson
+                            </button>
+                            {/* Delete from R2 */}
+                            <button onClick={() => setDeleteRec(rec)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" /> Delete
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -213,6 +433,10 @@ export default function RecordingsPage() {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      {linkRec && <LinkLessonModal rec={linkRec} onClose={() => setLinkRec(null)} />}
+      {deleteRec && <DeleteModal rec={deleteRec} onClose={() => setDeleteRec(null)} />}
     </AdminLayout>
   )
 }

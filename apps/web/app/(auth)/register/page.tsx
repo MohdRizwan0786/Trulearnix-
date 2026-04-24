@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense } from 'react'
+import { useState, useMemo, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -62,6 +62,14 @@ function RegisterForm() {
   const [otp, setOtp] = useState('')
   const [verifying, setVerifying] = useState(false)
   const [country, setCountry] = useState('India')
+  // Randomized per-render field-name suffix so browser-saved autofill entries
+  // keyed on fixed names can't match on revisit (shared-device scenario).
+  const fid = useMemo(() => Math.random().toString(36).slice(2, 10), [])
+
+  const handleStartFresh = () => {
+    try { localStorage.clear(); sessionStorage.clear() } catch {}
+    window.location.reload()
+  }
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -195,9 +203,15 @@ function RegisterForm() {
             <Image src="/logo.png" alt="TruLearnix" width={140} height={36} className="object-contain" priority />
           </div>
 
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-white">Create your account</h1>
-            <p className="text-gray-400 text-sm mt-1">Fill in your details to get started</p>
+          <div className="mb-6 flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Create your account</h1>
+              <p className="text-gray-400 text-sm mt-1">Fill in your details to get started</p>
+            </div>
+            <button type="button" onClick={handleStartFresh}
+              className="text-xs text-gray-500 hover:text-violet-400 underline decoration-dotted underline-offset-4 whitespace-nowrap mt-1">
+              Start fresh
+            </button>
           </div>
 
           {/* Referral banner */}
@@ -211,17 +225,17 @@ function RegisterForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
             <Field label="Full Name" icon={User} error={errors.name?.message}>
-              <input {...register('name')} placeholder="Rahul Kumar" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
+              <input {...register('name')} name={`tlx_n_${fid}`} placeholder="Rahul Kumar" autoComplete="off" data-form-type="other" data-lpignore="true" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
             </Field>
 
             <Field label="Email Address" icon={Mail} error={errors.email?.message}>
-              <input {...register('email')} type="email" placeholder="you@example.com" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
+              <input {...register('email')} name={`tlx_e_${fid}`} type="email" placeholder="you@example.com" autoComplete="new-password" data-form-type="other" data-lpignore="true" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
             </Field>
 
             <Field label="Mobile Number" icon={Phone} error={errors.phone?.message}>
-              <input {...register('phone')} type="tel" placeholder="9876543210" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
+              <input {...register('phone')} name={`tlx_p_${fid}`} type="tel" placeholder="9876543210" autoComplete="off" data-form-type="other" data-lpignore="true" className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors text-sm" />
             </Field>
 
             <div className="grid grid-cols-2 gap-3">

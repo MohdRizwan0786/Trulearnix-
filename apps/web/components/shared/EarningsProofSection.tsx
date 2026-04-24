@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { IndianRupee, Users, Star, ArrowRight, Zap, Crown, Flame, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import { type Affiliate } from '@/lib/affiliateData'
 
 const DEFAULT_STEPS = [
-  { num: '01', title: 'Join & Learn',     desc: 'Enroll in any plan. Start your Pro or Elite membership.',                                       color: '#a78bfa' },
+  { num: '01', title: 'Join & Learn',     desc: 'Enroll in any plan. Start your learning journey.',                                            color: '#a78bfa' },
   { num: '02', title: 'Share Your Link',  desc: 'Get your personal partner link. Share it with friends, family, and on social media.',             color: '#34d399' },
   { num: '03', title: 'Earn Every Month', desc: 'Help others learn skills — earn 10–25% income on every successful enrollment, every month.',     color: '#fbbf24' },
 ]
@@ -105,6 +104,7 @@ export default function EarningsProofSection({ initialEarners = [] }: { initialE
   const [sectionHeading, setSectionHeading] = useState('How Earning Works')
   const [leaderboardHeading, setLeaderboardHeading] = useState('Top Earners This Month')
   const [tierNameMap, setTierNameMap] = useState<Record<string, string>>({})
+  const [studentCountLabel, setStudentCountLabel] = useState('—')
 
   useEffect(() => {
     const fetchLeaderboard = () => {
@@ -126,6 +126,16 @@ export default function EarningsProofSection({ initialEarners = [] }: { initialE
         const map: Record<string, string> = {}
         ;(d.packages || []).forEach((p: any) => { if (p.tier) map[p.tier.toLowerCase()] = p.name })
         setTierNameMap(map)
+      })
+      .catch(() => {})
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/stats`)
+      .then(r => r.json())
+      .then(d => {
+        if (!d.success) return
+        const n = d.stats.totalStudents || 0
+        const fmt = n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+        setStudentCountLabel(fmt)
       })
       .catch(() => {})
 
@@ -292,7 +302,7 @@ export default function EarningsProofSection({ initialEarners = [] }: { initialE
             </Link>
             <div className="flex items-center gap-2 text-sm text-gray-400">
               <Users className="w-4 h-4 text-gray-500" />
-              <span>Join <span className="text-white font-bold">50,000+</span> students already earning</span>
+              <span>Join <span className="text-white font-bold">{studentCountLabel}</span> students already earning</span>
             </div>
           </div>
         </motion.div>

@@ -13,18 +13,15 @@ const DEFAULT_FEATURES = [
 
 const DEFAULT_TICKER = [
   '🔥 New Batch Starting Monday',
-  '⚡ 247 Students Joined Today',
-  '🏆 50,000+ Learners Trust Us',
-  '💰 ₹2Cr+ Partner Earnings Paid',
-  '🎓 20,000+ Certificates Issued',
-  '🌟 4.9/5 Platform Rating',
+  '⚡ Join Live Classes Daily',
+  '🌐 Learn, Earn & Grow',
 ]
 
 const DEFAULT_HERO_STATS = [
-  { icon: Users,    val: '50K+',  label: 'Active Learners',     glowColor: 'rgba(124,58,237,0.2)',  iconColor: 'text-violet-400' },
-  { icon: BookOpen, val: '500+',  label: 'Expert Courses',      glowColor: 'rgba(99,102,241,0.2)',  iconColor: 'text-indigo-400' },
-  { icon: Award,    val: '20K+',  label: 'Certificates Issued', glowColor: 'rgba(245,158,11,0.2)',  iconColor: 'text-amber-400'  },
-  { icon: Zap,      val: '₹2Cr+', label: 'Partner Earnings',  glowColor: 'rgba(16,185,129,0.2)',  iconColor: 'text-green-400'  },
+  { icon: Users,    val: '—', label: 'Active Learners',     glowColor: 'rgba(124,58,237,0.2)',  iconColor: 'text-violet-400' },
+  { icon: BookOpen, val: '—', label: 'Expert Courses',      glowColor: 'rgba(99,102,241,0.2)',  iconColor: 'text-indigo-400' },
+  { icon: Award,    val: '—', label: 'Certificates Issued', glowColor: 'rgba(245,158,11,0.2)',  iconColor: 'text-amber-400'  },
+  { icon: Zap,      val: '—', label: 'Partner Earnings',    glowColor: 'rgba(16,185,129,0.2)',  iconColor: 'text-green-400'  },
 ]
 
 const ICON_CYCLE = [Users, BookOpen, Award, Zap]
@@ -47,8 +44,19 @@ export default function HeroSection() {
   const [liveClassMentor, setLiveClassMentor] = useState('')
   const [liveClassViewers, setLiveClassViewers] = useState('')
   const [chatMessages, setChatMessages]       = useState<{ u: string; m: string; c: string }[]>([])
+  const [rawStats, setRawStats]               = useState<any>(null)
+
+  const fmtCount = (n: number) => n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+  const fmtMoney = (n: number) => n >= 10000000 ? `₹${(n / 10000000).toFixed(1)}Cr+` : n >= 100000 ? `₹${Math.floor(n / 100000)}L+` : n >= 1000 ? `₹${Math.floor(n / 1000)}K+` : `₹${n}`
+
+  const studentCountLabel = rawStats ? fmtCount(rawStats.totalStudents || 0) : '—'
+  const certCountLabel    = rawStats ? fmtCount(rawStats.totalCertificates || 0) : '—'
+  const ratingLabel       = rawStats && rawStats.avgRating > 0 ? rawStats.avgRating.toFixed(1) : '—'
 
   useEffect(() => {
+    let heroStatsFromCms = false
+    let tickerFromCms = false
+
     fetch(process.env.NEXT_PUBLIC_API_URL + '/site-content/hero')
       .then(r => r.json())
       .then(res => {
@@ -59,8 +67,9 @@ export default function HeroSection() {
         if (d.subheadline)           setSubheadline(d.subheadline)
         if (d.heroBannerImage)       setHeroBannerImage(d.heroBannerImage)
         if (d.features?.length)      setFeatures(d.features)
-        if (d.ticker?.length)        setTickerItems(d.ticker)
+        if (d.ticker?.length) { setTickerItems(d.ticker); tickerFromCms = true }
         if (d.heroStats?.length) {
+          heroStatsFromCms = true
           setHeroStats(d.heroStats.map((s: any, i: number) => ({
             icon: ICON_CYCLE[i] || Users,
             val: s.value,
@@ -79,6 +88,32 @@ export default function HeroSection() {
         }
       })
       .catch(() => {})
+      .finally(() => {
+        fetch(process.env.NEXT_PUBLIC_API_URL + '/public/stats')
+          .then(r => r.json())
+          .then(d => {
+            if (!d.success) return
+            const s = d.stats
+            setRawStats(s)
+            if (!heroStatsFromCms) {
+              setHeroStats([
+                { icon: Users,    val: fmtCount(s.totalStudents || 0),      label: 'Active Learners',     glowColor: GLOW_CYCLE[0], iconColor: COLOR_CYCLE[0] },
+                { icon: BookOpen, val: fmtCount(s.totalCourses || 0),       label: 'Expert Courses',      glowColor: GLOW_CYCLE[1], iconColor: COLOR_CYCLE[1] },
+                { icon: Award,    val: fmtCount(s.totalCertificates || 0),  label: 'Certificates Issued', glowColor: GLOW_CYCLE[2], iconColor: COLOR_CYCLE[2] },
+                { icon: Zap,      val: fmtMoney(s.totalPayout || 0),        label: 'Partner Earnings',    glowColor: GLOW_CYCLE[3], iconColor: COLOR_CYCLE[3] },
+              ])
+            }
+            if (!tickerFromCms) {
+              const extras: string[] = []
+              if (s.totalStudents) extras.push(`🏆 ${fmtCount(s.totalStudents)} Learners Trust Us`)
+              if (s.totalPayout)   extras.push(`💰 ${fmtMoney(s.totalPayout)} Partner Earnings Paid`)
+              if (s.totalCertificates) extras.push(`🎓 ${fmtCount(s.totalCertificates)} Certificates Issued`)
+              if (s.avgRating > 0) extras.push(`🌟 ${s.avgRating.toFixed(1)}/5 Platform Rating`)
+              if (extras.length) setTickerItems(prev => [...prev, ...extras])
+            }
+          })
+          .catch(() => {})
+      })
   }, [])
 
   const toggleMute = () => {
@@ -133,7 +168,7 @@ export default function HeroSection() {
                 <span className="w-2 h-2 bg-red-400 rounded-full live-dot flex-shrink-0" />
                 <span className="text-red-400 text-sm font-black">{badgeText}</span>
                 <span className="hidden sm:block text-gray-600">•</span>
-                <span className="hidden sm:block text-gray-500 text-xs font-semibold">50K+ Students</span>
+                <span className="hidden sm:block text-gray-500 text-xs font-semibold">{studentCountLabel} Students</span>
               </motion.div>
 
               {/* Main headline */}
@@ -191,9 +226,9 @@ export default function HeroSection() {
                 <div>
                   <div className="flex items-center gap-1">
                     {[1,2,3,4,5].map(i => <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />)}
-                    <span className="text-amber-400 font-black text-sm ml-1">4.9</span>
+                    <span className="text-amber-400 font-black text-sm ml-1">{ratingLabel}</span>
                   </div>
-                  <p className="text-gray-500 text-xs mt-0.5">Trusted by 50,000+ learners across India</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Trusted by {studentCountLabel} learners across India</p>
                 </div>
               </motion.div>
 
@@ -243,9 +278,9 @@ export default function HeroSection() {
                 </div>
                 <div className="grid grid-cols-3 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   {[
-                    { val: '₹15K', label: 'Avg. Earned', color: 'text-green-400' },
-                    { val: '4.9★', label: 'Rating', color: 'text-amber-400' },
-                    { val: '20K+', label: 'Certified', color: 'text-violet-400' },
+                    { val: rawStats ? fmtMoney(rawStats.totalPayout || 0) : '—', label: 'Paid Out', color: 'text-green-400' },
+                    { val: ratingLabel !== '—' ? `${ratingLabel}★` : '—', label: 'Rating', color: 'text-amber-400' },
+                    { val: certCountLabel, label: 'Certified', color: 'text-violet-400' },
                   ].map((s, i) => (
                     <div key={i} className="py-3" style={{ borderRight: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
                       <p className={`font-black text-sm ${s.color}`}>{s.val}</p>
@@ -359,7 +394,7 @@ export default function HeroSection() {
                     <Sparkles className="w-4 h-4 text-fuchsia-400" />
                   </div>
                   <div>
-                    <p className="text-white font-black text-xs">50K+</p>
+                    <p className="text-white font-black text-xs">{studentCountLabel}</p>
                     <p className="text-gray-600 text-[10px]">Learners</p>
                   </div>
                 </div>

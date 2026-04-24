@@ -21,7 +21,8 @@ const CouponSchema = new Schema<ICoupon>({
   usedCount: { type: Number, default: 0 },
   minOrderValue: { type: Number, default: 0 },
   expiresAt: { type: Date, required: true },
-  applicableTiers: [{ type: String, enum: ['starter', 'pro', 'elite', 'supreme'] }],
+  // No enum — valid tiers come from Package collection (admin-managed).
+  applicableTiers: [{ type: String }],
   isActive: { type: Boolean, default: true },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });

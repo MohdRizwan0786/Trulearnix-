@@ -285,20 +285,26 @@ router.post('/validate-code', async (req: any, res) => {
       if (coupon.usedCount >= coupon.maxUses) return res.status(400).json({ success: false, message: 'Coupon has reached max usage' });
       if (new Date() > coupon.expiresAt) return res.status(400).json({ success: false, message: 'Coupon has expired' });
 
-      // Check tier applicability for packages
-      if (type === 'package' && coupon.applicableTiers.length > 0 && !coupon.applicableTiers.includes(tier)) {
-        return res.status(400).json({ success: false, message: `This coupon is not valid for ${tier} package` });
-      }
-
-      // Get base price
+      // Get base price (support both packageId and tier lookups)
       let basePrice = 0;
+      let resolvedTier = tier;
       if (type === 'package') {
-        const pkg = await Package.findOne({ tier });
-        basePrice = pkg?.price || 0;
+        const pkg = pkgIdParam
+          ? await Package.findById(pkgIdParam)
+          : await Package.findOne({ tier, isActive: true });
+        if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
+        basePrice = pkg.price;
+        resolvedTier = pkg.tier;
       } else {
         const Course = (await import('../models/Course')).default;
         const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
         basePrice = (course as any)?.discountPrice || (course as any)?.price || 0;
+      }
+
+      // Check tier applicability for packages
+      if (type === 'package' && coupon.applicableTiers.length > 0 && !coupon.applicableTiers.includes(resolvedTier)) {
+        return res.status(400).json({ success: false, message: `This coupon is not valid for the ${resolvedTier} package` });
       }
 
       if (basePrice < coupon.minOrderValue) {
@@ -493,10 +499,13 @@ router.post('/verify', protect, async (req: any, res) => {
       const tier = purchase.packageTier as any;
 
       // ── CRITICAL: grant package access ───────────────────────────────────
+      // Prefer live admin-configured rate from the Package doc
+      const liveRate = (pkg && typeof pkg.commissionRate === 'number') ? pkg.commissionRate : null;
+      const fallbackRate = COMMISSION_RATES[tier as keyof typeof COMMISSION_RATES] ?? 10;
       await User.findByIdAndUpdate(req.user._id, {
         packageTier: tier,
         isAffiliate: true,
-        commissionRate: COMMISSION_RATES[tier as keyof typeof COMMISSION_RATES] || 10,
+        commissionRate: liveRate ?? fallbackRate,
         packagePurchasedAt: new Date(),
         packageSuspended: false,
         $inc: { xpPoints: 500 },

@@ -7,6 +7,7 @@ export interface ILesson {
   type: 'video' | 'document' | 'quiz' | 'live';
   videoUrl?: string;
   videoKey?: string;
+  batchVideoUrls?: { batch: mongoose.Types.ObjectId; videoUrl: string }[];
   duration?: number;
   order: number;
   isPreview: boolean;
@@ -20,6 +21,7 @@ export interface IModule {
   order: number;
   batch?: mongoose.Types.ObjectId;
   lessons: ILesson[];
+  youtubePlaylistUrl?: string;
 }
 
 export interface IBatchSettings {
@@ -56,11 +58,12 @@ export interface ICourse extends Document {
   enrolledCount: number;
   rating: number;
   ratingCount: number;
-  reviews: { user: mongoose.Types.ObjectId; rating: number; comment: string; createdAt: Date }[];
+  reviews: { user?: mongoose.Types.ObjectId; name?: string; avatar?: string; rating: number; comment: string; createdAt: Date }[];
   certificate: boolean;
   passingScore: number;
   batchSettings: IBatchSettings;
   isPackage: boolean;
+  youtubePlaylistUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -71,6 +74,7 @@ const LessonSchema = new Schema<ILesson>({
   type: { type: String, enum: ['video', 'document', 'quiz', 'live'], required: true },
   videoUrl: String,
   videoKey: String,
+  batchVideoUrls: [{ batch: { type: Schema.Types.ObjectId, ref: 'Batch' }, videoUrl: String }],
   duration: Number,
   order: { type: Number, required: true },
   isPreview: { type: Boolean, default: false },
@@ -82,7 +86,8 @@ const ModuleSchema = new Schema<IModule>({
   description: String,
   order: { type: Number, required: true },
   batch: { type: Schema.Types.ObjectId, ref: 'Batch' },
-  lessons: [LessonSchema]
+  lessons: [LessonSchema],
+  youtubePlaylistUrl: String,
 });
 
 const CourseSchema = new Schema<ICourse>({
@@ -117,6 +122,8 @@ const CourseSchema = new Schema<ICourse>({
   ratingCount: { type: Number, default: 0 },
   reviews: [{
     user: { type: Schema.Types.ObjectId, ref: 'User' },
+    name: String,
+    avatar: String,
     rating: { type: Number, min: 1, max: 5 },
     comment: String,
     createdAt: { type: Date, default: Date.now }
@@ -130,7 +137,12 @@ const CourseSchema = new Schema<ICourse>({
     closingDays: { type: Number, default: 30 },
     durationDays: { type: Number, default: 0 },
   },
+  youtubePlaylistUrl: String,
 }, { timestamps: true });
+
+CourseSchema.index({ status: 1, createdAt: -1 });
+CourseSchema.index({ instructor: 1 });
+CourseSchema.index({ category: 1, status: 1 });
 
 CourseSchema.pre('save', function (next) {
   if (this.isModified('title')) {

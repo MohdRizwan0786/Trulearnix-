@@ -1,16 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Video, Users, Clock, ChevronRight, Mic, MonitorPlay, Calendar, Sparkles, ArrowRight, Gift, Zap, Play } from 'lucide-react'
+import { Video, Users, Clock, ChevronRight, Mic, MonitorPlay, Calendar, Sparkles, ArrowRight, Gift, Zap, Play, CalendarX } from 'lucide-react'
 import Link from 'next/link'
 import { classAPI } from '@/lib/api'
-
-const FALLBACK_CLASSES = [
-  { _id:'1', title:'Full Stack Web Dev — Batch 12', mentor:{ name:'Aryan Kapoor' }, attendees:Array(247).fill({}), scheduledAt: new Date().toISOString(), status:'live', course:{ title:'Full Stack Development', category:'Web Dev' }, tag:'Web Dev' },
-  { _id:'2', title:'Data Science with Python',      mentor:{ name:'Priya Mehta' },  attendees:Array(3).fill({}), scheduledAt: new Date(Date.now()+3*3600000).toISOString(), status:'scheduled', course:{ title:'Data Science', category:'Data Science' }, tag:'Data Science' },
-  { _id:'3', title:'UI/UX Design Masterclass',      mentor:{ name:'Sakshi Jain' },  attendees:Array(2).fill({}), scheduledAt: new Date(Date.now()+5*3600000).toISOString(), status:'scheduled', course:{ title:'UI/UX Design', category:'Design' }, tag:'Design' },
-  { _id:'4', title:'React Native — Mobile Apps',    mentor:{ name:'Vikram Singh' }, attendees:Array(4).fill({}), scheduledAt: new Date(Date.now()+22*3600000).toISOString(), status:'scheduled', course:{ title:'Mobile Dev', category:'Mobile' }, tag:'Mobile Dev' },
-]
 
 const TAG_COLORS: Record<string,string> = {
   'Web Dev': 'from-violet-600 to-indigo-600',
@@ -121,16 +114,22 @@ const features = [
 ]
 
 export default function LiveClassesSection() {
-  const [classes, setClasses] = useState<any[]>(FALLBACK_CLASSES)
+  const [classes, setClasses] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     classAPI.getPublic()
-      .then(res => {
-        const data = res.data?.classes || []
-        if (data.length > 0) setClasses(data)
-      })
-      .catch(() => {})
+      .then(res => { setClasses(res.data?.classes || []) })
+      .catch(() => { setClasses([]) })
+      .finally(() => { setLoading(false) })
   }, [])
+
+  // Compute dynamic CTA text from next scheduled class
+  const nextScheduled = classes.find((c: any) => c.status === 'scheduled')
+  const nextClassDate = nextScheduled?.scheduledAt ? new Date(nextScheduled.scheduledAt) : null
+  const nextClassLabel = nextClassDate
+    ? nextClassDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })
+    : null
 
   return (
     <section className="py-10 md:py-16 px-4 relative overflow-hidden">
@@ -185,9 +184,33 @@ export default function LiveClassesSection() {
 
           {/* Class list — stacked on all sizes */}
           <div className="flex flex-col gap-3">
-            {classes.slice(0, 4).map((cls, i) => (
-              <ClassCard key={cls._id || i} cls={cls} i={i} isFirst={i === 0} />
-            ))}
+            {loading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-[72px] sm:h-[80px] rounded-2xl animate-pulse"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }} />
+              ))
+            ) : classes.length === 0 ? (
+              <div className="rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', minHeight: '280px' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+                  style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
+                  <CalendarX className="w-7 h-7 text-violet-400" />
+                </div>
+                <h3 className="text-white font-bold text-base mb-1">No live classes scheduled</h3>
+                <p className="text-gray-500 text-sm mb-5 max-w-xs">
+                  New batches open regularly. Register now to get notified the moment the next cohort goes live.
+                </p>
+                <Link href="/register"
+                  className="inline-flex items-center gap-1.5 text-xs font-black px-5 py-2.5 rounded-xl text-white transition-all hover:scale-105"
+                  style={{ background: 'linear-gradient(135deg,#8b5cf6,#d946ef)', boxShadow: '0 4px 20px rgba(139,92,246,0.35)' }}>
+                  Notify Me <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            ) : (
+              classes.slice(0, 4).map((cls, i) => (
+                <ClassCard key={cls._id || i} cls={cls} i={i} isFirst={i === 0} />
+              ))
+            )}
           </div>
 
           {/* Features + CTA — desktop only */}
@@ -216,10 +239,21 @@ export default function LiveClassesSection() {
               style={{ background:'linear-gradient(135deg,rgba(124,58,237,0.15),rgba(217,70,239,0.08),rgba(79,70,229,0.12))', border:'1px solid rgba(124,58,237,0.25)', minHeight:'140px' }}>
               <Sparkles className="absolute top-3 right-4 w-5 h-5 text-violet-500/20" />
               <Zap className="absolute bottom-3 left-4 w-4 h-4 text-fuchsia-500/20" />
-              <p className="text-gray-300 text-sm font-semibold mb-1">
-                🎓 Next batch starts <strong className="text-white">Monday</strong>
-              </p>
-              <p className="text-gray-500 text-xs mb-4">Only 47 seats remaining — filling fast!</p>
+              {nextClassLabel ? (
+                <>
+                  <p className="text-gray-300 text-sm font-semibold mb-1">
+                    🎓 Next class on <strong className="text-white">{nextClassLabel}</strong>
+                  </p>
+                  <p className="text-gray-500 text-xs mb-4">Limited seats — reserve before they fill up.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-300 text-sm font-semibold mb-1">
+                    🎓 Join the waitlist for our next cohort
+                  </p>
+                  <p className="text-gray-500 text-xs mb-4">Get notified as soon as a new batch opens up.</p>
+                </>
+              )}
               <Link href="/register" className="btn-primary text-sm py-2.5 px-6 sm:px-8 inline-flex">
                 Reserve Your Seat Free
               </Link>

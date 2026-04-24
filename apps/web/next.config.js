@@ -9,10 +9,22 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.r2.dev' }
     ]
   },
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        'trulearnix.com',
+        'www.trulearnix.com',
+        'qa.trulearnix.com',
+        'localhost:3000',
+        'localhost:3010'
+      ]
+    }
+  },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_RAZORPAY_KEY: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
-    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL
+    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
+    NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {

@@ -200,6 +200,7 @@ function CourseCard({ c, i }: { c: any; i: number }) {
 export default function FeaturedCourses() {
   const [active, setActive] = useState('All')
   const [courses, setCourses] = useState<any[]>(FALLBACK_COURSES)
+  const [stats, setStats] = useState<any>(null)
 
   useEffect(() => {
     courseAPI.getAll({ limit:12, status:'published' })
@@ -208,7 +209,20 @@ export default function FeaturedCourses() {
         if (data.length > 0) setCourses(data)
       })
       .catch(() => {})
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/stats`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setStats(d.stats) })
+      .catch(() => {})
   }, [])
+
+  const fmtCount = (n: number) => n >= 100000 ? `${Math.floor(n / 100000)}L+` : n >= 1000 ? `${Math.floor(n / 1000)}K+` : `${n}+`
+  const trustItems = [
+    { icon: TrendingUp, val: stats ? fmtCount(stats.totalCourses || 0) : '—',    label: 'Expert Courses',    color: 'text-violet-400', bg: 'rgba(124,58,237,0.12)' },
+    { icon: Users,      val: stats ? fmtCount(stats.totalStudents || 0) : '—',   label: 'Active Learners',   color: 'text-blue-400',   bg: 'rgba(59,130,246,0.12)' },
+    { icon: Star,       val: stats && stats.avgRating > 0 ? `${stats.avgRating.toFixed(1)}★` : '—', label: 'Avg Course Rating', color: 'text-amber-400', bg: 'rgba(245,158,11,0.12)' },
+    { icon: Flame,      val: stats ? fmtCount(stats.totalEnrollments || 0) : '—', label: 'Enrollments',      color: 'text-green-400',  bg: 'rgba(16,185,129,0.12)' },
+  ]
 
   const filtered = active === 'All' ? courses : courses.filter(c => c.category === active)
 
@@ -278,12 +292,7 @@ export default function FeaturedCourses() {
         <motion.div
           initial={{ opacity:0, y:16 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }}
           className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { icon:TrendingUp, val:'500+',  label:'Expert Courses',    color:'text-violet-400', bg:'rgba(124,58,237,0.12)' },
-            { icon:Users,      val:'50K+',  label:'Active Learners',   color:'text-blue-400',   bg:'rgba(59,130,246,0.12)' },
-            { icon:Star,       val:'4.9★',  label:'Avg Course Rating', color:'text-amber-400',  bg:'rgba(245,158,11,0.12)' },
-            { icon:Flame,      val:'98%',   label:'Completion Rate',   color:'text-green-400',  bg:'rgba(16,185,129,0.12)' },
-          ].map((s, i) => (
+          {trustItems.map((s, i) => (
             <div key={i} className="flex items-center gap-3 rounded-2xl p-3.5 transition-all hover:-translate-y-0.5"
               style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)' }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"

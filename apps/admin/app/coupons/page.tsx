@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
-import { Plus, X, Tag, Copy, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
+import { Plus, X, Tag, Copy, ToggleLeft, ToggleRight, Trash2, Pencil, Ticket } from 'lucide-react'
 
 interface Coupon {
   _id: string
@@ -16,19 +16,31 @@ interface Coupon {
   expiresAt: string
   isActive: boolean
   applicableTiers: string[]
+  description?: string
 }
 
-const empty = { code: '', type: 'percent', value: 10, maxUses: 100, minOrderValue: 0, expiresAt: '', applicableTiers: [] as string[] }
+interface PackageTier {
+  _id: string
+  tier: string
+  name: string
+  displayOrder: number
+}
+
+const emptyForm = {
+  code: '', type: 'percent', value: 10, maxUses: 100,
+  minOrderValue: 0, expiresAt: '', applicableTiers: [] as string[], description: '',
+}
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([])
+  const [packages, setPackages] = useState<PackageTier[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState<any>(empty)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [form, setForm] = useState<any>(emptyForm)
+  const [saving, setSaving] = useState(false)
 
-  useEffect(() => { fetch() }, [])
-
-  const fetch = async () => {
+  const loadCoupons = async () => {
     try {
       const res = await adminAPI.coupons()
       setCoupons(res.data.data || [])
@@ -36,36 +48,81 @@ export default function CouponsPage() {
     finally { setLoading(false) }
   }
 
-  const save = async () => {
-    if (!form.code || !form.value || !form.expiresAt) return toast.error('Fill all required fields')
+  const loadPackages = async () => {
     try {
-      await adminAPI.createCoupon(form)
-      toast.success('Coupon created!')
+      const res = await adminAPI.packages()
+      const pkgs: PackageTier[] = (res.data.packages || [])
+        .filter((p: any) => p.tier && p.tier !== 'free')
+        .sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0))
+      setPackages(pkgs)
+    } catch {}
+  }
+
+  useEffect(() => {
+    loadCoupons()
+    loadPackages()
+  }, [])
+
+  const openCreate = () => {
+    setEditId(null)
+    setForm(emptyForm)
+    setShowForm(true)
+  }
+
+  const openEdit = (c: Coupon) => {
+    setEditId(c._id)
+    setForm({
+      code: c.code,
+      type: c.type,
+      value: c.value,
+      maxUses: c.maxUses,
+      minOrderValue: c.minOrderValue,
+      expiresAt: c.expiresAt ? new Date(c.expiresAt).toISOString().slice(0, 16) : '',
+      applicableTiers: c.applicableTiers || [],
+      description: (c as any).description || '',
+    })
+    setShowForm(true)
+  }
+
+  const save = async () => {
+    if (!form.code || !form.value || !form.expiresAt) return toast.error('Code, value and expiry are required')
+    setSaving(true)
+    try {
+      if (editId) {
+        await adminAPI.updateCoupon(editId, form)
+        toast.success('Coupon updated!')
+      } else {
+        await adminAPI.createCoupon(form)
+        toast.success('Coupon created!')
+      }
       setShowForm(false)
-      setForm(empty)
-      fetch()
-    } catch (e: any) { toast.error(e?.response?.data?.message || 'Failed') }
+      setForm(emptyForm)
+      setEditId(null)
+      loadCoupons()
+    } catch (e: any) { toast.error(e?.response?.data?.message || 'Failed to save coupon') }
+    finally { setSaving(false) }
   }
 
   const toggle = async (id: string, current: boolean) => {
     try {
       await adminAPI.updateCoupon(id, { isActive: !current })
       setCoupons(prev => prev.map(c => c._id === id ? { ...c, isActive: !current } : c))
-    } catch { toast.error('Failed') }
+      toast.success(current ? 'Coupon deactivated' : 'Coupon activated')
+    } catch { toast.error('Failed to update coupon') }
   }
 
   const remove = async (id: string) => {
-    if (!confirm('Delete this coupon?')) return
+    if (!confirm('Delete this coupon permanently?')) return
     try {
       await adminAPI.deleteCoupon(id)
       setCoupons(prev => prev.filter(c => c._id !== id))
-      toast.success('Deleted')
-    } catch { toast.error('Failed') }
+      toast.success('Coupon deleted')
+    } catch { toast.error('Failed to delete coupon') }
   }
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code)
-    toast.success('Copied!')
+    toast.success('Code copied!')
   }
 
   const tierToggle = (tier: string) => {
@@ -73,14 +130,16 @@ export default function CouponsPage() {
       ...p,
       applicableTiers: p.applicableTiers.includes(tier)
         ? p.applicableTiers.filter((t: string) => t !== tier)
-        : [...p.applicableTiers, tier]
+        : [...p.applicableTiers, tier],
     }))
   }
+
+  const isExpired = (expiresAt: string) => new Date() > new Date(expiresAt)
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* ── Page Header ── */}
+        {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
@@ -90,112 +149,229 @@ export default function CouponsPage() {
                 </div>
                 Coupon Management
               </h1>
-              <p className="text-gray-400 text-sm mt-1">{coupons.length} coupons — drive conversions with discounts</p>
+              <p className="text-gray-400 text-sm mt-1">
+                {coupons.length} coupon{coupons.length !== 1 ? 's' : ''} — drive conversions with discounts
+              </p>
             </div>
-            <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
+            <button onClick={openCreate} className="btn-primary flex items-center gap-2">
               <Plus className="w-4 h-4" /> New Coupon
             </button>
           </div>
         </div>
 
+        {/* Create / Edit Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-lg border border-white/10 space-y-4">
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-lg border border-white/10 space-y-4 my-auto">
               <div className="flex items-center justify-between">
-                <h2 className="text-white font-bold">Create Coupon</h2>
+                <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                  <Ticket className="w-4 h-4 text-violet-400" />
+                  {editId ? 'Edit Coupon' : 'Create Coupon'}
+                </h2>
                 <button onClick={() => setShowForm(false)}><X className="w-4 h-4 text-gray-400" /></button>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="text-xs text-gray-400 mb-1 block">Coupon Code *</label>
-                  <input value={form.code} onChange={e => setForm((p: any) => ({ ...p, code: e.target.value.toUpperCase() }))}
-                    placeholder="SAVE20" className="w-full bg-slate-700 text-white rounded-xl px-4 py-2.5 text-sm border border-white/10 outline-none focus:border-violet-500 font-mono uppercase" />
+                  <input
+                    value={form.code}
+                    onChange={e => setForm((p: any) => ({ ...p, code: e.target.value.toUpperCase().replace(/\s/g, '') }))}
+                    placeholder="e.g. SAVE20"
+                    disabled={!!editId}
+                    className="w-full bg-slate-700 disabled:opacity-50 text-white rounded-xl px-4 py-2.5 text-sm border border-white/10 outline-none focus:border-violet-500 font-mono uppercase"
+                  />
+                  {editId && <p className="text-xs text-gray-500 mt-1">Code cannot be changed after creation</p>}
                 </div>
+
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Type</label>
+                  <label className="text-xs text-gray-400 mb-1 block">Discount Type</label>
                   <select value={form.type} onChange={e => setForm((p: any) => ({ ...p, type: e.target.value }))}
                     className="w-full bg-slate-700 text-white rounded-xl px-3 py-2.5 text-sm border border-white/10 outline-none">
                     <option value="percent">Percentage (%)</option>
-                    <option value="flat">Flat (₹)</option>
+                    <option value="flat">Flat Amount (₹)</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Value *</label>
-                  <input type="number" value={form.value} onChange={e => setForm((p: any) => ({ ...p, value: +e.target.value }))}
+                  <label className="text-xs text-gray-400 mb-1 block">
+                    Value * {form.type === 'percent' ? '(%)' : '(₹)'}
+                  </label>
+                  <input type="number" min="1" value={form.value}
+                    onChange={e => setForm((p: any) => ({ ...p, value: +e.target.value }))}
                     className="w-full bg-slate-700 text-white rounded-xl px-4 py-2.5 text-sm border border-white/10 outline-none" />
                 </div>
+
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Max Uses</label>
-                  <input type="number" value={form.maxUses} onChange={e => setForm((p: any) => ({ ...p, maxUses: +e.target.value }))}
+                  <input type="number" min="1" value={form.maxUses}
+                    onChange={e => setForm((p: any) => ({ ...p, maxUses: +e.target.value }))}
                     className="w-full bg-slate-700 text-white rounded-xl px-4 py-2.5 text-sm border border-white/10 outline-none" />
                 </div>
+
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Min Order (₹)</label>
-                  <input type="number" value={form.minOrderValue} onChange={e => setForm((p: any) => ({ ...p, minOrderValue: +e.target.value }))}
+                  <label className="text-xs text-gray-400 mb-1 block">Min Order Value (₹)</label>
+                  <input type="number" min="0" value={form.minOrderValue}
+                    onChange={e => setForm((p: any) => ({ ...p, minOrderValue: +e.target.value }))}
                     className="w-full bg-slate-700 text-white rounded-xl px-4 py-2.5 text-sm border border-white/10 outline-none" />
                 </div>
+
                 <div className="col-span-2">
                   <label className="text-xs text-gray-400 mb-1 block">Expires At *</label>
-                  <input type="datetime-local" value={form.expiresAt} onChange={e => setForm((p: any) => ({ ...p, expiresAt: e.target.value }))}
+                  <input type="datetime-local" value={form.expiresAt}
+                    onChange={e => setForm((p: any) => ({ ...p, expiresAt: e.target.value }))}
+                    className="w-full bg-slate-700 text-white rounded-xl px-4 py-2.5 text-sm border border-white/10 outline-none" />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-400 mb-1 block">Description (optional)</label>
+                  <input value={form.description}
+                    onChange={e => setForm((p: any) => ({ ...p, description: e.target.value }))}
+                    placeholder="e.g. Independence Day offer"
                     className="w-full bg-slate-700 text-white rounded-xl px-4 py-2.5 text-sm border border-white/10 outline-none" />
                 </div>
               </div>
+
               <div>
-                <label className="text-xs text-gray-400 mb-2 block">Applicable Tiers (leave empty for all)</label>
+                <label className="text-xs text-gray-400 mb-2 block">
+                  Applicable Packages{' '}
+                  <span className="text-gray-500">(leave empty = all packages &amp; courses)</span>
+                </label>
                 <div className="flex gap-2 flex-wrap">
-                  {['starter', 'pro', 'elite', 'supreme'].map(tier => (
-                    <button key={tier} onClick={() => tierToggle(tier)}
-                      className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${form.applicableTiers.includes(tier) ? 'bg-violet-600 text-white' : 'bg-slate-700 text-gray-400 hover:bg-slate-600'}`}>
-                      {tier}
+                  {packages.length === 0 ? (
+                    <p className="text-xs text-gray-500">Loading packages…</p>
+                  ) : packages.map(({ tier, name }) => (
+                    <button key={tier} type="button" onClick={() => tierToggle(tier)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${
+                        form.applicableTiers.includes(tier)
+                          ? 'bg-violet-600 text-white'
+                          : 'bg-slate-700 text-gray-400 hover:bg-slate-600'
+                      }`}>
+                      {name}
                     </button>
                   ))}
                 </div>
+                {form.applicableTiers.length === 0 && packages.length > 0 && (
+                  <p className="text-xs text-emerald-400 mt-1.5">✓ Applies to all packages and courses</p>
+                )}
               </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm">Cancel</button>
-                <button onClick={save} className="flex-1 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700">Create Coupon</button>
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => setShowForm(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:bg-white/5 transition-colors">
+                  Cancel
+                </button>
+                <button onClick={save} disabled={saving}
+                  className="flex-1 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                  {saving ? 'Saving…' : editId ? 'Save Changes' : 'Create Coupon'}
+                </button>
               </div>
             </div>
           </div>
         )}
 
+        {/* List */}
         {loading ? (
           <div className="flex items-center justify-center h-48">
             <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {coupons.map(c => (
-              <div key={c._id} className={`bg-slate-800 rounded-2xl p-5 border ${c.isActive ? 'border-violet-500/30' : 'border-white/5 opacity-60'}`}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-violet-400" />
-                    <span className="text-white font-bold font-mono text-lg">{c.code}</span>
-                    <button onClick={() => copyCode(c.code)} className="text-gray-500 hover:text-gray-300">
-                      <Copy className="w-3.5 h-3.5" />
-                    </button>
+            {coupons.map(c => {
+              const expired = isExpired(c.expiresAt)
+              const full = c.usedCount >= c.maxUses
+              const pct = Math.min((c.usedCount / c.maxUses) * 100, 100)
+
+              return (
+                <div key={c._id} className={`bg-slate-800 rounded-2xl p-5 border transition-opacity ${
+                  (!c.isActive || expired || full)
+                    ? 'border-white/5 opacity-60'
+                    : 'border-violet-500/30'
+                }`}>
+                  {/* Top row */}
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Tag className="w-4 h-4 text-violet-400 shrink-0" />
+                      <span className="text-white font-bold font-mono text-lg truncate">{c.code}</span>
+                      <button onClick={() => copyCode(c.code)} title="Copy code"
+                        className="text-gray-500 hover:text-gray-300 shrink-0">
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <button onClick={() => openEdit(c)} title="Edit" className="text-gray-500 hover:text-blue-400">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => toggle(c._id, c.isActive)} title={c.isActive ? 'Deactivate' : 'Activate'}>
+                        {c.isActive
+                          ? <ToggleRight className="w-5 h-5 text-violet-400" />
+                          : <ToggleLeft className="w-5 h-5 text-gray-500" />}
+                      </button>
+                      <button onClick={() => remove(c._id)} title="Delete" className="text-gray-500 hover:text-red-400">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => toggle(c._id, c.isActive)}>{c.isActive ? <ToggleRight className="w-5 h-5 text-violet-400" /> : <ToggleLeft className="w-5 h-5 text-gray-500" />}</button>
-                    <button onClick={() => remove(c._id)}><Trash2 className="w-4 h-4 text-gray-500 hover:text-red-400" /></button>
+
+                  {/* Discount value */}
+                  <div className="text-2xl font-bold text-violet-400 mb-2">
+                    {c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`}
+                  </div>
+
+                  {/* Description */}
+                  {(c as any).description && (
+                    <p className="text-xs text-gray-400 mb-2 italic">{(c as any).description}</p>
+                  )}
+
+                  {/* Status badges */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {!c.isActive && (
+                      <span className="px-2 py-0.5 rounded-full bg-gray-700 text-gray-400 text-xs">Inactive</span>
+                    )}
+                    {expired && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-900/40 text-red-400 text-xs">Expired</span>
+                    )}
+                    {full && (
+                      <span className="px-2 py-0.5 rounded-full bg-orange-900/40 text-orange-400 text-xs">Limit Reached</span>
+                    )}
+                  </div>
+
+                  {/* Details */}
+                  <div className="space-y-1 text-xs text-gray-400">
+                    <p>Uses: <span className="text-white">{c.usedCount} / {c.maxUses}</span></p>
+                    {c.minOrderValue > 0 && (
+                      <p>Min order: <span className="text-white">₹{c.minOrderValue}</span></p>
+                    )}
+                    <p>
+                      Expires:{' '}
+                      <span className={expired ? 'text-red-400' : 'text-white'}>
+                        {new Date(c.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </p>
+                    <p>
+                      Applies to:{' '}
+                      <span className="text-violet-400">
+                        {c.applicableTiers.length > 0
+                          ? c.applicableTiers.map(t => packages.find(p => p.tier === t)?.name || t).join(', ')
+                          : 'All packages & courses'}
+                      </span>
+                    </p>
+                  </div>
+
+                  {/* Usage bar */}
+                  <div className="mt-3 bg-slate-700 rounded-full h-1.5">
+                    <div className="bg-violet-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${pct}%` }} />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-violet-400 mb-1">
-                  {c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`}
-                </div>
-                <div className="space-y-1 text-xs text-gray-400">
-                  <p>Uses: <span className="text-white">{c.usedCount}/{c.maxUses}</span></p>
-                  {c.minOrderValue > 0 && <p>Min order: <span className="text-white">₹{c.minOrderValue}</span></p>}
-                  <p>Expires: <span className="text-white">{new Date(c.expiresAt).toLocaleDateString()}</span></p>
-                  {c.applicableTiers.length > 0 && <p>Tiers: <span className="text-violet-400 capitalize">{c.applicableTiers.join(', ')}</span></p>}
-                </div>
-                <div className="mt-3 bg-slate-700 rounded-full h-1.5">
-                  <div className="bg-violet-500 h-1.5 rounded-full" style={{ width: `${(c.usedCount / c.maxUses) * 100}%` }} />
-                </div>
-              </div>
-            ))}
+              )
+            })}
+
             {coupons.length === 0 && (
-              <div className="col-span-3 text-center py-16 text-gray-500">No coupons yet. Create your first coupon!</div>
+              <div className="col-span-3 text-center py-20">
+                <Ticket className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 text-sm">No coupons yet. Create your first discount coupon!</p>
+              </div>
             )}
           </div>
         )}

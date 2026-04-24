@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import User from '../models/User';
 import Enrollment from '../models/Enrollment';
+import Package from '../models/Package';
 import { protect } from '../middleware/auth';
 import { uploadToS3 } from '../services/s3Service';
 import { getOrCreateActiveBatch, onStudentEnrolled } from '../services/batchService';
@@ -16,8 +17,8 @@ router.get('/me', protect, async (req: any, res) => {
       .lean();
 
     const enrollmentCount = await Enrollment.countDocuments({ student: req.user._id });
-    const PAID_TIERS = ['starter', 'pro', 'elite', 'supreme'];
-    const hasAccess = PAID_TIERS.includes((user as any)?.packageTier || '') || !!(user as any)?.isAffiliate || enrollmentCount > 0;
+    const paidTiers = await Package.distinct('tier', { isActive: true, tier: { $ne: 'free' } });
+    const hasAccess = paidTiers.includes((user as any)?.packageTier || '') || !!(user as any)?.isAffiliate || enrollmentCount > 0;
 
     // Attach sponsor info from upline1 if not already in sponsorCode field
     const enriched = {

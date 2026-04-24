@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import User from '../models/User';
+import Payment from '../models/Payment';
 import PackagePurchase from '../models/PackagePurchase';
 import Commission from '../models/Commission';
 import Lead from '../models/Lead';
@@ -10,6 +11,36 @@ import { protect, authorize } from '../middleware/auth';
 const router = Router();
 router.use(protect, authorize('superadmin', 'admin', 'manager', 'employee', 'department_head', 'team_lead'));
 
+// Combined revenue (course + package sales) — single source of truth
+async function sumRevenue(match: any = {}): Promise<{ total: number; count: number }> {
+  const [a, b] = await Promise.all([
+    Payment.aggregate([{ $match: { status: 'paid', ...match } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+    PackagePurchase.aggregate([{ $match: { status: 'paid', ...match } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+  ]);
+  return {
+    total: (a[0]?.total || 0) + (b[0]?.total || 0),
+    count: (a[0]?.count || 0) + (b[0]?.count || 0),
+  };
+}
+
+// Combined revenue grouped by day
+async function revenueByDay(from: Date, to: Date) {
+  const match = { status: 'paid', createdAt: { $gte: from, $lte: to } };
+  const agg = { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, revenue: { $sum: '$amount' }, orders: { $sum: 1 } };
+  const [a, b] = await Promise.all([
+    Payment.aggregate([{ $match: match }, { $group: agg }]),
+    PackagePurchase.aggregate([{ $match: match }, { $group: agg }]),
+  ]);
+  const merged: Record<string, { revenue: number; orders: number }> = {};
+  [...a, ...b].forEach((r: any) => {
+    const d = r._id;
+    if (!merged[d]) merged[d] = { revenue: 0, orders: 0 };
+    merged[d].revenue += r.revenue;
+    merged[d].orders += r.orders;
+  });
+  return Object.entries(merged).map(([_id, v]) => ({ _id, ...v })).sort((x, y) => x._id.localeCompare(y._id));
+}
+
 // GET /api/analytics/dashboard — main admin dashboard
 router.get('/dashboard', async (_req, res) => {
   try {
@@ -19,7 +50,7 @@ router.get('/dashboard', async (_req, res) => {
 
     const [
       totalUsers, newUsersToday, newUsersMonth,
-      totalRevenue, revenueThisMonth, revenueLastMonth,
+      totalRev, thisMonthRev, lastMonthRev,
       totalLeads, hotLeads, leadsThisMonth,
       totalAffiliates, paidAffiliates,
       activePackages, commissionsPaid,
@@ -27,9 +58,9 @@ router.get('/dashboard', async (_req, res) => {
       User.countDocuments({ role: 'student' }),
       User.countDocuments({ role: 'student', createdAt: { $gte: today } }),
       User.countDocuments({ role: 'student', createdAt: { $gte: thisMonth } }),
-      PackagePurchase.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      PackagePurchase.aggregate([{ $match: { status: 'paid', createdAt: { $gte: thisMonth } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      PackagePurchase.aggregate([{ $match: { status: 'paid', createdAt: { $gte: lastMonth, $lt: thisMonth } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      sumRevenue(),
+      sumRevenue({ createdAt: { $gte: thisMonth } }),
+      sumRevenue({ createdAt: { $gte: lastMonth, $lt: thisMonth } }),
       Lead.countDocuments({}),
       Lead.countDocuments({ aiScoreLabel: 'hot' }),
       Lead.countDocuments({ createdAt: { $gte: thisMonth } }),
@@ -39,14 +70,14 @@ router.get('/dashboard', async (_req, res) => {
       Commission.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$commissionAmount' } } }]),
     ]);
 
-    const thisMonthRev = revenueThisMonth[0]?.total || 0;
-    const lastMonthRev = revenueLastMonth[0]?.total || 1;
-    const revenueGrowth = (((thisMonthRev - lastMonthRev) / lastMonthRev) * 100).toFixed(1);
+    const revenueGrowth = lastMonthRev.total > 0
+      ? (((thisMonthRev.total - lastMonthRev.total) / lastMonthRev.total) * 100).toFixed(1)
+      : null;
 
     res.json({
       success: true,
       users: { total: totalUsers, today: newUsersToday, thisMonth: newUsersMonth },
-      revenue: { total: totalRevenue[0]?.total || 0, thisMonth: thisMonthRev, lastMonth: lastMonthRev, growth: revenueGrowth },
+      revenue: { total: totalRev.total, thisMonth: thisMonthRev.total, lastMonth: lastMonthRev.total, growth: revenueGrowth },
       leads: { total: totalLeads, hot: hotLeads, thisMonth: leadsThisMonth },
       affiliates: { total: totalAffiliates, paid: paidAffiliates },
       packages: activePackages,
@@ -81,23 +112,18 @@ router.get('/overview', async (req, res) => {
       revCurrent, revPrevious,
       usersCurrent, usersPrevious,
       leadsCurrent, leadsPrevious,
-      purchasesCurrent,
       revByDay, usersByDay, leadsByDay,
-      revByTier, usersByTier,
+      revByTierPkg, revByCourse,
+      usersByTier,
       topLeadStages,
     ] = await Promise.all([
-      PackagePurchase.aggregate([{ $match: { status: 'paid', createdAt: { $gte: from, $lte: to } } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
-      PackagePurchase.aggregate([{ $match: { status: 'paid', createdAt: { $gte: prevFrom, $lte: prevTo } } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+      sumRevenue({ createdAt: { $gte: from, $lte: to } }),
+      sumRevenue({ createdAt: { $gte: prevFrom, $lte: prevTo } }),
       User.countDocuments({ role: 'student', createdAt: { $gte: from, $lte: to } }),
       User.countDocuments({ role: 'student', createdAt: { $gte: prevFrom, $lte: prevTo } }),
       Lead.countDocuments({ createdAt: { $gte: from, $lte: to } }),
       Lead.countDocuments({ createdAt: { $gte: prevFrom, $lte: prevTo } }),
-      PackagePurchase.countDocuments({ status: 'paid', createdAt: { $gte: from, $lte: to } }),
-      PackagePurchase.aggregate([
-        { $match: { status: 'paid', createdAt: { $gte: from, $lte: to } } },
-        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, revenue: { $sum: '$amount' }, orders: { $sum: 1 } } },
-        { $sort: { _id: 1 } },
-      ]),
+      revenueByDay(from, to),
       User.aggregate([
         { $match: { role: 'student', createdAt: { $gte: from, $lte: to } } },
         { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
@@ -113,6 +139,12 @@ router.get('/overview', async (req, res) => {
         { $group: { _id: '$packageTier', revenue: { $sum: '$amount' }, count: { $sum: 1 } } },
         { $sort: { revenue: -1 } },
       ]),
+      Payment.aggregate([
+        { $match: { status: 'paid', createdAt: { $gte: from, $lte: to } } },
+        { $group: { _id: '$course', revenue: { $sum: '$amount' }, count: { $sum: 1 } } },
+        { $sort: { revenue: -1 } },
+        { $limit: 10 },
+      ]),
       User.aggregate([
         { $match: { role: 'student', createdAt: { $gte: from, $lte: to } } },
         { $group: { _id: '$packageTier', count: { $sum: 1 } } },
@@ -125,22 +157,20 @@ router.get('/overview', async (req, res) => {
       ]),
     ]);
 
-    const rev = revCurrent[0]?.total || 0;
-    const prevRev = revPrevious[0]?.total || 0;
-    const revGrowth = prevRev > 0 ? (((rev - prevRev) / prevRev) * 100).toFixed(1) : null;
+    const revGrowth = revPrevious.total > 0 ? (((revCurrent.total - revPrevious.total) / revPrevious.total) * 100).toFixed(1) : null;
     const userGrowth = usersPrevious > 0 ? (((usersCurrent - usersPrevious) / usersPrevious) * 100).toFixed(1) : null;
     const leadGrowth = leadsPrevious > 0 ? (((leadsCurrent - leadsPrevious) / leadsPrevious) * 100).toFixed(1) : null;
 
     res.json({
       success: true,
       kpis: {
-        revenue: { value: rev, prev: prevRev, growth: revGrowth, orders: revCurrent[0]?.count || 0 },
+        revenue: { value: revCurrent.total, prev: revPrevious.total, growth: revGrowth, orders: revCurrent.count },
         users: { value: usersCurrent, prev: usersPrevious, growth: userGrowth },
         leads: { value: leadsCurrent, prev: leadsPrevious, growth: leadGrowth },
-        purchases: purchasesCurrent,
+        purchases: revCurrent.count,
       },
       charts: { revByDay, usersByDay, leadsByDay },
-      breakdown: { revByTier, usersByTier, topLeadStages },
+      breakdown: { revByTier: revByTierPkg, revByCourse, usersByTier, topLeadStages },
     });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -159,15 +189,13 @@ router.get('/revenue', async (req, res) => {
       from = new Date(); from.setDate(from.getDate() - days);
     }
 
-    const dateMatch = { status: 'paid', createdAt: { $gte: from, $lte: to } };
-    const revenue = await PackagePurchase.aggregate([
-      { $match: dateMatch },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, total: { $sum: '$amount' }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
-    ]);
+    // Combined daily revenue (course + package)
+    const revenueAgg = await revenueByDay(from, to);
+    const revenue = revenueAgg.map(r => ({ _id: r._id, total: r.revenue, count: r.orders }));
 
+    // Package tier breakdown (only packages have tier)
     const byTier = await PackagePurchase.aggregate([
-      { $match: dateMatch },
+      { $match: { status: 'paid', createdAt: { $gte: from, $lte: to } } },
       { $group: { _id: '$packageTier', total: { $sum: '$amount' }, count: { $sum: 1 } } }
     ]);
 
@@ -178,15 +206,15 @@ router.get('/revenue', async (req, res) => {
 // GET /api/analytics/unit-economics — LTV, CAC, payback
 router.get('/unit-economics', async (_req, res) => {
   try {
-    const [totalPurchases, totalUsers, commissions] = await Promise.all([
-      PackagePurchase.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+    const [revSum, totalUsers, commissions] = await Promise.all([
+      sumRevenue(),
       User.countDocuments({ packageTier: { $ne: 'free' } }),
       Commission.aggregate([{ $match: {} }, { $group: { _id: null, total: { $sum: '$commissionAmount' } } }]),
     ]);
 
-    const totalRevenue = totalPurchases[0]?.total || 0;
-    const purchaseCount = totalPurchases[0]?.count || 1;
-    const avgOrderValue = Math.round(totalRevenue / purchaseCount);
+    const totalRevenue = revSum.total;
+    const purchaseCount = revSum.count;
+    const avgOrderValue = purchaseCount > 0 ? Math.round(totalRevenue / purchaseCount) : 0;
     const commissionPaid = commissions[0]?.total || 0;
 
     // Estimated CAC (platform runs ads — assume 20% of revenue)

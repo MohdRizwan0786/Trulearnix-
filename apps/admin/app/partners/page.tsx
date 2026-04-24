@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import toast from 'react-hot-toast'
 import ReferralsModal from '@/components/ReferralsModal'
 import {
@@ -10,28 +11,10 @@ import {
   Phone, Star, Package, Activity, Award, UserPlus, Link2
 } from 'lucide-react'
 
-const TIER_COLOR: Record<string, string> = {
-  free:    'bg-gray-500/20 text-gray-400',
-  basic:   'bg-teal-500/20 text-teal-400',
-  starter: 'bg-blue-500/20 text-blue-400',
-  pro:     'bg-indigo-500/20 text-indigo-400',
-  proedge: 'bg-fuchsia-500/20 text-fuchsia-400',
-  elite:   'bg-violet-500/20 text-violet-400',
-  supreme: 'bg-yellow-500/20 text-yellow-400',
-  // Old website tier names
-  'TRU BOOSTER':          'bg-blue-500/20 text-blue-400',
-  'TRU STARTER':          'bg-indigo-500/20 text-indigo-400',
-  'TRU ADVANCE':          'bg-fuchsia-500/20 text-fuchsia-400',
-  'TRU PRO-EDGE':         'bg-violet-500/20 text-violet-400',
-  'TRU PREMIUM-INFINITY': 'bg-yellow-500/20 text-yellow-400',
-}
-const TIER_ICON: Record<string, string> = {
-  free: '🆓', basic: '🌱', starter: '⚡', pro: '🚀', proedge: '🔥', elite: '💎', supreme: '👑',
-  'TRU BOOSTER': '⚡', 'TRU STARTER': '🚀', 'TRU ADVANCE': '🔥', 'TRU PRO-EDGE': '💎', 'TRU PREMIUM-INFINITY': '👑',
-}
 const fmt = (n: number) => new Intl.NumberFormat('en-IN').format(n || 0)
 
 export default function PartnersPage() {
+  const { packages } = usePackages()
   const [tab, setTab] = useState<'partners' | 'managers'>('partners')
   const [partners, setPartners]       = useState<any[]>([])
   const [managers, setManagers]       = useState<any[]>([])
@@ -50,8 +33,9 @@ export default function PartnersPage() {
   const [mgrForm, setMgrForm]         = useState({ name: '', email: '', phone: '', password: '' })
   const [creatingMgr, setCreatingMgr] = useState(false)
   const [refModal, setRefModal]       = useState<{ id: string; name: string } | null>(null)
+  const [pkgList, setPkgList]         = useState<any[]>([])
 
-  useEffect(() => { fetchManagers() }, [])
+  useEffect(() => { fetchManagers(); adminAPI.packages().then((r: any) => setPkgList(r.data?.packages || r.data || [])).catch(() => {}) }, [])
   useEffect(() => { fetchPartners() }, [search, mgrFilter, page])
 
   const fetchManagers = async () => {
@@ -204,26 +188,34 @@ export default function PartnersPage() {
           )
         })()}
 
-        {/* ── Tier Distribution ── */}
+        {/* ── Package Distribution ── */}
         {partners.length > 0 && (() => {
-          const tiers = ['free','starter','pro','elite','supreme']
           const tierCounts: Record<string, number> = {}
-          partners.forEach(p => { tierCounts[p.packageTier || 'free'] = (tierCounts[p.packageTier || 'free'] || 0) + 1 })
+          partners.forEach(p => { tierCounts[p.packageTier?.toLowerCase() || 'free'] = (tierCounts[p.packageTier?.toLowerCase() || 'free'] || 0) + 1 })
+          const colors = ['bg-blue-500','bg-indigo-500','bg-violet-500','bg-yellow-500','bg-emerald-500','bg-fuchsia-500','bg-gray-500']
+          const displayList = pkgList.length > 0
+            ? pkgList.map((pkg: any, i: number) => ({ key: pkg.tier?.toLowerCase(), label: pkg.name, color: colors[i % colors.length] }))
+            : [
+                { key: 'free', label: 'Free', color: 'bg-gray-500' },
+                { key: 'starter', label: 'Starter', color: 'bg-blue-500' },
+                { key: 'pro', label: 'Pro', color: 'bg-indigo-500' },
+                { key: 'elite', label: 'Elite', color: 'bg-violet-500' },
+                { key: 'supreme', label: 'Supreme', color: 'bg-yellow-500' },
+              ]
           return (
             <div className="bg-slate-800 rounded-2xl p-4 border border-white/5">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Tier Distribution
+                <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Package Distribution
               </p>
               <div className="flex items-end gap-2 h-16">
-                {tiers.map(t => {
-                  const count = tierCounts[t] || 0
+                {displayList.map((item: any) => {
+                  const count = tierCounts[item.key] || 0
                   const pct = partners.length > 0 ? (count / partners.length) * 100 : 0
-                  const colors: Record<string,string> = { free:'bg-gray-500', starter:'bg-blue-500', pro:'bg-indigo-500', elite:'bg-violet-500', supreme:'bg-yellow-500' }
                   return (
-                    <div key={t} className="flex-1 flex flex-col items-center gap-1">
+                    <div key={item.key + item.label} className="flex-1 flex flex-col items-center gap-1">
                       <span className="text-xs text-gray-400">{count}</span>
-                      <div className={`w-full rounded-t-lg ${colors[t]} opacity-80`} style={{ height: `${Math.max(pct * 0.48, count > 0 ? 4 : 0)}px` }} />
-                      <span className="text-[9px] text-gray-500 capitalize">{t}</span>
+                      <div className={`w-full rounded-t-lg ${item.color} opacity-80`} style={{ height: `${Math.max(pct * 0.48, count > 0 ? 4 : 0)}px` }} />
+                      <span className="text-[9px] text-gray-500 text-center leading-tight">{item.label}</span>
                     </div>
                   )
                 })}
@@ -274,8 +266,8 @@ export default function PartnersPage() {
                           <p className="text-gray-500 text-xs font-mono">{p.affiliateCode}</p>
                         </div>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded-lg capitalize font-semibold flex items-center gap-1 ${TIER_COLOR[p.packageTier] || TIER_COLOR.free}`}>
-                        {TIER_ICON[p.packageTier]} {p.packageTier}
+                      <span className={`text-xs px-2 py-1 rounded-lg capitalize font-semibold flex items-center gap-1 ${tierStyle(p.packageTier, packages).chip}`}>
+                        {tierName(p.packageTier, packages)}
                       </span>
                     </div>
 
@@ -446,7 +438,7 @@ export default function PartnersPage() {
               </div>
               <div>
                 <p className="text-white font-semibold">{assignModal.name}</p>
-                <p className="text-gray-400 text-xs">{assignModal.affiliateCode} · {assignModal.packageTier}</p>
+                <p className="text-gray-400 text-xs">{assignModal.affiliateCode} · {pkgList.find((pkg: any) => pkg.tier?.toLowerCase() === assignModal.packageTier?.toLowerCase())?.name || assignModal.packageTier}</p>
               </div>
             </div>
             <div>
@@ -641,6 +633,7 @@ export default function PartnersPage() {
         <ReferralsModal
           userId={refModal.id}
           userName={refModal.name}
+          pkgList={pkgList}
           onClose={() => setRefModal(null)}
         />
       )}

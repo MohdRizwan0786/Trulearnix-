@@ -306,7 +306,14 @@ router.post('/withdraw', ...guard, async (req: any, res) => {
     const totalGatewayFee = Math.round((gatewayFee + gatewayFeeGst) * 100) / 100;
     const netAmount = amt - tdsAmount - totalGatewayFee;
 
-    await User.findByIdAndUpdate(req.user._id, { $inc: { wallet: -amt, totalWithdrawn: amt } });
+    const debited = await User.findOneAndUpdate(
+      { _id: req.user._id, wallet: { $gte: amt } },
+      { $inc: { wallet: -amt, totalWithdrawn: amt } },
+      { new: true }
+    );
+    if (!debited) {
+      return res.status(400).json({ success: false, message: 'Insufficient wallet balance (may have changed). Refresh and try again.' });
+    }
 
     const withdrawal = await Withdrawal.create({
       user: req.user._id,

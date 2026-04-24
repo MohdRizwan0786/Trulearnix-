@@ -1,6 +1,13 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+process.on('unhandledRejection', (reason: any) => {
+  console.error('[UnhandledRejection]', reason?.message || reason);
+});
+process.on('uncaughtException', (err: Error) => {
+  console.error('[UncaughtException]', err.message, err.stack);
+});
+
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
@@ -62,8 +69,11 @@ const server = http.createServer(app);
 
 const allowedOrigins = [
   process.env.WEB_URL || 'https://trulearnix.com',
+  'https://www.trulearnix.com',
   process.env.ADMIN_URL || 'https://admin.trulearnix.com',
+  'https://www.admin.trulearnix.com',
   'https://trulancer.trulearnix.com',
+  'https://www.trulancer.trulearnix.com',
   'http://localhost:3000',
   'http://localhost:3002',
   'http://localhost:3003',
@@ -134,7 +144,7 @@ app.use(mongoSanitize({ replaceWith: '_' }));
 app.use(hpp());
 
 // Serve uploaded files as static assets
-app.use('/uploads', express.static('/var/www/trulearnix/uploads'));
+app.use('/uploads', express.static(process.env.UPLOAD_DIR || '/var/www/trulearnix/uploads'));
 
 // General rate limit — 1000 req/15min per IP (high enough for normal usage)
 const limiter = rateLimit({
@@ -242,6 +252,42 @@ app.get('/api/public/validate-early-access', async (req, res) => {
     const found = settings.earlyAccessTokens?.some((t: any) => t.token === token);
     res.json({ valid: !!found });
   } catch { res.json({ valid: false }); }
+});
+
+// Public aggregated platform stats — real counts from DB for marketing pages
+app.get('/api/public/stats', async (_req, res) => {
+  try {
+    const User = (await import('./models/User')).default;
+    const Course = (await import('./models/Course')).default;
+    const Payment = (await import('./models/Payment')).default;
+    const Certificate = (await import('./models/Certificate')).default;
+    const Enrollment = (await import('./models/Enrollment')).default;
+
+    const [totalStudents, totalMentors, totalCourses, totalCertificates, totalEnrollments, payoutAgg, ratingAgg] = await Promise.all([
+      User.countDocuments({ role: 'student' }),
+      User.countDocuments({ role: 'mentor' }),
+      Course.countDocuments({ status: 'published' }),
+      Certificate.countDocuments(),
+      Enrollment.countDocuments(),
+      Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Course.aggregate([{ $match: { rating: { $gt: 0 } } }, { $group: { _id: null, avg: { $avg: '$rating' } } }]),
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        totalStudents,
+        totalMentors,
+        totalCourses,
+        totalCertificates,
+        totalEnrollments,
+        totalPayout: payoutAgg[0]?.total || 0,
+        avgRating: Number((ratingAgg[0]?.avg || 0).toFixed(1)),
+      },
+    });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message });
+  }
 });
 
 // Health

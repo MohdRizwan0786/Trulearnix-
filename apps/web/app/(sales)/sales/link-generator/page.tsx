@@ -65,6 +65,7 @@ export default function SalesLinkGeneratorPage() {
   )
 
   const code = data?.affiliateCode || user?.affiliateCode || ''
+  const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://trulearnix.com'
   const packageLinks: any[] = data?.packageLinks || []
   const selectedPkg = packageLinks.find(p => p.id === selectedPkgId) || packageLinks[0]
   const pkgUrl = selectedPkg ? selectedPkg.checkoutUrl : ''
@@ -157,9 +158,9 @@ export default function SalesLinkGeneratorPage() {
 
           <div className="h-px bg-white/5" />
           <LinkBox
-            url={`https://trulearnix.com/register?ref=${code}`}
+            url={`${webUrl}/register?ref=${code}`}
             label="Registration link (for new users)"
-            waMsg={`Join TruLearnix — India's fastest growing skill platform!\n\nLearn Digital Marketing, Earn while you learn\n\nRegister now: https://trulearnix.com/register?ref=${code}\n\nUse code ${code} at checkout for discount!`}
+            waMsg={`Join TruLearnix — India's fastest growing skill platform!\n\nLearn Digital Marketing, Earn while you learn\n\nRegister now: ${webUrl}/register?ref=${code}\n\nUse code ${code} at checkout for discount!`}
           />
         </div>
       )}

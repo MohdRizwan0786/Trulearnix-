@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { packageAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
+import { useAllTiers } from '@/lib/tiers'
 import { Rocket, Flame, Shield, Crown, Check, ArrowRight, Sparkles, Lock, Star, Zap } from 'lucide-react'
 import Link from 'next/link'
 
@@ -51,11 +52,11 @@ const FEATURES: Record<string, string[]> = {
   supreme: ['Everything in Elite', 'Lifetime Access', 'Dedicated Success Manager', 'White-glove Onboarding', 'Custom Learning Path', 'Guaranteed Placement'],
 }
 
-const TIER_ORDER = ['free', 'starter', 'pro', 'elite', 'supreme']
 
 export default function UpgradePage() {
   const { user } = useAuthStore()
   const currentTier = (user as any)?.packageTier || 'free'
+  const { tiers: TIER_ORDER } = useAllTiers()
   const currentIdx = TIER_ORDER.indexOf(currentTier)
 
   const { data: pkgs } = useQuery({

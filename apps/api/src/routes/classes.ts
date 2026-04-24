@@ -191,39 +191,16 @@ const stopClassEgress = async (cls: any) => {
   cls.recordingSize = undefined;
   (cls as any).egressId = null;
 
-  // Link recording to curriculum lesson if tied to one
-  if ((cls as any).lessonId && cls.course) {
-    try {
-      await Course.updateOne(
-        { _id: cls.course, 'modules.lessons._id': (cls as any).lessonId },
-        { $set: { 'modules.$[].lessons.$[l].videoUrl': `${process.env.API_URL || 'https://api.trulearnix.com'}${recordingUrl}` } },
-        { arrayFilters: [{ 'l._id': (cls as any).lessonId }] }
-      );
-    } catch (linkErr) {
-      console.warn('Failed to link recording to lesson:', linkErr);
-    }
-  }
-
   // Background: upload to R2 after LiveKit finalizes the file (~30s delay)
+  // NOTE: Recording is saved for admin only. Admin downloads, uploads to YouTube, then links manually.
   const classId = cls._id?.toString();
-  const lessonId = (cls as any).lessonId;
-  const courseId = cls.course;
   setTimeout(async () => {
     try {
       const { uploadRecordingToR2 } = await import('../services/s3Service');
       const result = await uploadRecordingToR2(fileName);
       if (result) {
-        const update: any = { recordingUrl: result.url, recordingSize: result.size };
-        await LiveClass.findByIdAndUpdate(classId, update);
-        // Update lesson videoUrl to R2 URL too
-        if (lessonId && courseId) {
-          await Course.updateOne(
-            { _id: courseId, 'modules.lessons._id': lessonId },
-            { $set: { 'modules.$[].lessons.$[l].videoUrl': result.url } },
-            { arrayFilters: [{ 'l._id': lessonId }] }
-          ).catch(() => {});
-        }
-        console.log(`[R2] Class recording updated in DB: ${result.url}`);
+        await LiveClass.findByIdAndUpdate(classId, { recordingUrl: result.url, recordingSize: result.size });
+        console.log(`[R2] Class recording uploaded: ${result.url}`);
       }
     } catch (e) {
       console.warn('[R2] Class recording upload failed:', e);
@@ -588,6 +565,33 @@ router.get('/admin/recordings', protect, authorize('superadmin', 'admin', 'manag
     ].sort((a: any, b: any) => new Date(b.endedAt || 0).getTime() - new Date(a.endedAt || 0).getTime());
 
     res.json({ success: true, recordings });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: delete a recording from R2 + clear from DB
+router.delete('/:id/recording', protect, authorize('superadmin', 'admin', 'manager'), async (req: any, res) => {
+  try {
+    const cls = await LiveClass.findById(req.params.id);
+    if (!cls) return res.status(404).json({ success: false, message: 'Class not found' });
+    const url = cls.recordingUrl;
+    if (url) {
+      const isR2 = url.startsWith('http');
+      if (isR2) {
+        const { deleteRecordingFromR2 } = await import('../services/s3Service');
+        await deleteRecordingFromR2(url);
+      } else {
+        const localPath = `/var/www/trulearnix-qa${url}`;
+        const fs2 = await import('fs');
+        if (fs2.existsSync(localPath)) fs2.unlinkSync(localPath);
+        const prodPath = `/var/www/trulearnix-prod${url}`;
+        if (fs2.existsSync(prodPath)) fs2.unlinkSync(prodPath);
+      }
+    }
+    cls.recordingUrl = undefined as any;
+    cls.recordingSize = undefined as any;
+    cls.recordingFileName = undefined as any;
+    await cls.save();
+    res.json({ success: true, message: 'Recording deleted' });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 

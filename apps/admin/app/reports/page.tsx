@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import {
   FileText, Download, FileSpreadsheet, Filter, Calendar,
   TrendingUp, Users, IndianRupee, Percent, Award, Building2,
@@ -717,13 +718,9 @@ function DownloadBar({ onPDF, onCSV, label = 'Download' }: { onPDF: () => void; 
   )
 }
 
-const TIER_COLORS: Record<string, string> = {
-  free: 'bg-gray-500/20 text-gray-400', starter: 'bg-blue-500/20 text-blue-400',
-  pro: 'bg-violet-500/20 text-violet-400', elite: 'bg-amber-500/20 text-amber-400',
-  supreme: 'bg-emerald-500/20 text-emerald-400',
-}
 function TierBadge({ tier }: { tier: string }) {
-  return <span className={`px-2 py-0.5 rounded text-xs capitalize font-medium ${TIER_COLORS[tier] || TIER_COLORS.free}`}>{tier || 'free'}</span>
+  const { packages } = usePackages()
+  return <span className={`px-2 py-0.5 rounded text-xs capitalize font-medium ${tierStyle(tier, packages).chip}`}>{tierName(tier, packages)}</span>
 }
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = { paid: 'text-emerald-400', approved: 'text-blue-400', pending: 'text-amber-400', rejected: 'text-red-400', published: 'text-emerald-400', draft: 'text-gray-400' }
@@ -757,6 +754,7 @@ function FilterGroup({ label, children }: { label: string; children: React.React
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
+  const { packages: tierPackages } = usePackages({ includeFree: true })
   const currentYear = new Date().getFullYear()
   const [active, setActive] = useState('gst')
 
@@ -793,7 +791,7 @@ export default function ReportsPage() {
 
   const report = REPORTS.find(r => r.id === active)!
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
-  const tiers = ['free', 'starter', 'pro', 'elite', 'supreme']
+  const tiers = tierPackages.map((p: any) => p.tier).filter(Boolean)
   const depts = ['hr', 'sales', 'marketing', 'content', 'finance', 'operations', 'support', 'tech', 'general']
   const roles = ['admin', 'manager', 'employee', 'salesperson', 'department_head', 'team_lead']
 
@@ -883,7 +881,7 @@ export default function ReportsPage() {
         </FilterGroup>
         <FilterGroup label="Package Tier">
           {['', ...tiers].map(t => (
-            <FilterChip key={t} label={t || 'All'} active={salesTier === t} onClick={() => setSalesTier(t)} />
+            <FilterChip key={t} label={t ? (tierPackages.find(p => p.tier === t)?.name || t) : 'All'} active={salesTier === t} onClick={() => setSalesTier(t)} />
           ))}
         </FilterGroup>
       </FilterPanel>
@@ -962,7 +960,7 @@ export default function ReportsPage() {
         </FilterGroup>
         <FilterGroup label="Package Tier">
           {['', ...tiers].map(t => (
-            <FilterChip key={t} label={t || 'All'} active={learnerTier === t} onClick={() => setLearnerTier(t)} />
+            <FilterChip key={t} label={t ? (tierPackages.find(p => p.tier === t)?.name || t) : 'All'} active={learnerTier === t} onClick={() => setLearnerTier(t)} />
           ))}
         </FilterGroup>
         <FilterGroup label="Status">

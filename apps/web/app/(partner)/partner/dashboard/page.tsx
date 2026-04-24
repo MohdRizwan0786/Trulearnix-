@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 
 // ─── Tier config ────────────────────────────────────────────────────────────
-const TIERS = ['free', 'starter', 'pro', 'elite', 'supreme'] as const
+const TIERS = ['free', 'starter', 'pro', 'proedge', 'elite', 'supreme'] as const
 type Tier = typeof TIERS[number]
 
 const TIER_CFG: Record<Tier, {
@@ -24,15 +24,17 @@ const TIER_CFG: Record<Tier, {
 }> = {
   free:    { color:'#6b7280', glow:'rgba(107,114,128,0.4)',  bg:'linear-gradient(135deg,#374151,#1f2937)', bgCard:'rgba(107,114,128,0.08)', label:'Free',    icon:'🆓', order:0, price:'₹0',      tagline:'Basic Access' },
   starter: { color:'#3b82f6', glow:'rgba(59,130,246,0.45)', bg:'linear-gradient(135deg,#1d4ed8,#1e40af)', bgCard:'rgba(59,130,246,0.08)',  label:'Starter', icon:'🚀', order:1, price:'₹4,999',  tagline:'Start Earning' },
-  pro:     { color:'#8b5cf6', glow:'rgba(139,92,246,0.45)', bg:'linear-gradient(135deg,#7c3aed,#5b21b6)', bgCard:'rgba(139,92,246,0.08)',  label:'Pro',     icon:'⚡', order:2, price:'₹9,999',  tagline:'Higher Commissions' },
-  elite:   { color:'#f59e0b', glow:'rgba(245,158,11,0.45)', bg:'linear-gradient(135deg,#d97706,#b45309)', bgCard:'rgba(245,158,11,0.08)',  label:'Elite',   icon:'💎', order:3, price:'₹19,999', tagline:'VIP Benefits' },
-  supreme: { color:'#ec4899', glow:'rgba(236,72,153,0.45)', bg:'linear-gradient(135deg,#e11d48,#be185d)', bgCard:'rgba(236,72,153,0.08)',  label:'Supreme', icon:'👑', order:4, price:'₹29,999', tagline:'Maximum Power' },
+  pro:     { color:'#8b5cf6', glow:'rgba(139,92,246,0.45)', bg:'linear-gradient(135deg,#7c3aed,#5b21b6)', bgCard:'rgba(139,92,246,0.08)',  label:'Pro',      icon:'⚡', order:2, price:'₹9,999',  tagline:'Higher Commissions' },
+  proedge: { color:'#d946ef', glow:'rgba(217,70,239,0.45)', bg:'linear-gradient(135deg,#a21caf,#6b21a8)', bgCard:'rgba(217,70,239,0.08)',  label:'Pro-Edge', icon:'🔥', order:3, price:'₹14,999', tagline:'Pro Plus Edge' },
+  elite:   { color:'#f59e0b', glow:'rgba(245,158,11,0.45)', bg:'linear-gradient(135deg,#d97706,#b45309)', bgCard:'rgba(245,158,11,0.08)',  label:'Elite',    icon:'💎', order:4, price:'₹19,999', tagline:'VIP Benefits' },
+  supreme: { color:'#ec4899', glow:'rgba(236,72,153,0.45)', bg:'linear-gradient(135deg,#e11d48,#be185d)', bgCard:'rgba(236,72,153,0.08)',  label:'Supreme',  icon:'👑', order:5, price:'₹29,999', tagline:'Maximum Power' },
 }
 
 const TIER_BENEFITS: Record<Tier, { text: string; highlight?: boolean }[]> = {
   free:    [{ text:'Browse free courses' }, { text:'Basic dashboard' }, { text:'Community access' }],
   starter: [{ text:'3-level commission system', highlight:true }, { text:'Partner link generator', highlight:true }, { text:'CRM & lead tracking' }, { text:'Full course library' }, { text:'Wallet & withdrawals' }],
   pro:     [{ text:'Higher commission rates', highlight:true }, { text:'Advanced analytics', highlight:true }, { text:'Priority support' }, { text:'All Starter benefits' }, { text:'Pro training modules' }],
+  proedge: [{ text:'Pro-Edge commission rates', highlight:true }, { text:'Edge analytics & toolkit', highlight:true }, { text:'Priority mentor support' }, { text:'All Pro benefits' }, { text:'Pro-Edge exclusive modules' }],
   elite:   [{ text:'Top commission rates', highlight:true }, { text:'VIP partner events', highlight:true }, { text:'Dedicated support line' }, { text:'All Pro benefits' }, { text:'Elite resources & tools' }],
   supreme: [{ text:'Maximum commissions', highlight:true }, { text:'Personal manager', highlight:true }, { text:'Hall of Fame feature' }, { text:'All Elite benefits' }, { text:'Exclusive webinars & bonuses' }],
 }
@@ -679,7 +681,7 @@ export default function PartnerDashboard() {
     setTimeout(() => setCopied(null), 2000)
   }
   const copyLink = () => {
-    navigator.clipboard.writeText(data?.referralLink || `https://trulearnix.com?ref=${user?.affiliateCode}`)
+    navigator.clipboard.writeText(data?.referralLink || `${process.env.NEXT_PUBLIC_WEB_URL || 'https://trulearnix.com'}?ref=${user?.affiliateCode}`)
     setCopied('link')
     toast.success('Link copied!')
     setTimeout(() => setCopied(null), 2000)

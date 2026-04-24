@@ -2,36 +2,26 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import {
   X, Users, Search, IndianRupee, Crown, ChevronDown,
   Mail, Phone, CalendarDays, TrendingUp, Package, UserPlus
 } from 'lucide-react'
 import { format } from 'date-fns'
 
-const TIER_COLOR: Record<string, { color: string; bg: string; icon: string }> = {
-  free:    { color: 'text-gray-400',    bg: 'bg-gray-500/15',    icon: '🆓' },
-  basic:   { color: 'text-teal-400',    bg: 'bg-teal-500/15',    icon: '🌱' },
-  starter: { color: 'text-blue-400',    bg: 'bg-blue-500/15',    icon: '⚡' },
-  pro:     { color: 'text-indigo-400',  bg: 'bg-indigo-500/15',  icon: '🚀' },
-  proedge: { color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/15', icon: '🔥' },
-  elite:   { color: 'text-violet-400',  bg: 'bg-violet-500/15',  icon: '💎' },
-  supreme: { color: 'text-yellow-400',  bg: 'bg-yellow-500/15',  icon: '👑' },
-  // Old website tier names
-  'TRU BOOSTER':          { color: 'text-blue-400',    bg: 'bg-blue-500/15',    icon: '⚡' },
-  'TRU STARTER':          { color: 'text-indigo-400',  bg: 'bg-indigo-500/15',  icon: '🚀' },
-  'TRU ADVANCE':          { color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/15', icon: '🔥' },
-  'TRU PRO-EDGE':         { color: 'text-violet-400',  bg: 'bg-violet-500/15',  icon: '💎' },
-  'TRU PREMIUM-INFINITY': { color: 'text-yellow-400',  bg: 'bg-yellow-500/15',  icon: '👑' },
-}
 const fmt = (n: number) => new Intl.NumberFormat('en-IN').format(n || 0)
 
 interface Props {
   userId: string
   userName: string
+  pkgList?: any[]
   onClose: () => void
 }
 
-export default function ReferralsModal({ userId, userName, onClose }: Props) {
+export default function ReferralsModal({ userId, userName, pkgList = [], onClose }: Props) {
+  const { packages: hookPackages } = usePackages()
+  const packages = pkgList.length ? pkgList : hookPackages
+  const getPkgName = (tier: string) => tierName(tier, packages)
   const [search, setSearch] = useState('')
   const [page, setPage]     = useState(1)
 
@@ -92,7 +82,7 @@ export default function ReferralsModal({ userId, userName, onClose }: Props) {
             </div>
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-amber-400" />
-              <span className="text-gray-400 text-xs capitalize">{referrer.packageTier} tier</span>
+              <span className="text-gray-400 text-xs capitalize">{getPkgName(referrer.packageTier)} tier</span>
             </div>
           </div>
         )}
@@ -121,7 +111,7 @@ export default function ReferralsModal({ userId, userName, onClose }: Props) {
           ) : (
             <div className="divide-y divide-white/5">
               {referrals.map((r: any) => {
-                const tier = TIER_COLOR[r.packageTier] || TIER_COLOR.free
+                const tier = tierStyle(r.packageTier, packages)
                 return (
                   <div key={r._id} className="flex items-center gap-3 px-6 py-3.5 hover:bg-white/[0.02] transition-colors">
                     {/* Avatar */}
@@ -148,8 +138,8 @@ export default function ReferralsModal({ userId, userName, onClose }: Props) {
                     </div>
                     {/* Right side */}
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${tier.color} ${tier.bg}`}>
-                        {tier.icon} {r.packageTier}
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${tier.chip}`}>
+                        {getPkgName(r.packageTier)}
                       </span>
                       {r.commission?.commAmount > 0 ? (
                         <span className="text-green-400 text-xs font-bold">+₹{fmt(r.commission.commAmount)}</span>

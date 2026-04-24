@@ -3,12 +3,13 @@ import bcrypt from 'bcryptjs';
 
 export type UserRole = 'superadmin' | 'admin' | 'manager' | 'mentor' | 'student' | 'salesperson';
 export type EmployeeDepartment = 'hr' | 'sales' | 'marketing' | 'content' | 'finance' | 'operations' | 'support' | 'tech' | 'general';
-export type PackageTier = 'free' | 'starter' | 'pro' | 'elite' | 'supreme';
+export type PackageTier = 'free' | 'starter' | 'pro' | 'proedge' | 'elite' | 'supreme';
 
 export const COMMISSION_RATES: Record<PackageTier, number> = {
   free: 0,
   starter: 10,
   pro: 15,
+  proedge: 18,
   elite: 22,
   supreme: 30,
 };
@@ -17,6 +18,7 @@ export const PACKAGE_PRICES: Record<PackageTier, number> = {
   free: 0,
   starter: 4999,
   pro: 9999,
+  proedge: 14999,
   elite: 19999,
   supreme: 29999,
 };
@@ -112,7 +114,9 @@ const UserSchema = new Schema<IUser>({
   otp: { type: String, select: false },
   otpExpiry: { type: Date, select: false },
   refreshToken: { type: String, select: false },
-  packageTier: { type: String, enum: ['free', 'starter', 'pro', 'elite', 'supreme'], default: 'free' },
+  // No enum — valid tier values come from Package collection (admin-managed).
+  // Keeps 'free' as default for users with no paid package.
+  packageTier: { type: String, default: 'free' },
   isAffiliate: { type: Boolean, default: false },
   commissionRate: { type: Number, default: 0 },
   packagePurchasedAt: Date,
@@ -184,7 +188,6 @@ const UserSchema = new Schema<IUser>({
   }],
 }, { timestamps: true });
 
-UserSchema.index({ affiliateCode: 1 });
 UserSchema.index({ referredBy: 1 });
 UserSchema.index({ packageTier: 1, isAffiliate: 1 });
 UserSchema.index({ role: 1, isActive: 1 });
@@ -211,6 +214,7 @@ UserSchema.pre('save', function (next) {
 });
 
 UserSchema.methods.comparePassword = async function (password: string) {
+  if (!this.password) return false;
   return bcrypt.compare(password, this.password);
 };
 

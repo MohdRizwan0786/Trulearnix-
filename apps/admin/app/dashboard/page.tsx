@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import AdminLayout from '@/components/AdminLayout'
 import toast from 'react-hot-toast'
 import {
@@ -20,16 +21,6 @@ import {
 import Link from 'next/link'
 import { format, formatDistanceToNow } from 'date-fns'
 
-// ── Color maps ────────────────────────────────────────────────────────────────
-const PKG_COLORS: Record<string, string> = {
-  starter: '#3b82f6', pro: '#8b5cf6', elite: '#f59e0b',
-  supreme: '#f43f5e', free: '#6b7280',
-  'tru starter': '#3b82f6',
-  'tru pro-edge': '#8b5cf6',
-  'tru booster': '#10b981',
-  'tru advance': '#f59e0b',
-  'tru premium-infinity': '#f43f5e',
-}
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────
 function ChartTip({ active, payload, label }: any) {
@@ -144,11 +135,14 @@ export default function DashboardPage() {
   const { data: crmData } = useQuery({ queryKey: ['crm-stats'], queryFn: () => adminAPI.crmStats().then(r => r.data) })
   const { data: meetingsData } = useQuery({ queryKey: ['meetings-dash'], queryFn: () => adminAPI.meetings().then(r => r.data), refetchInterval: 60000 })
   const { data: tasksData } = useQuery({ queryKey: ['tasks-dash'], queryFn: () => adminAPI.tasks().then(r => r.data), refetchInterval: 60000 })
+  const { data: pkgData } = useQuery({ queryKey: ['admin-packages'], queryFn: () => adminAPI.packages().then(r => r.data) })
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const stats = dash || {}
   const basicStats = basicDash?.stats || {}
+  const pkgList: any[] = pkgData?.packages || pkgData || []
   const pkgDist = dash?.packages || []
+  const getPkgName = (tier: string) => pkgList.find((p: any) => p.tier?.toLowerCase() === tier?.toLowerCase())?.name || tier
   const recentPayments = basicDash?.recentPayments || []
 
   const liveClasses: any[] = liveClassesData?.classes || []
@@ -385,7 +379,7 @@ export default function DashboardPage() {
                   <PieChart>
                     <Pie data={pkgDist} cx="50%" cy="50%" innerRadius={42} outerRadius={65} paddingAngle={3} dataKey="count" strokeWidth={0}>
                       {pkgDist.map((p: any, i: number) => (
-                        <Cell key={i} fill={PKG_COLORS[p._id?.toLowerCase()] || '#6b7280'} />
+                        <Cell key={i} fill={tierStyle(p._id, pkgList).hex} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(val: any, name: any) => [val, name]} contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', fontSize: '11px' }} />
@@ -395,11 +389,11 @@ export default function DashboardPage() {
                   {pkgDist.map((p: any) => {
                     const total = pkgDist.reduce((s: number, x: any) => s + (x.count || 0), 0)
                     const pct = total > 0 ? Math.round((p.count / total) * 100) : 0
-                    const color = PKG_COLORS[p._id?.toLowerCase()] || '#6b7280'
+                    const color = tierStyle(p._id, pkgList).hex
                     return (
                       <div key={p._id} className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                        <span className="text-gray-400 text-[11px] capitalize flex-1">{p._id || 'Unknown'}</span>
+                        <span className="text-gray-400 text-[11px] capitalize flex-1">{getPkgName(p._id) || 'Unknown'}</span>
                         <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden max-w-[60px]">
                           <div className="h-1 rounded-full" style={{ width: `${pct}%`, background: color }} />
                         </div>

@@ -3,35 +3,50 @@ import User from '../models/User';
 import Course from '../models/Course';
 import Enrollment from '../models/Enrollment';
 import Payment from '../models/Payment';
+import PackagePurchase from '../models/PackagePurchase';
 import SupportTicket from '../models/SupportTicket';
 import Certificate from '../models/Certificate';
 import { AuthRequest } from '../middleware/auth';
 
 export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
   try {
-    const [totalUsers, totalStudents, totalMentors, totalCourses, totalEnrollments, recentPayments] = await Promise.all([
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+
+    const [totalUsers, totalStudents, totalMentors, totalCourses, totalEnrollments, recentPayments,
+      paymentRev, packageRev, paymentMonthly, packageMonthly] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ role: 'student' }),
       User.countDocuments({ role: 'mentor' }),
       Course.countDocuments({ status: 'published' }),
       Enrollment.countDocuments(),
-      Payment.find({ status: 'paid' }).sort('-createdAt').limit(10).populate('user', 'name email').populate('course', 'title')
+      Payment.find({ status: 'paid' }).sort('-createdAt').limit(10).populate('user', 'name email').populate('course', 'title'),
+      Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      PackagePurchase.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Payment.aggregate([
+        { $match: { status: 'paid', createdAt: { $gte: oneYearAgo } } },
+        { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, revenue: { $sum: '$amount' }, count: { $sum: 1 } } },
+      ]),
+      PackagePurchase.aggregate([
+        { $match: { status: 'paid', createdAt: { $gte: oneYearAgo } } },
+        { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, revenue: { $sum: '$amount' }, count: { $sum: 1 } } },
+      ]),
     ]);
 
-    const revenue = await Payment.aggregate([
-      { $match: { status: 'paid' } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
+    const totalRevenue = (paymentRev[0]?.total || 0) + (packageRev[0]?.total || 0);
 
-    const monthlyRevenue = await Payment.aggregate([
-      { $match: { status: 'paid', createdAt: { $gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) } } },
-      { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, revenue: { $sum: '$amount' }, count: { $sum: 1 } } },
-      { $sort: { '_id.year': 1, '_id.month': 1 } }
-    ]);
+    // Merge monthly revenue from both sources
+    const monthlyMap: Record<string, { _id: any; revenue: number; count: number }> = {};
+    [...paymentMonthly, ...packageMonthly].forEach((m: any) => {
+      const key = `${m._id.year}-${m._id.month}`;
+      if (!monthlyMap[key]) monthlyMap[key] = { _id: m._id, revenue: 0, count: 0 };
+      monthlyMap[key].revenue += m.revenue;
+      monthlyMap[key].count += m.count;
+    });
+    const monthlyRevenue = Object.values(monthlyMap).sort((a, b) => (a._id.year - b._id.year) || (a._id.month - b._id.month));
 
     res.json({
       success: true,
-      stats: { totalUsers, totalStudents, totalMentors, totalCourses, totalEnrollments, totalRevenue: revenue[0]?.total || 0 },
+      stats: { totalUsers, totalStudents, totalMentors, totalCourses, totalEnrollments, totalRevenue },
       monthlyRevenue,
       recentPayments
     });

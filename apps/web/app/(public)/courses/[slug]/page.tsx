@@ -429,10 +429,10 @@ export default function CourseDetailPage({ params }: { params: { slug: string } 
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm"
                           style={{ background: 'rgba(124,58,237,0.3)' }}>
-                          {r.user?.name?.[0] || 'S'}
+                          {(r.user?.name || r.name || 'S')[0]}
                         </div>
                         <div>
-                          <p className="text-white text-sm font-bold">{r.user?.name || 'Student'}</p>
+                          <p className="text-white text-sm font-bold">{r.user?.name || r.name || 'Student'}</p>
                           <Stars rating={r.rating} />
                         </div>
                       </div>

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { courseAPI, certAPI, materialAPI, quizAPI } from '@/lib/api'
 import {
@@ -8,10 +8,152 @@ import {
   BarChart2, Download, FileDown, Upload,
   ExternalLink, Video, File, Image as ImgIcon, Link2,
   AlertCircle, Star, ChevronDown, ChevronUp, BookOpen, Users, Trophy, TrendingUp,
-  HelpCircle, CheckSquare, XSquare, ArrowRight
+  HelpCircle, CheckSquare, XSquare, ArrowRight, Youtube, ListVideo
 } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+
+/* ── YouTube Playlist Player ─────────────────────────────────────────────── */
+function PlaylistPlayer({ playlistUrl, courseTitle }: { playlistUrl: string; courseTitle: string }) {
+  const playlistId = playlistUrl.match(/[?&]list=([^&]+)/)?.[1] || ''
+  const playerElId = 'yt-playlist-player-' + playlistId.slice(-6)
+  const playerRef = useRef<any>(null)
+  const [videoIds, setVideoIds] = useState<string[]>([])
+  const [activeIdx, setActiveIdx] = useState(0)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  const initPlayer = useCallback(() => {
+    if (playerRef.current || !playlistId) return
+    playerRef.current = new (window as any).YT.Player(playerElId, {
+      playerVars: { listType: 'playlist', list: playlistId, rel: 0, modestbranding: 1, autoplay: 0 },
+      events: {
+        onReady: (e: any) => {
+          const ids: string[] = e.target.getPlaylist() || []
+          setVideoIds(ids)
+        },
+        onStateChange: (e: any) => {
+          const idx = e.target.getPlaylistIndex?.() ?? 0
+          setActiveIdx(idx)
+          // auto scroll list item into view
+          const el = listRef.current?.children[idx] as HTMLElement | undefined
+          el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        },
+      },
+    })
+  }, [playlistId, playerElId])
+
+  useEffect(() => {
+    if (!playlistId) return
+    if ((window as any).YT?.Player) {
+      initPlayer()
+    } else {
+      const existing = document.getElementById('yt-iframe-api')
+      if (!existing) {
+        const s = document.createElement('script')
+        s.id = 'yt-iframe-api'
+        s.src = 'https://www.youtube.com/iframe_api'
+        s.async = true
+        document.head.appendChild(s)
+      }
+      ;(window as any).onYouTubeIframeAPIReady = initPlayer
+    }
+    return () => {
+      if (playerRef.current?.destroy) playerRef.current.destroy()
+      playerRef.current = null
+    }
+  }, [playlistId, initPlayer])
+
+  const goTo = (i: number) => {
+    playerRef.current?.playVideoAt?.(i)
+    setActiveIdx(i)
+  }
+
+  if (!playlistId) return (
+    <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">Invalid playlist URL</div>
+  )
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-white/5 flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center">
+          <Youtube className="w-4 h-4 text-red-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-white font-bold text-sm">Class Recordings</h2>
+          <p className="text-xs text-gray-500 truncate">{courseTitle}</p>
+        </div>
+        <a href={playlistUrl} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-xl transition-colors border border-red-500/20 flex-shrink-0">
+          <ExternalLink className="w-3.5 h-3.5" /> YouTube
+        </a>
+      </div>
+
+      {/* Player + List */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Video Player */}
+        <div className="flex-1 flex flex-col min-w-0 bg-black">
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <div id={playerElId} className="absolute inset-0 w-full h-full" />
+          </div>
+          {videoIds.length > 0 && (
+            <div className="px-4 py-3 bg-dark-900 border-t border-white/5">
+              <p className="text-white font-semibold text-sm line-clamp-1">
+                Video {activeIdx + 1} of {videoIds.length}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Playlist Sidebar */}
+        <div className="lg:w-72 flex flex-col border-t lg:border-t-0 lg:border-l border-white/5 bg-dark-900">
+          <div className="px-3 py-2.5 border-b border-white/5 flex-shrink-0">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+              <ListVideo className="w-3.5 h-3.5 text-red-400" />
+              Playlist — {videoIds.length > 0 ? `${videoIds.length} videos` : 'Loading...'}
+            </p>
+          </div>
+
+          <div ref={listRef} className="flex-1 overflow-y-auto">
+            {videoIds.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-red-400" />
+                <p className="text-xs text-gray-500">Playlist load ho rahi hai...</p>
+              </div>
+            ) : (
+              videoIds.map((vid, i) => (
+                <button key={vid} onClick={() => goTo(i)}
+                  className={`w-full flex items-start gap-2.5 px-3 py-2.5 text-left transition-colors border-b border-white/5 ${
+                    activeIdx === i ? 'bg-red-500/15' : 'hover:bg-white/5'
+                  }`}>
+                  <div className="relative w-20 flex-shrink-0 rounded-lg overflow-hidden">
+                    <img
+                      src={`https://img.youtube.com/vi/${vid}/mqdefault.jpg`}
+                      alt=""
+                      className="w-full aspect-video object-cover"
+                      loading="lazy"
+                    />
+                    {activeIdx === i && (
+                      <div className="absolute inset-0 bg-red-600/50 flex items-center justify-center">
+                        <Play className="w-4 h-4 text-white" fill="white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-medium leading-snug ${activeIdx === i ? 'text-red-300' : 'text-gray-300'}`}>
+                      Class {i + 1}
+                    </p>
+                    <p className="text-[10px] text-gray-600 mt-0.5">#{i + 1}</p>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const TYPE_ICON: Record<string, any> = { pdf: FileDown, video: Video, doc: FileText, link: Link2, image: ImgIcon }
 const TYPE_COLOR: Record<string, string> = {
@@ -31,6 +173,7 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
   const [requestingRC, setRequestingRC] = useState(false)
   const [rcRequested, setRcRequested] = useState(false)
   const [showPerformance, setShowPerformance] = useState(false)
+  const [showRecordings, setShowRecordings] = useState(false)
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -152,12 +295,23 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
 
         {/* My Performance button */}
         <button
-          onClick={() => setShowPerformance(s => !s)}
+          onClick={() => { setShowPerformance(s => !s); setShowRecordings(false) }}
           className={`w-full flex items-center gap-2.5 px-4 py-2.5 border-b border-white/5 transition-colors text-left text-xs font-semibold ${showPerformance ? 'bg-primary-500/10 text-primary-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
           <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
           My Performance & Leaderboard
           {showPerformance && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400" />}
         </button>
+
+        {/* Recordings button — only if playlist exists */}
+        {course.youtubePlaylistUrl && (
+          <button
+            onClick={() => { setShowRecordings(s => !s); setShowPerformance(false); setActiveLesson(null) }}
+            className={`w-full flex items-center gap-2.5 px-4 py-2.5 border-b border-white/5 transition-colors text-left text-xs font-semibold ${showRecordings ? 'bg-red-500/10 text-red-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+            <Youtube className="w-3.5 h-3.5 flex-shrink-0" />
+            Class Recordings
+            <span className="ml-auto text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full">Playlist</span>
+          </button>
+        )}
 
         {/* Module tree */}
         <div className="flex-1 overflow-y-auto py-2">
@@ -261,10 +415,18 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
             <ChevronLeft className="w-4 h-4" /> Back
           </Link>
           <p className="text-xs font-semibold text-white truncate flex-1">{course.title}</p>
+          {course.youtubePlaylistUrl && (
+            <button onClick={() => { setShowRecordings(s => !s); setShowPerformance(false); setActiveLesson(null) }}
+              className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${showRecordings ? 'bg-red-500/20 text-red-400' : 'text-gray-400 hover:text-red-400'}`}>
+              <Youtube className="w-3.5 h-3.5" /> Rec
+            </button>
+          )}
           <span className="text-xs text-gray-400">{progressPercent}%</span>
         </div>
 
-        {showPerformance ? (
+        {showRecordings && course.youtubePlaylistUrl ? (
+          <PlaylistPlayer playlistUrl={course.youtubePlaylistUrl} courseTitle={course.title} />
+        ) : showPerformance ? (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 max-w-3xl">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
@@ -395,6 +557,10 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
                 ) : (
                   <video src={getRecordingUrl(activeLesson.videoUrl)} controls className="w-full h-full" />
                 )}
+              </div>
+            ) : lessonSessions[0]?.recordingUrl ? (
+              <div className="bg-black aspect-video max-h-[45vh] sm:max-h-[55vh]">
+                <video src={getRecordingUrl(lessonSessions[0].recordingUrl)} controls className="w-full h-full" />
               </div>
             ) : lessonSessions[0]?.recordingUrl ? (
               <div className="bg-black aspect-video max-h-[45vh] sm:max-h-[55vh]">
