@@ -1059,7 +1059,7 @@ export default function PartnerDashboard() {
           <NetworkRings l1={l1} />
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginTop:18 }}>
             {[
-              { v:l1 + l2 + l3, label:'Total Team', color:'#8b5cf6' },
+              { v:l1, label:'Total Team', color:'#8b5cf6' },
               { v: rank ? `#${rank}` : '—', label:'Your Rank', color:'#f59e0b' },
               { v:`₹${((stats?.totalEarnings || 0) + (stats?.industrialEarning || 0)).toLocaleString()}`, label:'Total Earned', color:'#10b981' },
             ].map(({ v, label, color }) => (
