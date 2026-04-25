@@ -815,6 +815,17 @@ router.get('/commissions', async (req, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// Manually trigger the auto-withdrawal job — scans all eligible partners /
+// salespersons / managers and creates pending withdrawal requests for their full
+// wallet balance. Same logic the daily 9:30 AM IST cron runs.
+router.post('/withdrawals/auto-run', async (_req: any, res) => {
+  try {
+    const { runAutoWithdrawals } = await import('./nova');
+    const result = await runAutoWithdrawals();
+    res.json({ success: true, ...result });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // Withdrawals
 router.get('/withdrawals', async (req, res) => {
   try {
@@ -835,6 +846,20 @@ router.patch('/withdrawals/:id/hr-approve', async (req: any, res) => {
     const withdrawal = await Withdrawal.findById(req.params.id).populate('user', 'name email phone kyc');
     if (!withdrawal) return res.status(404).json({ success: false, message: 'Withdrawal not found' });
     if (withdrawal.hrStatus !== 'pending') return res.status(400).json({ success: false, message: 'Already processed by HR' });
+
+    // Backfill TDS / gateway fee / net amount for legacy withdrawals stored as zero
+    if (withdrawal.amount > 0 && (!withdrawal.tdsAmount || !withdrawal.netAmount)) {
+      const tdsRate = withdrawal.tdsRate || 2;
+      const tdsAmount = Math.round(withdrawal.amount * tdsRate / 100);
+      const gatewayFeeBase = 4.40;
+      const gatewayFeeGst = Math.round(gatewayFeeBase * 0.18 * 100) / 100;
+      const totalGatewayFee = Math.round((gatewayFeeBase + gatewayFeeGst) * 100) / 100;
+      withdrawal.tdsRate = tdsRate;
+      withdrawal.tdsAmount = tdsAmount;
+      withdrawal.gatewayFee = totalGatewayFee;
+      withdrawal.gatewayFeeGst = gatewayFeeGst;
+      withdrawal.netAmount = withdrawal.amount - tdsAmount - totalGatewayFee;
+    }
 
     withdrawal.hrStatus = 'approved';
     withdrawal.hrApprovedBy = req.user._id;
@@ -962,6 +987,20 @@ router.patch('/withdrawals/:id/complete', async (req: any, res) => {
     const withdrawal = await Withdrawal.findById(req.params.id).populate('user', 'name email phone kyc');
     if (!withdrawal) return res.status(404).json({ success: false, message: 'Withdrawal not found' });
     if (withdrawal.hrStatus !== 'approved') return res.status(400).json({ success: false, message: 'HR approval required first' });
+
+    // Backfill TDS / gateway fee / net amount for legacy withdrawals stored as zero
+    if (withdrawal.amount > 0 && (!withdrawal.tdsAmount || !withdrawal.netAmount)) {
+      const tdsRate = withdrawal.tdsRate || 2;
+      const tdsAmount = Math.round(withdrawal.amount * tdsRate / 100);
+      const gatewayFeeBase = 4.40;
+      const gatewayFeeGst = Math.round(gatewayFeeBase * 0.18 * 100) / 100;
+      const totalGatewayFee = Math.round((gatewayFeeBase + gatewayFeeGst) * 100) / 100;
+      withdrawal.tdsRate = tdsRate;
+      withdrawal.tdsAmount = tdsAmount;
+      withdrawal.gatewayFee = totalGatewayFee;
+      withdrawal.gatewayFeeGst = gatewayFeeGst;
+      withdrawal.netAmount = withdrawal.amount - tdsAmount - totalGatewayFee;
+    }
 
     const completedAt = new Date();
     withdrawal.status = 'completed';
