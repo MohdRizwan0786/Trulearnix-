@@ -156,6 +156,8 @@ export const adminAPI = {
   createQualification: (data: any) => api.post('/admin/qualifications', data),
   updateQualification: (id: string, data: any) => api.patch(`/admin/qualifications/${id}`, data),
   deleteQualification: (id: string) => api.delete(`/admin/qualifications/${id}`),
+  qualifiedPartners: (id: string, params?: { search?: string; limit?: number }) =>
+    api.get(`/admin/qualifications/${id}/qualified-partners`, { params }),
   // Achievements
   achievements: () => api.get('/admin/achievements'),
   createAchievement: (data: any) => api.post('/admin/achievements', data),

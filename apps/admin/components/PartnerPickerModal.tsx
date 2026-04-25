@@ -11,11 +11,30 @@ export interface PickedPartner {
   avatar?: string
 }
 
-export default function PartnerPickerModal({ open, onClose, onPick, title = 'Select Partner' }: {
+export interface QualificationFilter {
+  _id: string
+  title: string
+  metricType: 'l1Paid' | 'totalEarnings' | 'l1Count' | 'tierUpgrade'
+  target: number
+  unit?: string
+}
+
+const fmtMetric = (qual: QualificationFilter | undefined, value: number) => {
+  if (!qual) return ''
+  if (qual.metricType === 'totalEarnings') return `₹${(value || 0).toLocaleString('en-IN')}`
+  if (qual.metricType === 'l1Count' || qual.metricType === 'l1Paid') {
+    const unit = qual.unit || (qual.metricType === 'l1Paid' ? 'paid' : 'partners')
+    return `${value} ${unit}`
+  }
+  return ''
+}
+
+export default function PartnerPickerModal({ open, onClose, onPick, title = 'Select Partner', qualification }: {
   open: boolean
   onClose: () => void
   onPick: (partner: PickedPartner) => void
   title?: string
+  qualification?: QualificationFilter
 }) {
   const [search, setSearch] = useState('')
   const [partners, setPartners] = useState<any[]>([])
@@ -25,13 +44,16 @@ export default function PartnerPickerModal({ open, onClose, onPick, title = 'Sel
     if (!open) return
     const t = setTimeout(() => {
       setLoading(true)
-      adminAPI.partners({ search, limit: 30 })
+      const fetcher = qualification
+        ? adminAPI.qualifiedPartners(qualification._id, { search, limit: 30 })
+        : adminAPI.partners({ search, limit: 30 })
+      fetcher
         .then(r => setPartners(r.data?.partners || []))
         .catch(() => setPartners([]))
         .finally(() => setLoading(false))
     }, 250)
     return () => clearTimeout(t)
-  }, [open, search])
+  }, [open, search, qualification?._id])
 
   if (!open) return null
 
@@ -79,7 +101,11 @@ export default function PartnerPickerModal({ open, onClose, onPick, title = 'Sel
                   <p className="text-white text-sm font-semibold truncate">{p.name}</p>
                   <p className="text-gray-500 text-[11px] truncate">{p.email}{p.affiliateCode ? ` · ${p.affiliateCode}` : ''}</p>
                 </div>
-                {p.packageTier && (
+                {qualification ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-semibold flex-shrink-0">
+                    {fmtMetric(qualification, p._metric || 0)}
+                  </span>
+                ) : p.packageTier && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 capitalize flex-shrink-0">
                     {p.packageTier}
                   </span>
