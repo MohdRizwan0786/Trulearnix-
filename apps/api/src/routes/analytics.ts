@@ -42,42 +42,85 @@ async function revenueByDay(from: Date, to: Date) {
 }
 
 // GET /api/analytics/dashboard — main admin dashboard
-router.get('/dashboard', async (_req, res) => {
+router.get('/dashboard', async (req, res) => {
   try {
+    const { period, from: fromQ, to: toQ } = req.query as any;
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const thisMonth = new Date(); thisMonth.setDate(1); thisMonth.setHours(0, 0, 0, 0);
     const lastMonth = new Date(thisMonth); lastMonth.setMonth(lastMonth.getMonth() - 1);
 
+    // Resolve period range (null = all-time)
+    let dateRange: { $gte: Date; $lte: Date } | null = null;
+    let prevRange: { $gte: Date; $lte: Date } | null = null;
+    if (period && period !== 'all') {
+      let from: Date, to: Date = new Date();
+      if (period === 'custom' && fromQ) {
+        from = new Date(fromQ); from.setHours(0, 0, 0, 0);
+        if (toQ) { to = new Date(toQ); to.setHours(23, 59, 59, 999); }
+      } else if (period === 'today') {
+        from = new Date(); from.setHours(0, 0, 0, 0);
+      } else {
+        const days = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
+        from = new Date(); from.setDate(from.getDate() - days); from.setHours(0, 0, 0, 0);
+      }
+      dateRange = { $gte: from, $lte: to };
+      const periodMs = to.getTime() - from.getTime();
+      const prevFrom = new Date(from.getTime() - periodMs - 1);
+      const prevTo = new Date(from.getTime() - 1);
+      prevRange = { $gte: prevFrom, $lte: prevTo };
+    }
+
+    const userMatch = dateRange ? { role: 'student', createdAt: dateRange } : { role: 'student' };
+    const userMatchPrev = prevRange ? { role: 'student', createdAt: prevRange } : null;
+    const leadMatch = dateRange ? { createdAt: dateRange } : {};
+    const hotLeadMatch = dateRange ? { aiScoreLabel: 'hot', createdAt: dateRange } : { aiScoreLabel: 'hot' };
+    const affMatch = dateRange ? { isAffiliate: true, createdAt: dateRange } : { isAffiliate: true };
+    const paidAffMatch = dateRange
+      ? { isAffiliate: true, packageTier: { $ne: 'free' }, createdAt: dateRange }
+      : { isAffiliate: true, packageTier: { $ne: 'free' } };
+    const commMatch = dateRange ? { status: 'paid', createdAt: dateRange } : { status: 'paid' };
+
     const [
-      totalUsers, newUsersToday, newUsersMonth,
-      totalRev, thisMonthRev, lastMonthRev,
+      totalUsers, newUsersToday, newUsersMonth, prevUsers,
+      totalRev, thisMonthRev, lastMonthRev, periodRev, prevPeriodRev,
       totalLeads, hotLeads, leadsThisMonth,
       totalAffiliates, paidAffiliates,
       activePackages, commissionsPaid,
     ] = await Promise.all([
-      User.countDocuments({ role: 'student' }),
+      User.countDocuments(userMatch),
       User.countDocuments({ role: 'student', createdAt: { $gte: today } }),
       User.countDocuments({ role: 'student', createdAt: { $gte: thisMonth } }),
+      userMatchPrev ? User.countDocuments(userMatchPrev) : Promise.resolve(0),
       sumRevenue(),
       sumRevenue({ createdAt: { $gte: thisMonth } }),
       sumRevenue({ createdAt: { $gte: lastMonth, $lt: thisMonth } }),
-      Lead.countDocuments({}),
-      Lead.countDocuments({ aiScoreLabel: 'hot' }),
+      dateRange ? sumRevenue({ createdAt: dateRange }) : Promise.resolve({ total: 0, count: 0 }),
+      prevRange ? sumRevenue({ createdAt: prevRange }) : Promise.resolve({ total: 0, count: 0 }),
+      Lead.countDocuments(leadMatch),
+      Lead.countDocuments(hotLeadMatch),
       Lead.countDocuments({ createdAt: { $gte: thisMonth } }),
-      User.countDocuments({ isAffiliate: true }),
-      User.countDocuments({ isAffiliate: true, packageTier: { $ne: 'free' } }),
+      User.countDocuments(affMatch),
+      User.countDocuments(paidAffMatch),
       User.aggregate([{ $match: { packageTier: { $ne: 'free' } } }, { $group: { _id: '$packageTier', count: { $sum: 1 } } }]),
-      Commission.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$commissionAmount' } } }]),
+      Commission.aggregate([{ $match: commMatch }, { $group: { _id: null, total: { $sum: '$commissionAmount' } } }]),
     ]);
 
-    const revenueGrowth = lastMonthRev.total > 0
-      ? (((thisMonthRev.total - lastMonthRev.total) / lastMonthRev.total) * 100).toFixed(1)
+    // When a period is selected, growth = period vs previous period; else month-over-month
+    const revenueGrowth = dateRange
+      ? (prevPeriodRev.total > 0 ? (((periodRev.total - prevPeriodRev.total) / prevPeriodRev.total) * 100).toFixed(1) : null)
+      : (lastMonthRev.total > 0 ? (((thisMonthRev.total - lastMonthRev.total) / lastMonthRev.total) * 100).toFixed(1) : null);
+    const userGrowth = dateRange && prevUsers > 0
+      ? (((totalUsers - prevUsers) / prevUsers) * 100).toFixed(1)
       : null;
+
+    // Effective revenue numbers for the cards
+    const cardRevTotal = dateRange ? periodRev.total : totalRev.total;
+    const cardRevThisMonth = dateRange ? periodRev.total : thisMonthRev.total;
 
     res.json({
       success: true,
-      users: { total: totalUsers, today: newUsersToday, thisMonth: newUsersMonth },
-      revenue: { total: totalRev.total, thisMonth: thisMonthRev.total, lastMonth: lastMonthRev.total, growth: revenueGrowth },
+      users: { total: totalUsers, today: newUsersToday, thisMonth: newUsersMonth, growth: userGrowth },
+      revenue: { total: cardRevTotal, thisMonth: cardRevThisMonth, lastMonth: lastMonthRev.total, growth: revenueGrowth },
       leads: { total: totalLeads, hot: hotLeads, thisMonth: leadsThisMonth },
       affiliates: { total: totalAffiliates, paid: paidAffiliates },
       packages: activePackages,
@@ -180,7 +223,9 @@ router.get('/revenue', async (req, res) => {
   try {
     const { period = '30d', from: fromQ, to: toQ } = req.query as any;
     let from: Date, to: Date = new Date();
-    if (period === 'today') {
+    if (period === 'all') {
+      from = new Date(2020, 0, 1);
+    } else if (period === 'today') {
       from = new Date(); from.setHours(0, 0, 0, 0);
     } else if (period === 'custom' && fromQ) {
       from = new Date(fromQ); if (toQ) to = new Date(toQ);
@@ -242,7 +287,9 @@ router.get('/users', async (req, res) => {
   try {
     const { period = '30d', from: fromQ, to: toQ } = req.query as any;
     let from: Date, to: Date = new Date();
-    if (period === 'today') {
+    if (period === 'all') {
+      from = new Date(2020, 0, 1);
+    } else if (period === 'today') {
       from = new Date(); from.setHours(0, 0, 0, 0);
     } else if (period === 'custom' && fromQ) {
       from = new Date(fromQ); if (toQ) to = new Date(toQ);

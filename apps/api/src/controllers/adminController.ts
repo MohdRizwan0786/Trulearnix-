@@ -8,22 +8,42 @@ import SupportTicket from '../models/SupportTicket';
 import Certificate from '../models/Certificate';
 import { AuthRequest } from '../middleware/auth';
 
-export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
+export const getDashboardStats = async (req: AuthRequest, res: Response) => {
   try {
+    const { period, from: fromQ, to: toQ } = req.query as any;
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+
+    // Resolve period date range (null = all-time)
+    let dateRange: { $gte: Date; $lte: Date } | null = null;
+    if (period && period !== 'all') {
+      let from: Date, to: Date = new Date();
+      if (period === 'custom' && fromQ) {
+        from = new Date(fromQ); from.setHours(0, 0, 0, 0);
+        if (toQ) { to = new Date(toQ); to.setHours(23, 59, 59, 999); }
+      } else if (period === 'today') {
+        from = new Date(); from.setHours(0, 0, 0, 0);
+      } else {
+        const days = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
+        from = new Date(); from.setDate(from.getDate() - days); from.setHours(0, 0, 0, 0);
+      }
+      dateRange = { $gte: from, $lte: to };
+    }
+
+    const dateMatch = dateRange ? { createdAt: dateRange } : {};
 
     const [totalUsers, totalStudents, totalMentors, totalCourses, totalEnrollments,
       recentCoursePayments, recentPackagePurchases,
       paymentRev, packageRev, paymentMonthly, packageMonthly] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ role: 'student' }),
-      User.countDocuments({ role: 'mentor' }),
-      Course.countDocuments({ status: 'published' }),
-      Enrollment.countDocuments(),
+      User.countDocuments({ ...dateMatch }),
+      User.countDocuments({ role: 'student', ...dateMatch }),
+      User.countDocuments({ role: 'mentor', ...dateMatch }),
+      Course.countDocuments({ status: 'published', ...dateMatch }),
+      Enrollment.countDocuments({ ...dateMatch }),
+      // Recent payments are always last 10 across all time (feed, not period metric)
       Payment.find({ status: 'paid' }).sort('-createdAt').limit(10).populate('user', 'name email').populate('course', 'title'),
       PackagePurchase.find({ status: 'paid' }).sort('-createdAt').limit(10).populate('user', 'name email').populate('package', 'name tier'),
-      Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      PackagePurchase.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Payment.aggregate([{ $match: { status: 'paid', ...dateMatch } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      PackagePurchase.aggregate([{ $match: { status: 'paid', ...dateMatch } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Payment.aggregate([
         { $match: { status: 'paid', createdAt: { $gte: oneYearAgo } } },
         { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, revenue: { $sum: '$amount' }, count: { $sum: 1 } } },

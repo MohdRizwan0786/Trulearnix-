@@ -34,9 +34,9 @@ export const adminAPI = {
   // Auth
   login: (data: any) => api.post('/auth/login', data),
   // Dashboard
-  dashboard: () => api.get('/admin/dashboard'),
+  dashboard: (period?: string, from?: string, to?: string) => api.get('/admin/dashboard', { params: { period, from, to } }),
   // Analytics
-  analyticsDashboard: () => api.get('/analytics/dashboard'),
+  analyticsDashboard: (period?: string, from?: string, to?: string) => api.get('/analytics/dashboard', { params: { period, from, to } }),
   analyticsFunnel: () => api.get('/analytics/funnel'),
   analyticsOverview: (params: any) => api.get('/analytics/overview', { params }),
   analyticsRevenue: (period?: string, from?: string, to?: string) => api.get('/analytics/revenue', { params: { period, from, to } }),
