@@ -99,7 +99,7 @@ function PackageCard({ pkg, i }: { pkg: any; i: number }) {
   const [hovered, setHovered] = useState(false)
   const meta = TIER_META[pkg.tier] || TIER_META['pro']
   const price = pkg.price ?? 0
-  const period = price === 0 ? '/ forever' : '/month'
+  const period = price === 0 ? '/ forever' : ''
   const features: string[] = pkg.features || []
   const isHighlight = meta.highlight
 
@@ -165,7 +165,7 @@ function PackageCard({ pkg, i }: { pkg: any; i: number }) {
           <span className="font-black leading-none text-white" style={{ fontSize: '2.8rem' }}>
             {price === 0 ? '₹0' : `₹${price.toLocaleString()}`}
           </span>
-          <span className="text-white/50 text-sm">{period}</span>
+          {period && <span className="text-white/50 text-sm">{period}</span>}
           {pkg.originalPrice && pkg.originalPrice > price && (
             <>
               <span className="text-white/30 text-sm line-through ml-1">₹{pkg.originalPrice.toLocaleString()}</span>
