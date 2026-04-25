@@ -120,6 +120,7 @@ router.get('/:id/livekit-token', authenticate, async (req, res) => {
     });
 
     const token = await at.toJwt();
+    const isHost = meeting.createdBy?.toString() === user._id.toString();
     res.json({
       success: true,
       token,
@@ -128,6 +129,7 @@ router.get('/:id/livekit-token', authenticate, async (req, res) => {
       meetingTitle: meeting.title,
       duration: meeting.duration,
       userName: user.name,
+      isHost,
     });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
