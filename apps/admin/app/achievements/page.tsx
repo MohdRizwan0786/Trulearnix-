@@ -3,7 +3,9 @@ import AdminLayout from '@/components/AdminLayout'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
-import { Trophy, Plus, Pencil, Trash2, X, Save, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react'
+import { Trophy, Plus, Pencil, Trash2, X, Save, ToggleLeft, ToggleRight, Sparkles, Calendar, Download } from 'lucide-react'
+import { generateAchievementPoster, downloadDataUrl } from '@/lib/posterGenerator'
+import PartnerPickerModal, { PickedPartner } from '@/components/PartnerPickerModal'
 
 const TRIGGER_TYPES = [
   { value: 'join',          label: 'On Join (Welcome)',       hint: 'Unlocked when partner joins' },
@@ -23,7 +25,16 @@ const POSTER_THEMES = [
   { value: 5, label: 'Sky / Indigo',      preview: 'linear-gradient(135deg,#0ea5e9,#4f46e5)' },
 ]
 
-const EMPTY_FORM = { title: '', description: '', badge: '🏆', triggerType: 'join', triggerValue: 0, requirement: '', posterTheme: 0, order: 0, enabled: true }
+const EMPTY_FORM = { title: '', description: '', badge: '🏆', triggerType: 'join', triggerValue: 0, requirement: '', posterTheme: 0, order: 0, enabled: true, startDate: '', endDate: '' }
+
+const dateInput = (v: any) => v ? new Date(v).toISOString().slice(0, 10) : ''
+const fmtRange = (s: any, e: any) => {
+  if (!s && !e) return null
+  const f = (d: any) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  if (s && e) return `${f(s)} → ${f(e)}`
+  if (s) return `From ${f(s)}`
+  return `Until ${f(e)}`
+}
 
 export default function AchievementsPage() {
   const qc = useQueryClient()
@@ -40,10 +51,46 @@ export default function AchievementsPage() {
   const deleteMut = useMutation({ mutationFn: (id: string) => adminAPI.deleteAchievement(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-achievements'] }) })
   const toggleMut = useMutation({ mutationFn: ({ id, enabled }: any) => adminAPI.updateAchievement(id, { enabled }), onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-achievements'] }) })
 
+  // Poster download flow
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [posterTarget, setPosterTarget] = useState<any>(null)
+  const [posterUrl, setPosterUrl] = useState<string | null>(null)
+  const [posterPartner, setPosterPartner] = useState<PickedPartner | null>(null)
+  const [posterLoading, setPosterLoading] = useState(false)
+
+  const openPoster = (a: any) => { setPosterTarget(a); setPickerOpen(true) }
+  const onPickPartner = async (p: PickedPartner) => {
+    if (!posterTarget) return
+    setPickerOpen(false)
+    setPosterLoading(true)
+    setPosterPartner(p)
+    try {
+      const url = await generateAchievementPoster({
+        userName: p.name || 'Partner',
+        avatar: p.avatar,
+        badge: posterTarget.badge,
+        title: posterTarget.title,
+        description: posterTarget.description || '',
+        earnedAt: new Date(),
+        affiliateCode: p.affiliateCode || '',
+        themeIndex: posterTarget.posterTheme || 0,
+      })
+      setPosterUrl(url)
+    } finally { setPosterLoading(false) }
+  }
+  const closePoster = () => { setPosterUrl(null); setPosterPartner(null); setPosterTarget(null) }
+
   const openCreate = () => { setForm(EMPTY_FORM); setEditId(null); setModal('create') }
-  const openEdit = (a: any) => { setForm({ title: a.title, description: a.description, badge: a.badge, triggerType: a.triggerType, triggerValue: a.triggerValue, requirement: a.requirement, posterTheme: a.posterTheme, order: a.order, enabled: a.enabled }); setEditId(a._id); setModal('edit') }
+  const openEdit = (a: any) => { setForm({ title: a.title, description: a.description, badge: a.badge, triggerType: a.triggerType, triggerValue: a.triggerValue, requirement: a.requirement, posterTheme: a.posterTheme, order: a.order, enabled: a.enabled, startDate: dateInput(a.startDate), endDate: dateInput(a.endDate) }); setEditId(a._id); setModal('edit') }
   const save = () => {
-    const payload = { ...form, triggerValue: Number(form.triggerValue), posterTheme: Number(form.posterTheme), order: Number(form.order) }
+    const payload: any = {
+      ...form,
+      triggerValue: Number(form.triggerValue),
+      posterTheme: Number(form.posterTheme),
+      order: Number(form.order),
+      startDate: form.startDate ? new Date(form.startDate) : null,
+      endDate: form.endDate ? new Date(form.endDate) : null,
+    }
     if (modal === 'create') createMut.mutate(payload)
     else if (editId) updateMut.mutate({ id: editId, d: payload })
   }
@@ -105,11 +152,20 @@ export default function AchievementsPage() {
                         <span className="text-[11px] rounded-full px-2 py-0.5 text-white font-semibold" style={{ background: theme.preview }}>
                           {theme.label}
                         </span>
+                        {fmtRange(a.startDate, a.endDate) && (
+                          <span className="text-[11px] text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />{fmtRange(a.startDate, a.endDate)}
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Actions */}
                     <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => openPoster(a)} title="Download poster for partner"
+                        className="p-1.5 rounded-lg hover:bg-amber-500/10 text-gray-400 hover:text-amber-400 transition-colors">
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
                       <button onClick={() => toggleMut.mutate({ id: a._id, enabled: !a.enabled })}
                         className="p-1.5 rounded-lg hover:bg-gray-700 transition-colors text-gray-400 hover:text-white">
                         {a.enabled ? <ToggleRight className="w-4 h-4 text-green-400" /> : <ToggleLeft className="w-4 h-4" />}
@@ -210,6 +266,23 @@ export default function AchievementsPage() {
                 </div>
               </div>
 
+              {/* Active Window */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1 flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" /> Active Window <span className="text-gray-600">(optional)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] text-gray-500 mb-1">Start date</p>
+                    <input type="date" value={form.startDate || ''} onChange={e => setForm((f: any) => ({...f, startDate: e.target.value}))} className="input w-full [color-scheme:dark]" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 mb-1">End date</p>
+                    <input type="date" value={form.endDate || ''} onChange={e => setForm((f: any) => ({...f, endDate: e.target.value}))} className="input w-full [color-scheme:dark]" />
+                  </div>
+                </div>
+              </div>
+
               {/* Order */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -235,6 +308,44 @@ export default function AchievementsPage() {
                 <Save className="w-4 h-4" /> {createMut.isPending || updateMut.isPending ? 'Saving...' : 'Save Achievement'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Partner picker for poster generation */}
+      <PartnerPickerModal
+        open={pickerOpen}
+        onClose={() => { setPickerOpen(false); setPosterTarget(null) }}
+        onPick={onPickPartner}
+        title={posterTarget ? `Pick partner for "${posterTarget.title}"` : 'Select Partner'}
+      />
+
+      {/* Poster preview / download */}
+      {(posterLoading || posterUrl) && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={closePoster}>
+          <div className="relative w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <button onClick={closePoster}
+              className="absolute -top-4 -right-4 z-10 w-9 h-9 rounded-full bg-slate-800 border border-white/15 flex items-center justify-center text-gray-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+            {posterLoading ? (
+              <div className="bg-slate-900 border border-violet-500/30 rounded-2xl p-8 text-center">
+                <div className="w-12 h-12 rounded-full border-2 border-violet-500/30 border-t-violet-400 animate-spin mx-auto mb-3" />
+                <p className="text-white font-semibold">Generating poster…</p>
+                <p className="text-gray-500 text-xs mt-1">{posterPartner?.name}</p>
+              </div>
+            ) : posterUrl ? (
+              <>
+                <p className="text-white font-bold text-center mb-2 text-sm">{posterTarget?.title} · {posterPartner?.name}</p>
+                <div className="rounded-2xl overflow-hidden border border-violet-500/30 shadow-2xl">
+                  <img src={posterUrl} alt="Poster preview" className="w-full" />
+                </div>
+                <button onClick={() => downloadDataUrl(posterUrl, `trulearnix-${(posterTarget?.title || 'poster').replace(/\s+/g, '-').toLowerCase()}-${(posterPartner?.affiliateCode || posterPartner?.name || '').replace(/\s+/g, '-').toLowerCase()}.png`)}
+                  className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-bold transition-all">
+                  <Download className="w-4 h-4" /> Download PNG
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
       )}

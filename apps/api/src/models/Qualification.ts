@@ -13,6 +13,8 @@ export interface IQualification extends Document {
   isActive: boolean
   badgeGradient: string
   certificateEnabled: boolean
+  startDate?: Date | null
+  endDate?: Date | null
   createdAt: Date
 }
 
@@ -29,6 +31,8 @@ const QualificationSchema = new Schema<IQualification>({
   isActive:           { type: Boolean, default: true },
   badgeGradient:      { type: String, default: 'from-violet-500 to-purple-600' },
   certificateEnabled: { type: Boolean, default: true },
+  startDate:          { type: Date, default: null },
+  endDate:            { type: Date, default: null },
 }, { timestamps: true })
 
 QualificationSchema.index({ order: 1, isActive: 1 })
