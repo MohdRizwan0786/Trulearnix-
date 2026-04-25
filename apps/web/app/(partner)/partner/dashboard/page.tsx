@@ -179,17 +179,15 @@ function EarningsChart({ trend }: { trend: any[] }) {
 }
 
 // ─── Network Rings ────────────────────────────────────────────────────────────
-function NetworkRings({ l1, l2, l3 }: { l1: number; l2: number; l3: number }) {
-  const total = l1 + l2 + l3
+function NetworkRings({ l1 }: { l1: number }) {
+  const total = l1
   const ring = (r: number, count: number, color: string, trackColor: string) => {
     const circ = 2 * Math.PI * r
     const pct = total > 0 ? Math.min(count / total, 1) : 0
     return { circ, dash: circ * pct, trackColor, color }
   }
   const rings = [
-    { ...ring(36, l1, '#8b5cf6', 'rgba(139,92,246,0.12)'), label:'L1 Direct', count:l1, accent:'#a78bfa' },
-    { ...ring(25, l2, '#06b6d4', 'rgba(6,182,212,0.12)'),  label:'L2 Network', count:l2, accent:'#67e8f9' },
-    { ...ring(14, l3, '#f59e0b', 'rgba(245,158,11,0.12)'),  label:'L3 Extended', count:l3, accent:'#fcd34d' },
+    { ...ring(36, l1, '#8b5cf6', 'rgba(139,92,246,0.12)'), label:'Direct Referrals', count:l1, accent:'#a78bfa' },
   ]
   return (
     <div style={{ display:'flex', alignItems:'center', gap:20 }}>
@@ -525,9 +523,7 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
           <div style={{ background:'rgba(10,10,18,0.95)', padding:'18px 20px' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {[
-                { label:'L1 Partnership earning', value: selectedPkg.l1Earn, color:'#a78bfa', bg:'rgba(139,92,246,0.1)' },
-                { label:'L2 Partnership earning', value: selectedPkg.l2Earn, color:'#67e8f9', bg:'rgba(6,182,212,0.1)' },
-                { label:'L3 Partnership earning', value: selectedPkg.l3Earn, color:'#fcd34d', bg:'rgba(245,158,11,0.1)' },
+                { label:'Partnership earning', value: selectedPkg.l1Earn, color:'#a78bfa', bg:'rgba(139,92,246,0.1)' },
               ].map(row => (
                 <div key={row.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderRadius:12, background:row.bg, border:`1px solid ${row.color}20` }}>
                   <span style={{ color:'rgba(255,255,255,0.6)', fontSize:12, fontWeight:600 }}>{row.label}</span>
@@ -671,8 +667,6 @@ export default function PartnerDashboard() {
   packageComm.forEach((p: any) => { if (p.tier) tierNameMap[p.tier.toLowerCase()] = p.name })
   const getTierName = (t?: string) => t ? (tierNameMap[t.toLowerCase()] || t) : '—'
   const l1 = stats?.l1Count || 0
-  const l2 = stats?.l2Count || 0
-  const l3 = stats?.l3Count || 0
 
   const copyCode = () => {
     navigator.clipboard.writeText(user?.affiliateCode || '')
@@ -1008,9 +1002,9 @@ export default function PartnerDashboard() {
             sub="Awaiting release"
           />
           <GlassStatCard
-            label="Team Size" value={(l1 + l2 + l3).toLocaleString()}
+            label="Team Size" value={l1.toLocaleString()}
             icon={Users} color="#10b981" glow="rgba(16,185,129,0.2)"
-            sub={`L1:${l1}  L2:${l2}  L3:${l3}`}
+            sub="Direct referrals"
           />
           <GlassStatCard
             label="This Week" value={`₹${(stats?.weekly || 0).toLocaleString()}`}
@@ -1062,7 +1056,7 @@ export default function PartnerDashboard() {
             title="Network Overview" sub="Your referral tree structure"
             href="/partner/m-type" linkLabel="View Tree"
           />
-          <NetworkRings l1={l1} l2={l2} l3={l3} />
+          <NetworkRings l1={l1} />
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginTop:18 }}>
             {[
               { v:l1 + l2 + l3, label:'Total Team', color:'#8b5cf6' },
@@ -1143,14 +1137,8 @@ export default function PartnerDashboard() {
                 <thead>
                   <tr>
                     <th style={{ textAlign:'left', color:'#4b5563', fontSize:10, fontWeight:700, paddingBottom:12, paddingRight:12, textTransform:'uppercase', letterSpacing:0.8, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Package</th>
-                    <th style={{ textAlign:'right', paddingBottom:12, paddingRight:12, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-                      <span style={{ background:'rgba(139,92,246,0.15)', color:'#a78bfa', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:8 }}>L1</span>
-                    </th>
-                    <th style={{ textAlign:'right', paddingBottom:12, paddingRight:12, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-                      <span style={{ background:'rgba(6,182,212,0.15)', color:'#67e8f9', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:8 }}>L2</span>
-                    </th>
                     <th style={{ textAlign:'right', paddingBottom:12, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-                      <span style={{ background:'rgba(245,158,11,0.15)', color:'#fcd34d', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:8 }}>L3</span>
+                      <span style={{ background:'rgba(139,92,246,0.15)', color:'#a78bfa', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:8 }}>Earning</span>
                     </th>
                   </tr>
                 </thead>
@@ -1171,19 +1159,9 @@ export default function PartnerDashboard() {
                           </div>
                         </div>
                       </td>
-                      <td style={{ textAlign:'right', paddingRight:12 }}>
+                      <td style={{ textAlign:'right' }}>
                         <span style={{ color:'#c4b5fd', fontWeight:700, fontSize:12, background:'rgba(139,92,246,0.1)', padding:'4px 9px', borderRadius:9, display:'inline-block' }}>
                           {pkg.l1Earn > 0 ? `₹${pkg.l1Earn.toLocaleString()}` : '—'}
-                        </span>
-                      </td>
-                      <td style={{ textAlign:'right', paddingRight:12 }}>
-                        <span style={{ color:'#67e8f9', fontWeight:700, fontSize:12, background:'rgba(6,182,212,0.1)', padding:'4px 9px', borderRadius:9, display:'inline-block' }}>
-                          {pkg.l2Earn > 0 ? `₹${pkg.l2Earn.toLocaleString()}` : '—'}
-                        </span>
-                      </td>
-                      <td style={{ textAlign:'right' }}>
-                        <span style={{ color:'#fcd34d', fontWeight:700, fontSize:12, background:'rgba(245,158,11,0.1)', padding:'4px 9px', borderRadius:9, display:'inline-block' }}>
-                          {pkg.l3Earn > 0 ? `₹${pkg.l3Earn.toLocaleString()}` : '—'}
                         </span>
                       </td>
                     </tr>
