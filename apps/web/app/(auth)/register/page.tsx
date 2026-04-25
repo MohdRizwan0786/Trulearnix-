@@ -183,7 +183,7 @@ function RegisterForm() {
         <div className="space-y-3">
           {[
             { icon: '🎓', text: 'Access 50+ premium courses' },
-            { icon: '💰', text: 'Earn up to 30% commission per referral' },
+            { icon: '💰', text: 'Earn up to 30% Partnership earning per referral' },
             { icon: '🏆', text: 'Get certified and showcase your skills' },
             { icon: '🚀', text: 'Build your own business from home' },
           ].map(({ icon, text }) => (

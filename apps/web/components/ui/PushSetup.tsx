@@ -42,7 +42,7 @@ export default function PushSetup() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-white text-xs font-semibold">Enable Notifications</p>
-          <p className="text-gray-400 text-[11px] mt-0.5">Get alerts for classes, commissions & updates</p>
+          <p className="text-gray-400 text-[11px] mt-0.5">Get alerts for classes, Partnership earnings & updates</p>
         </div>
         <button onClick={handleEnable}
           className="flex-shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-lg text-white"

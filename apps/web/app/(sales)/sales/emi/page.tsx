@@ -43,10 +43,10 @@ export default function SalesEmiPage() {
         <div className="relative">
           <div className="flex items-center gap-2 mb-1">
             <CalendarCheck className="w-4 h-4 text-amber-300" />
-            <span className="text-amber-300 text-xs font-bold uppercase tracking-wider">EMI Commissions</span>
+            <span className="text-amber-300 text-xs font-bold uppercase tracking-wider">EMI Partnership earnings</span>
           </div>
           <h1 className="text-2xl font-black text-white">Installment Earnings</h1>
-          <p className="text-amber-200/50 text-sm mt-1">Per-installment commission from your EMI orders</p>
+          <p className="text-amber-200/50 text-sm mt-1">Per-installment Partnership earning from your EMI orders</p>
         </div>
       </div>
 
@@ -89,8 +89,8 @@ export default function SalesEmiPage() {
               <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-4">
                 <TrendingUp className="w-7 h-7 text-amber-500/40" />
               </div>
-              <p className="text-white font-semibold mb-1">No EMI commissions yet</p>
-              <p className="text-gray-500 text-sm text-center max-w-xs">Create EMI orders to start earning per-installment commissions</p>
+              <p className="text-white font-semibold mb-1">No EMI Partnership earnings yet</p>
+              <p className="text-gray-500 text-sm text-center max-w-xs">Create EMI orders to start earning per-installment Partnership earnings</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -118,7 +118,7 @@ export default function SalesEmiPage() {
                         <p className="text-xs text-gray-500 mt-0.5">{insts[0]?.packageName} · {paid}/{total} installments paid</p>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-xs text-gray-500">Commission</p>
+                        <p className="text-xs text-gray-500">Partnership earning</p>
                         <p className="text-sm font-black text-green-300">₹{fmt(earnedComm)}<span className="text-gray-600 font-normal text-xs"> / ₹{fmt(totalComm)}</span></p>
                       </div>
                     </div>

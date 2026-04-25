@@ -66,7 +66,7 @@ const steps = [
 ]
 
 const subjects = [
-  'Digital Marketing', 'Freelancing (Upwork/Fiverr)', 'Affiliate Marketing',
+  'Digital Marketing', 'Freelancing (Upwork/Fiverr)', 'Partnership Marketing',
   'Web Development', 'Graphic Design', 'Video Editing',
   'Social Media Marketing', 'Content Writing', 'SEO & SEM',
   'Python / AI', 'E-Commerce', 'YouTube Growth',

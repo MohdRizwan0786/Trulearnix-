@@ -126,16 +126,16 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
         }
         await Transaction.create({
           user: earner._id, type: 'credit', category: 'affiliate_commission',
-          amount: commAmt, description: `L${mlmLevel} commission — ${tier} package sold`,
+          amount: commAmt, description: `L${mlmLevel} Partnership earning — ${tier} package sold`,
           referenceId: purchaseId, status: 'completed',
         });
         await User.findByIdAndUpdate(earner._id, {
-          $push: { notifications: { type: 'commission', message: `🎉 ₹${commAmt} earned! L${mlmLevel} commission from ${tier} package sale.`, read: false, createdAt: new Date() } }
+          $push: { notifications: { type: 'commission', message: `🎉 ₹${commAmt} earned! L${mlmLevel} Partnership earning from ${tier} package sale.`, read: false, createdAt: new Date() } }
         });
         // Push notification to earner
         try {
           const { notify } = await import('../services/pushService');
-          await notify(earner._id, `💰 ₹${commAmt} Commission Earned!`, `You earned a Level ${mlmLevel} commission from a ${tier} package sale.`, { type: 'commission', url: '/partner/earnings', tag: 'commission' });
+          await notify(earner._id, `💰 ₹${commAmt} Partnership earning Earned!`, `You earned a Level ${mlmLevel} Partnership earning from a ${tier} package sale.`, { type: 'commission', url: '/partner/earnings', tag: 'commission' });
         } catch {}
       } catch (levelErr: any) {
         console.error(`[MLM Commission Error] L${mlmLevel} for purchase ${purchaseId}:`, levelErr.message);
@@ -163,11 +163,11 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
               await User.findByIdAndUpdate(manager._id, { $inc: { wallet: mgAmt, totalEarnings: mgAmt } });
               await Transaction.create({
                 user: manager._id, type: 'credit', category: 'affiliate_commission',
-                amount: mgAmt, description: `Manager commission — ${tier} package sold by partner`,
+                amount: mgAmt, description: `Manager Partnership earning — ${tier} package sold by partner`,
                 referenceId: purchaseId, status: 'completed',
               });
               await User.findByIdAndUpdate(manager._id, {
-                $push: { notifications: { type: 'commission', message: `💼 ₹${mgAmt} manager commission from ${tier} package sale!`, read: false, createdAt: new Date() } }
+                $push: { notifications: { type: 'commission', message: `💼 ₹${mgAmt} manager Partnership earning from ${tier} package sale!`, read: false, createdAt: new Date() } }
               });
             }
           }
@@ -763,7 +763,7 @@ router.post('/verify', protect, async (req: any, res) => {
                 paymentId: payment._id, saleType: 'course', status: 'approved',
               });
               await User.findByIdAndUpdate(affiliate._id, {
-                $push: { notifications: { type: 'commission', message: `🎉 ₹${commAmt} earned! Commission from a course sale.`, read: false, createdAt: new Date() } }
+                $push: { notifications: { type: 'commission', message: `🎉 ₹${commAmt} earned! Partnership earning from a course sale.`, read: false, createdAt: new Date() } }
               });
             }
           }
@@ -879,7 +879,7 @@ router.post('/emi/verify', protect, async (req: any, res) => {
       await Transaction.create({
         user: (installment as any).partnerUser, type: 'credit', category: 'affiliate_commission',
         amount: (installment as any).partnerCommissionAmount,
-        description: `EMI installment ${installment.installmentNumber} commission`,
+        description: `EMI installment ${installment.installmentNumber} Partnership earning`,
         referenceId: installment._id, status: 'completed',
       });
       await EmiInstallment.findByIdAndUpdate(installment._id, { partnerCommissionPaid: true });
@@ -893,7 +893,7 @@ router.post('/emi/verify', protect, async (req: any, res) => {
       await Transaction.create({
         user: (installment as any).managerUser, type: 'credit', category: 'affiliate_commission',
         amount: (installment as any).managerCommissionAmount,
-        description: `Manager EMI installment ${installment.installmentNumber} commission`,
+        description: `Manager EMI installment ${installment.installmentNumber} Partnership earning`,
         referenceId: installment._id, status: 'completed',
       });
       await EmiInstallment.findByIdAndUpdate(installment._id, { managerCommissionPaid: true });

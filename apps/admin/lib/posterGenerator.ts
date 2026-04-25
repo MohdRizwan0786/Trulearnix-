@@ -128,7 +128,7 @@ export async function generateQualificationPoster(opts: {
   ctx.fillText(`Achieved on ${today}`, W / 2, 990)
 
   ctx.font = 'bold 26px Arial, sans-serif'; ctx.fillStyle = pal.codeColor
-  ctx.fillText(`Affiliate Code: ${opts.affiliateCode}`, W / 2, 1040)
+  ctx.fillText(`Partnership Code: ${opts.affiliateCode}`, W / 2, 1040)
 
   ctx.fillStyle = `rgba(${p},0.12)`
   ctx.beginPath(); ctx.roundRect(60, H - 160, W - 120, 100, 20); ctx.fill()
@@ -261,7 +261,7 @@ export async function generateAchievementPoster(opts: {
   ctx.beginPath(); ctx.moveTo(150, divY); ctx.lineTo(W-150, divY); ctx.stroke()
 
   ctx.font = 'bold 24px Arial'; ctx.fillStyle = `rgba(${p},0.8)`
-  ctx.fillText(`Affiliate Code: ${opts.affiliateCode}`, W/2, divY + 50)
+  ctx.fillText(`Partnership Code: ${opts.affiliateCode}`, W/2, divY + 50)
 
   if (opts.earnedAt) {
     ctx.font = '22px Arial'; ctx.fillStyle = 'rgba(156,163,175,0.7)'

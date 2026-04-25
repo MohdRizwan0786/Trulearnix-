@@ -16,7 +16,7 @@ import {
 const navItems = [
   { href: '/partner/dashboard',      icon: LayoutDashboard, label: 'Dashboard',        desc: 'Overview & Stats' },
   { href: '/partner/earnings',       icon: TrendingUp,      label: 'Earnings',          desc: 'Income & Analytics' },
-  { href: '/partner/emi',            icon: CreditCard,      label: 'EMI Commissions',   desc: 'Installment Earnings' },
+  { href: '/partner/emi',            icon: CreditCard,      label: 'EMI Partnership earnings',   desc: 'Installment Earnings' },
   { href: '/partner/withdraw',       icon: ArrowDownToLine, label: 'Withdraw',           desc: 'Request Payout' },
   { href: '/partner/leaderboard',    icon: Trophy,          label: 'Leaderboard',        desc: 'Top Performers' },
   { href: '/partner/m-type',         icon: Network,         label: 'M-Type Tree',        desc: 'Your Network' },

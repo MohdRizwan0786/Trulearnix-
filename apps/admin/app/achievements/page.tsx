@@ -9,7 +9,7 @@ import PartnerPickerModal, { PickedPartner } from '@/components/PartnerPickerMod
 
 const TRIGGER_TYPES = [
   { value: 'join',          label: 'On Join (Welcome)',       hint: 'Unlocked when partner joins' },
-  { value: 'first_earn',    label: 'First Earning',           hint: 'When partner earns any commission' },
+  { value: 'first_earn',    label: 'First Earning',           hint: 'When partner earns any Partnership earning' },
   { value: 'earn_amount',   label: 'Earning Milestone (₹)',   hint: 'When totalEarnings >= value' },
   { value: 'referrals',     label: 'Total Referrals',         hint: 'When direct referrals >= value' },
   { value: 'paid_referrals',label: 'Paid Referrals',          hint: 'When paid referrals >= value' },

@@ -256,7 +256,7 @@ export default function MentorDashboard() {
                   <Target className="w-5 h-5 text-violet-400" />
                 </div>
                 <h3 className="font-bold text-white text-sm">Unlock Earn Program</h3>
-                <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">Get a package and earn commissions on top of your teaching income.</p>
+                <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">Get a package and earn Partnership earnings on top of your teaching income.</p>
                 <Link href="/student/upgrade"
                   className="inline-flex items-center gap-1.5 mt-3 text-xs text-violet-300 hover:text-violet-200 font-bold">
                   View Packages <ChevronRight className="w-3 h-3" />

@@ -59,7 +59,7 @@ export default function ManagerWithdrawPage() {
           </div>
           Withdraw Earnings
         </h1>
-        <p className="text-gray-400 text-sm mt-1">Transfer your manager commission wallet balance to your bank account</p>
+        <p className="text-gray-400 text-sm mt-1">Transfer your manager Partnership earning wallet balance to your bank account</p>
       </div>
 
       {/* Wallet balance */}

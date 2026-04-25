@@ -292,7 +292,7 @@ export default function ProfilePage() {
             </div>
             <div className="grid grid-cols-3 gap-3 mt-4">
               {[
-                { label: 'Commission', value: `${user?.commissionRate || 0}%`, color: '#34d399' },
+                { label: 'Partnership earning', value: `${user?.commissionRate || 0}%`, color: '#34d399' },
                 { label: 'Earnings', value: `₹${(user?.totalEarnings || 0).toLocaleString()}`, color: '#fbbf24' },
                 { label: 'Wallet', value: `₹${(user?.wallet || 0).toLocaleString()}`, color: '#60a5fa' },
               ].map(({ label, value, color }) => (

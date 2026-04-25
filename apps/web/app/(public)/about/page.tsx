@@ -25,7 +25,7 @@ const DEFAULT: any = {
     { icon: '🤲', title: 'Halal Income', desc: 'Ethical earning, always' },
   ],
   missionHeading: 'Our Mission',
-  missionText: 'To provide high-quality digital skills education to every learner — empowering them to start freelancing careers, secure digital jobs, or generate income through affiliate marketing, in a practical, efficient, and result-oriented way.',
+  missionText: 'To provide high-quality digital skills education to every learner — empowering them to start freelancing careers, secure digital jobs, or generate income through Partnership marketing, in a practical, efficient, and result-oriented way.',
   visionHeading: 'Our Vision',
   visionText: 'A global digital hub where millions become financially independent — regardless of background, gender, or education.',
   values: [
@@ -64,7 +64,7 @@ const DEFAULT: any = {
   paths: [
     { emoji: '💼', title: 'Freelancing', sub: 'Global client base', desc: 'Master Upwork, Fiverr & Freelancer. Build a profile that attracts clients worldwide and earns in dollars.' },
     { emoji: '📱', title: 'Digital Jobs', sub: 'Career placement', desc: 'Land roles in digital marketing, social media management, graphic design & more at top companies.' },
-    { emoji: '💸', title: 'Affiliate Marketing', sub: 'Passive income', desc: 'Amazon Associates, ClickBank & more. Build systems that earn while you sleep.' },
+    { emoji: '💸', title: 'Partnership Marketing', sub: 'Passive income', desc: 'Amazon Associates, ClickBank & more. Build systems that earn while you sleep.' },
   ],
   ctaBadge: 'Start Today',
   ctaHeading: 'Your Digital Career\nStarts Here.',

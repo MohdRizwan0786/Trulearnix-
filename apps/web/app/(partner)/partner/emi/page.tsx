@@ -119,7 +119,7 @@ export default function PartnerEmiPage() {
               <span className="text-white/70 text-sm font-medium">EMI Center</span>
             </div>
             <h1 className="text-white text-2xl sm:text-3xl font-bold tracking-tight">EMI &amp; Installments</h1>
-            <p className="text-violet-200 text-sm mt-1">Track your plan payments &amp; earn commissions on referrals</p>
+            <p className="text-violet-200 text-sm mt-1">Track your plan payments &amp; earn Partnership earnings on referrals</p>
           </div>
           {walletBalance > 0 && (
             <div className="flex-shrink-0 bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-center">
@@ -332,7 +332,7 @@ export default function PartnerEmiPage() {
             <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center">
               <Coins className="w-3.5 h-3.5 text-amber-400" />
             </div>
-            <h2 className="text-white font-bold text-base">EMI Commissions</h2>
+            <h2 className="text-white font-bold text-base">EMI Partnership earnings</h2>
           </div>
           {commInstallments.length > 0 && (
             <span className="text-dark-400 text-xs">{Object.keys(byUser).length} member{Object.keys(byUser).length !== 1 ? 's' : ''}</span>
@@ -373,9 +373,9 @@ export default function PartnerEmiPage() {
               <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-3">
                 <Coins className="w-7 h-7 text-amber-500/50" />
               </div>
-              <p className="text-white font-semibold text-sm">No EMI Commissions Yet</p>
+              <p className="text-white font-semibold text-sm">No EMI Partnership earnings Yet</p>
               <p className="text-dark-500 text-xs mt-1 max-w-xs mx-auto leading-relaxed">
-                When your referred members pay their EMI installments, your commissions will appear here
+                When your referred members pay their EMI installments, your Partnership earnings will appear here
               </p>
               <div className="mt-4 inline-flex items-center gap-1.5 text-violet-400 text-xs font-medium">
                 <Sparkles className="w-3.5 h-3.5" /> Refer more members to earn EMI bonuses

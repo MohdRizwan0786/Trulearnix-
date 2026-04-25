@@ -282,7 +282,7 @@ async function generateEarningSlip(opts: {
   ctx.font = '11px Arial'
   ctx.fillStyle = '#111827'
   ctx.textAlign = 'left'
-  ctx.fillText('Gross Referral Commission', 28, tableY + 78)
+  ctx.fillText('Gross Referral Partnership earning', 28, tableY + 78)
   ctx.textAlign = 'right'
   ctx.fillStyle = '#111827'
   ctx.font = 'bold 11px Arial'
@@ -312,7 +312,7 @@ async function generateEarningSlip(opts: {
   ctx.font = '11px Arial'
   ctx.fillStyle = '#374151'
   ctx.textAlign = 'left'
-  ctx.fillText(`TDS @ ${opts.tdsRate}% (u/s 194H — Commission)`, 28, tableY + 162)
+  ctx.fillText(`TDS @ ${opts.tdsRate}% (u/s 194H — Partnership earning)`, 28, tableY + 162)
   ctx.textAlign = 'right'
   ctx.fillStyle = '#dc2626'
   ctx.font = 'bold 11px Arial'
@@ -399,7 +399,7 @@ async function generateEarningSlip(opts: {
   ctx.font = '9.5px Arial'
   ctx.fillStyle = '#6b7280'
   ctx.textAlign = 'left'
-  ctx.fillText('* TDS deducted under Section 194H (Commission) of the Income Tax Act, 1961. Form 16A will be provided at year-end.', 24, tdsNoteY)
+  ctx.fillText('* TDS deducted under Section 194H (Partnership earning) of the Income Tax Act, 1961. Form 16A will be provided at year-end.', 24, tdsNoteY)
 
   // ── DIGITAL SIGNATURE SECTION ────────────────────────────────────────────────
   const sigY = tdsNoteY + 38

@@ -303,7 +303,7 @@ export default function FunnelPage() {
                     { label: 'Est. CAC', value: fmt(unit.estimatedCAC || 0), color: 'text-amber-400' },
                     { label: 'LTV:CAC Ratio', value: unit.ltvCacRatio || 'N/A', color: Number(unit.ltvCacRatio) >= 3 ? 'text-green-400' : 'text-red-400' },
                     { label: 'Payback Period', value: `${unit.paybackMonths || 'N/A'} mo.`, color: 'text-blue-400' },
-                    { label: 'Commission Paid', value: fmt(unit.commissionPaid || 0), color: 'text-violet-400' },
+                    { label: 'Partnership earning Paid', value: fmt(unit.commissionPaid || 0), color: 'text-violet-400' },
                   ].map(item => (
                     <div key={item.label} className="flex items-center justify-between">
                       <span className="text-gray-400 text-xs">{item.label}</span>

@@ -75,7 +75,7 @@ export default function SalesEarningsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Earnings</h1>
-          <p className="text-gray-400 text-sm mt-0.5">Your sales commissions breakdown</p>
+          <p className="text-gray-400 text-sm mt-0.5">Your sales Partnership earnings breakdown</p>
         </div>
         <Link href="/sales/withdraw"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-all">
@@ -163,11 +163,11 @@ export default function SalesEarningsPage() {
 
       {/* Recent Commissions */}
       <div className="bg-dark-800 rounded-2xl border border-dark-700 p-5">
-        <h3 className="text-white font-semibold mb-4">Recent Commissions</h3>
+        <h3 className="text-white font-semibold mb-4">Recent Partnership earnings</h3>
         {isLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-dark-700 rounded-xl animate-pulse" />)}</div>
         ) : recent.length === 0 ? (
-          <div className="text-center py-8 text-dark-500 text-sm">No commission records in this period</div>
+          <div className="text-center py-8 text-dark-500 text-sm">No Partnership earning records in this period</div>
         ) : (
           <div className="space-y-2">
             {recent.map((c: any) => (

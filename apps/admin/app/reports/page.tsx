@@ -107,11 +107,11 @@ async function downloadPDF(title: string, subtitle: string, headers: string[], r
 
 const REPORTS = [
   { id: 'gst',         icon: Percent,      label: 'GST Report',         desc: 'Monthly GST collected, input credit & net payable', color: 'text-emerald-400', bg: 'bg-emerald-500/10', hasDateRange: false, hasYear: true },
-  { id: 'tds',         icon: FileText,      label: 'TDS Report',         desc: 'TDS deducted (2%) on partner commissions', color: 'text-amber-400',   bg: 'bg-amber-500/10',  hasDateRange: false, hasYear: true },
-  { id: 'commission',  icon: IndianRupee,   label: 'Commission Report',  desc: 'Partner commissions by earner & status', color: 'text-violet-400',  bg: 'bg-violet-500/10', hasDateRange: true,  hasYear: false },
+  { id: 'tds',         icon: FileText,      label: 'TDS Report',         desc: 'TDS deducted (2%) on partner Partnership earnings', color: 'text-amber-400',   bg: 'bg-amber-500/10',  hasDateRange: false, hasYear: true },
+  { id: 'commission',  icon: IndianRupee,   label: 'Partnership earning Report',  desc: 'Partner Partnership earnings by earner & status', color: 'text-violet-400',  bg: 'bg-violet-500/10', hasDateRange: true,  hasYear: false },
   { id: 'sales',       icon: TrendingUp,    label: 'Sales Report',       desc: 'Package sales, gross/net revenue, GST', color: 'text-blue-400',    bg: 'bg-blue-500/10',   hasDateRange: true,  hasYear: false },
   { id: 'pnl',         icon: Award,         label: 'P&L Report',         desc: 'Monthly profit & loss with all expense heads', color: 'text-cyan-400',    bg: 'bg-cyan-500/10',   hasDateRange: false, hasYear: true },
-  { id: 'performance', icon: BookOpen,      label: 'Performance Report', desc: 'Mentor commissions, course enrollments, class attendance', color: 'text-pink-400',    bg: 'bg-pink-500/10',   hasDateRange: true,  hasYear: false },
+  { id: 'performance', icon: BookOpen,      label: 'Performance Report', desc: 'Mentor Partnership earnings, course enrollments, class attendance', color: 'text-pink-400',    bg: 'bg-pink-500/10',   hasDateRange: true,  hasYear: false },
   { id: 'team',        icon: Building2,     label: 'Team Report',        desc: 'Employee roster by department & permissions', color: 'text-orange-400',  bg: 'bg-orange-500/10', hasDateRange: false, hasYear: false },
   { id: 'learners',    icon: Users,         label: 'Learner Report',     desc: 'All learners with package tier & activity', color: 'text-teal-400',    bg: 'bg-teal-500/10',   hasDateRange: true,  hasYear: false },
 ]
@@ -231,10 +231,10 @@ function TDSReport({ year, month, search }: { year: number; month: number; searc
     return matchSearch
   })
 
-  const headers = ['Name', 'Email', 'Phone', 'Package', 'Total Commission (₹)', 'TDS @ 2% (₹)', 'Net Payable (₹)', 'Transactions']
+  const headers = ['Name', 'Email', 'Phone', 'Package', 'Total Partnership earning (₹)', 'TDS @ 2% (₹)', 'Net Payable (₹)', 'Transactions']
   const rows = filtered.map((r: any) => [r.user?.name, r.user?.email, r.user?.phone || '—', r.user?.packageTier, r.totalCommission.toFixed(0), r.tdsAmount.toFixed(0), r.netPayable.toFixed(0), r.count])
   const summaryBoxes = [
-    { label: 'Total Commission', value: fmt(summary.totalCommission) },
+    { label: 'Total Partnership earning', value: fmt(summary.totalCommission) },
     { label: 'Total TDS (2%)', value: fmt(summary.totalTds) },
     { label: 'Net Payable', value: fmt(summary.netPayable) },
     { label: 'Partners', value: String(filtered.length) },
@@ -246,7 +246,7 @@ function TDSReport({ year, month, search }: { year: number; month: number; searc
         {summaryBoxes.map(s => <StatBox key={s.label} label={s.label} value={s.value} />)}
       </div>
       <DownloadBar
-        onPDF={() => downloadPDF(`TDS Report ${year}`, `FY ${year} — TDS on Partner Commissions`, headers, rows, summaryBoxes)}
+        onPDF={() => downloadPDF(`TDS Report ${year}`, `FY ${year} — TDS on Partner Partnership earnings`, headers, rows, summaryBoxes)}
         onCSV={() => downloadCSV(`tds-report-${year}.csv`, headers, rows)}
       />
       <div className="overflow-x-auto">
@@ -281,10 +281,10 @@ function CommissionReport({ from, to, status, search }: { from: string; to: stri
   if (!data) return null
   const { rows, summary } = data
 
-  const headers = ['Date', 'Name', 'Email', 'Package', 'Commission (₹)', 'TDS (₹)', 'Net (₹)', 'Status']
+  const headers = ['Date', 'Name', 'Email', 'Package', 'Partnership earning (₹)', 'TDS (₹)', 'Net (₹)', 'Status']
   const csvRows = rows.map((r: any) => [format(new Date(r.createdAt), 'dd/MM/yyyy'), r.earnerName, r.earnerEmail, r.packageTier, r.commissionAmount.toFixed(0), r.tds.toFixed(0), r.net.toFixed(0), r.status])
   const summaryBoxes = [
-    { label: 'Total Commission', value: fmt(summary.totalCommission) },
+    { label: 'Total Partnership earning', value: fmt(summary.totalCommission) },
     { label: 'TDS Deducted', value: fmt(summary.totalTds) },
     { label: 'Net Payable', value: fmt(summary.totalNet) },
     { label: 'Transactions', value: String(summary.count) },
@@ -296,7 +296,7 @@ function CommissionReport({ from, to, status, search }: { from: string; to: stri
         {summaryBoxes.map(s => <StatBox key={s.label} label={s.label} value={s.value} />)}
       </div>
       <DownloadBar
-        onPDF={() => downloadPDF('Commission Report', from && to ? `${from} to ${to}` : 'All time', headers, csvRows, summaryBoxes)}
+        onPDF={() => downloadPDF('Partnership earning Report', from && to ? `${from} to ${to}` : 'All time', headers, csvRows, summaryBoxes)}
         onCSV={() => downloadCSV('commission-report.csv', headers, csvRows)}
       />
       <div className="overflow-x-auto">
@@ -319,7 +319,7 @@ function CommissionReport({ from, to, status, search }: { from: string; to: stri
             ))}
           </tbody>
         </table>
-        {rows.length === 0 && <Empty text="No commissions in this period" />}
+        {rows.length === 0 && <Empty text="No Partnership earnings in this period" />}
       </div>
     </div>
   )
@@ -395,7 +395,7 @@ function PnLReport({ year, monthFrom, monthTo }: { year: number; monthFrom: numb
     return m >= (monthFrom || 1) && m <= (monthTo || 12)
   })
 
-  const headers = ['Month', 'Gross Revenue', 'Net Revenue', 'GST Collected', 'Commissions', 'Expenses', 'TDS', 'Gross Profit', 'Net Profit']
+  const headers = ['Month', 'Gross Revenue', 'Net Revenue', 'GST Collected', 'Partnership earnings', 'Expenses', 'TDS', 'Gross Profit', 'Net Profit']
   const rows = filtered.map((r: any) => [r.month, fmt(r.grossRevenue), fmt(r.netRevenue), fmt(r.gstCollected), fmt(r.commissions), fmt(r.expenses), fmt(r.tds), fmt(r.grossProfit), fmt(r.netProfit)])
 
   const filteredTotals = filtered.reduce((acc: any, r: any) => ({
@@ -468,7 +468,7 @@ function PerformanceReport({ from, to }: { from: string; to: string }) {
   if (!data) return null
   const { mentorStats, courseStats, classStats } = data
 
-  const mentorHeaders = ['Name', 'Email', 'Package', 'Total Commission (₹)', 'Referrals']
+  const mentorHeaders = ['Name', 'Email', 'Package', 'Total Partnership earning (₹)', 'Referrals']
   const mentorRows = mentorStats.map((r: any) => [r.name, r.email, r.packageTier, r.totalCommission.toFixed(0), r.referrals])
 
   const courseHeaders = ['Course', 'Mentor', 'Enrollments', 'Price (₹)', 'Status']
@@ -489,7 +489,7 @@ function PerformanceReport({ from, to }: { from: string; to: string }) {
         }}
       />
 
-      <Section title="Top Partners / Mentors by Commission">
+      <Section title="Top Partners / Mentors by Partnership earning">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-white/10 text-gray-400 text-xs uppercase">
             {mentorHeaders.map(h => <th key={h} className="py-2 px-3 text-left font-medium">{h}</th>)}

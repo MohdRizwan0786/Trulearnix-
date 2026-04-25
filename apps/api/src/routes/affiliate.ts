@@ -13,7 +13,7 @@ const router = Router();
 router.get('/stats', protect, async (req: any, res) => {
   try {
     if (!req.user.isAffiliate) {
-      return res.status(403).json({ success: false, message: 'Affiliate panel locked. Purchase a package to unlock.' });
+      return res.status(403).json({ success: false, message: 'Partnership panel locked. Purchase a package to unlock.' });
     }
 
     const user = await User.findById(req.user._id).select('affiliateCode wallet totalEarnings totalWithdrawn packageTier commissionRate isAffiliate');
@@ -80,7 +80,7 @@ router.get('/stats', protect, async (req: any, res) => {
 // GET /api/affiliate/referrals — downline tree
 router.get('/referrals', protect, async (req: any, res) => {
   try {
-    if (!req.user.isAffiliate) return res.status(403).json({ success: false, message: 'Affiliate panel locked' });
+    if (!req.user.isAffiliate) return res.status(403).json({ success: false, message: 'Partnership panel locked' });
 
     const [l1, l2, l3] = await Promise.all([
       User.find({ upline1: req.user._id }).select('name email packageTier isAffiliate createdAt wallet').sort('-createdAt'),
@@ -94,7 +94,7 @@ router.get('/referrals', protect, async (req: any, res) => {
 // GET /api/affiliate/commissions — commission history
 router.get('/commissions', protect, async (req: any, res) => {
   try {
-    if (!req.user.isAffiliate) return res.status(403).json({ success: false, message: 'Affiliate panel locked' });
+    if (!req.user.isAffiliate) return res.status(403).json({ success: false, message: 'Partnership panel locked' });
     const { page = 1, limit = 20 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
     const [commissions, total] = await Promise.all([
@@ -108,7 +108,7 @@ router.get('/commissions', protect, async (req: any, res) => {
 // POST /api/affiliate/withdraw — request withdrawal
 router.post('/withdraw', protect, async (req: any, res) => {
   try {
-    if (!req.user.isAffiliate) return res.status(403).json({ success: false, message: 'Affiliate panel locked' });
+    if (!req.user.isAffiliate) return res.status(403).json({ success: false, message: 'Partnership panel locked' });
     const { amount, method, upiId, accountNumber, ifscCode, accountName } = req.body;
 
     const user = await User.findById(req.user._id).select('wallet');

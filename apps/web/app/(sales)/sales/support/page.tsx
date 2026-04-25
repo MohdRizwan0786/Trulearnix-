@@ -7,7 +7,7 @@ import { formatDistanceToNow, format } from 'date-fns'
 import toast from 'react-hot-toast'
 
 const SALES_CATEGORIES = [
-  { value: 'commission',   label: 'Commission Issue' },
+  { value: 'commission',   label: 'Partnership earning Issue' },
   { value: 'withdrawal',   label: 'Withdrawal Problem' },
   { value: 'order',        label: 'Order Issue' },
   { value: 'lead',         label: 'Lead / Assignment' },
