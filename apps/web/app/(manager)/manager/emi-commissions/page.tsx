@@ -35,7 +35,7 @@ export default function ManagerEmiCommissionsPage() {
   return (
     <div className="space-y-5 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-white">EMI Commissions</h1>
+        <h1 className="text-2xl font-bold text-white">EMI Partnership earnings</h1>
         <p className="text-gray-400 text-sm mt-1">Per-installment earnings from your partners' EMI sales</p>
       </div>
 
@@ -48,7 +48,7 @@ export default function ManagerEmiCommissionsPage() {
           {/* Summary */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-dark-800 rounded-2xl p-4 border border-white/5">
-              <p className="text-xs text-gray-500 mb-1">Total Commission</p>
+              <p className="text-xs text-gray-500 mb-1">Total Partnership earning</p>
               <p className="text-xl font-bold text-white">₹{fmt(data?.totalCommission)}</p>
             </div>
             <div className="bg-dark-800 rounded-2xl p-4 border border-green-500/10">
@@ -64,8 +64,8 @@ export default function ManagerEmiCommissionsPage() {
           {installments.length === 0 ? (
             <div className="text-center py-16 text-gray-500">
               <TrendingUp className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">No EMI commissions yet</p>
-              <p className="text-xs mt-1">You'll earn per-installment commission when your partners make EMI sales</p>
+              <p className="font-medium">No EMI Partnership earnings yet</p>
+              <p className="text-xs mt-1">You'll earn per-installment Partnership earning when your partners make EMI sales</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -90,7 +90,7 @@ export default function ManagerEmiCommissionsPage() {
                         <p className="text-xs text-gray-500 mt-0.5">{insts[0]?.packageName} · {paid}/{total} installments paid</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-gray-500">Commission</p>
+                        <p className="text-xs text-gray-500">Partnership earning</p>
                         <p className="text-sm font-bold text-green-400">₹{fmt(earnedComm)} <span className="text-gray-600 font-normal">/ ₹{fmt(totalComm)}</span></p>
                       </div>
                     </div>
@@ -122,7 +122,7 @@ export default function ManagerEmiCommissionsPage() {
                             </div>
                             {inst.commissionAmount > 0 && (
                               <div className="mt-2 pt-2 border-t border-white/5">
-                                <p className="text-xs text-gray-500">Comm. ₹{fmt(inst.commissionAmount)}</p>
+                                <p className="text-xs text-gray-500">Earning ₹{fmt(inst.commissionAmount)}</p>
                                 <div className="mt-0.5 flex justify-center">
                                   <CommBadge paid={inst.commissionPaid} />
                                 </div>

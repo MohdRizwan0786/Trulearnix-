@@ -95,7 +95,7 @@ export default function UpgradePage() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-white">You're on the <span className="text-green-400">{pkgs?.find((p: any) => p.tier === currentTier)?.name || currentTier}</span> plan</p>
-            <p className="text-xs text-gray-500 mt-0.5">Upgrade to unlock more features & higher commission rates</p>
+            <p className="text-xs text-gray-500 mt-0.5">Upgrade to unlock more features & higher Partnership earning rates</p>
           </div>
           {(user as any)?.packageExpiresAt && (
             <div className="text-right flex-shrink-0">

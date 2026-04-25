@@ -24,7 +24,7 @@ const TIER_CFG: Record<Tier, {
 }> = {
   free:    { color:'#6b7280', glow:'rgba(107,114,128,0.4)',  bg:'linear-gradient(135deg,#374151,#1f2937)', bgCard:'rgba(107,114,128,0.08)', label:'Free',    icon:'🆓', order:0, price:'₹0',      tagline:'Basic Access' },
   starter: { color:'#3b82f6', glow:'rgba(59,130,246,0.45)', bg:'linear-gradient(135deg,#1d4ed8,#1e40af)', bgCard:'rgba(59,130,246,0.08)',  label:'Starter', icon:'🚀', order:1, price:'₹4,999',  tagline:'Start Earning' },
-  pro:     { color:'#8b5cf6', glow:'rgba(139,92,246,0.45)', bg:'linear-gradient(135deg,#7c3aed,#5b21b6)', bgCard:'rgba(139,92,246,0.08)',  label:'Pro',      icon:'⚡', order:2, price:'₹9,999',  tagline:'Higher Commissions' },
+  pro:     { color:'#8b5cf6', glow:'rgba(139,92,246,0.45)', bg:'linear-gradient(135deg,#7c3aed,#5b21b6)', bgCard:'rgba(139,92,246,0.08)',  label:'Pro',      icon:'⚡', order:2, price:'₹9,999',  tagline:'Higher Partnership earnings' },
   proedge: { color:'#d946ef', glow:'rgba(217,70,239,0.45)', bg:'linear-gradient(135deg,#a21caf,#6b21a8)', bgCard:'rgba(217,70,239,0.08)',  label:'Pro-Edge', icon:'🔥', order:3, price:'₹14,999', tagline:'Pro Plus Edge' },
   elite:   { color:'#f59e0b', glow:'rgba(245,158,11,0.45)', bg:'linear-gradient(135deg,#d97706,#b45309)', bgCard:'rgba(245,158,11,0.08)',  label:'Elite',    icon:'💎', order:4, price:'₹19,999', tagline:'VIP Benefits' },
   supreme: { color:'#ec4899', glow:'rgba(236,72,153,0.45)', bg:'linear-gradient(135deg,#e11d48,#be185d)', bgCard:'rgba(236,72,153,0.08)',  label:'Supreme',  icon:'👑', order:5, price:'₹29,999', tagline:'Maximum Power' },
@@ -32,11 +32,11 @@ const TIER_CFG: Record<Tier, {
 
 const TIER_BENEFITS: Record<Tier, { text: string; highlight?: boolean }[]> = {
   free:    [{ text:'Browse free courses' }, { text:'Basic dashboard' }, { text:'Community access' }],
-  starter: [{ text:'3-level commission system', highlight:true }, { text:'Partner link generator', highlight:true }, { text:'CRM & lead tracking' }, { text:'Full course library' }, { text:'Wallet & withdrawals' }],
-  pro:     [{ text:'Higher commission rates', highlight:true }, { text:'Advanced analytics', highlight:true }, { text:'Priority support' }, { text:'All Starter benefits' }, { text:'Pro training modules' }],
-  proedge: [{ text:'Pro-Edge commission rates', highlight:true }, { text:'Edge analytics & toolkit', highlight:true }, { text:'Priority mentor support' }, { text:'All Pro benefits' }, { text:'Pro-Edge exclusive modules' }],
-  elite:   [{ text:'Top commission rates', highlight:true }, { text:'VIP partner events', highlight:true }, { text:'Dedicated support line' }, { text:'All Pro benefits' }, { text:'Elite resources & tools' }],
-  supreme: [{ text:'Maximum commissions', highlight:true }, { text:'Personal manager', highlight:true }, { text:'Hall of Fame feature' }, { text:'All Elite benefits' }, { text:'Exclusive webinars & bonuses' }],
+  starter: [{ text:'3-level Partnership earning system', highlight:true }, { text:'Partner link generator', highlight:true }, { text:'CRM & lead tracking' }, { text:'Full course library' }, { text:'Wallet & withdrawals' }],
+  pro:     [{ text:'Higher Partnership earning rates', highlight:true }, { text:'Advanced analytics', highlight:true }, { text:'Priority support' }, { text:'All Starter benefits' }, { text:'Pro training modules' }],
+  proedge: [{ text:'Pro-Edge Partnership earning rates', highlight:true }, { text:'Edge analytics & toolkit', highlight:true }, { text:'Priority mentor support' }, { text:'All Pro benefits' }, { text:'Pro-Edge exclusive modules' }],
+  elite:   [{ text:'Top Partnership earning rates', highlight:true }, { text:'VIP partner events', highlight:true }, { text:'Dedicated support line' }, { text:'All Pro benefits' }, { text:'Elite resources & tools' }],
+  supreme: [{ text:'Maximum Partnership earnings', highlight:true }, { text:'Personal manager', highlight:true }, { text:'Hall of Fame feature' }, { text:'All Elite benefits' }, { text:'Exclusive webinars & bonuses' }],
 }
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -525,9 +525,9 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
           <div style={{ background:'rgba(10,10,18,0.95)', padding:'18px 20px' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {[
-                { label:'L1 Commission', value: selectedPkg.l1Earn, color:'#a78bfa', bg:'rgba(139,92,246,0.1)' },
-                { label:'L2 Commission', value: selectedPkg.l2Earn, color:'#67e8f9', bg:'rgba(6,182,212,0.1)' },
-                { label:'L3 Commission', value: selectedPkg.l3Earn, color:'#fcd34d', bg:'rgba(245,158,11,0.1)' },
+                { label:'L1 Partnership earning', value: selectedPkg.l1Earn, color:'#a78bfa', bg:'rgba(139,92,246,0.1)' },
+                { label:'L2 Partnership earning', value: selectedPkg.l2Earn, color:'#67e8f9', bg:'rgba(6,182,212,0.1)' },
+                { label:'L3 Partnership earning', value: selectedPkg.l3Earn, color:'#fcd34d', bg:'rgba(245,158,11,0.1)' },
               ].map(row => (
                 <div key={row.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderRadius:12, background:row.bg, border:`1px solid ${row.color}20` }}>
                   <span style={{ color:'rgba(255,255,255,0.6)', fontSize:12, fontWeight:600 }}>{row.label}</span>
@@ -956,7 +956,7 @@ export default function PartnerDashboard() {
                 <div style={{ background:'rgba(139,92,246,0.1)', borderRadius:10, padding:'8px 14px', border:'1px solid rgba(139,92,246,0.2)' }}>
                   <p style={{ color:'rgba(167,139,250,0.7)', fontSize:9, textTransform:'uppercase', letterSpacing:1, margin:0 }}>TruLearnix</p>
                   <p style={{ color:'#a78bfa', fontWeight:900, fontSize:15, margin:0, marginTop:2 }}>₹{(stats.totalEarnings || 0).toLocaleString()}</p>
-                  <p style={{ color:'rgba(255,255,255,0.25)', fontSize:9, margin:0 }}>commissions</p>
+                  <p style={{ color:'rgba(255,255,255,0.25)', fontSize:9, margin:0 }}>Partnership earnings</p>
                 </div>
                 <div style={{ background:'rgba(0,0,0,0.25)', borderRadius:10, padding:'8px 14px', border:'1px solid rgba(255,255,255,0.08)' }}>
                   <p style={{ color:'rgba(255,255,255,0.35)', fontSize:9, textTransform:'uppercase', letterSpacing:1, margin:0 }}>Wallet</p>
@@ -988,7 +988,7 @@ export default function PartnerDashboard() {
                 <p style={{ color:'#a78bfa', fontWeight:900, fontSize:22, margin:0, marginTop:4 }}>₹{(stats.periodEarnings || 0).toLocaleString()}</p>
               </div>
               <div style={{ textAlign:'right' }}>
-                <p style={{ color:'#4b5563', fontSize:10, margin:0 }}>Commissions</p>
+                <p style={{ color:'#4b5563', fontSize:10, margin:0 }}>Partnership earnings</p>
                 <p style={{ color:'white', fontWeight:800, fontSize:18, margin:0, marginTop:4 }}>{stats.periodCount || 0}</p>
               </div>
             </div>
@@ -1136,7 +1136,7 @@ export default function PartnerDashboard() {
           }}>
             <SectionHeader
               icon={Zap} color="#f59e0b"
-              title="Commission Rates" sub="Your earnings per referral sale"
+              title="Partnership earning Rates" sub="Your earnings per referral sale"
             />
             <div style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', minWidth:340 }}>
@@ -1223,7 +1223,7 @@ export default function PartnerDashboard() {
           }}>
             <SectionHeader
               icon={Star} color="#f59e0b"
-              title="Recent Activity" sub="Latest commissions & referrals"
+              title="Recent Activity" sub="Latest Partnership earnings & referrals"
               href="/partner/referrals" linkLabel="See All"
             />
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
@@ -1256,7 +1256,7 @@ export default function PartnerDashboard() {
                     </div>
                     <div style={{ textAlign:'right', flexShrink:0 }}>
                       <p style={{ color:'#4ade80', fontSize:14, fontWeight:900, margin:0 }}>+₹{(r.contribution || 0).toLocaleString()}</p>
-                      <p style={{ color:'#374151', fontSize:10, margin:0 }}>commission</p>
+                      <p style={{ color:'#374151', fontSize:10, margin:0 }}>Partnership earning</p>
                     </div>
                   </div>
                 )

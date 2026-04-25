@@ -53,7 +53,7 @@ export default function ReferralsModal({ userId, userName, pkgList = [], onClose
               <h2 className="text-white font-bold">{userName} — Referrals</h2>
               <p className="text-gray-400 text-xs mt-0.5">
                 {data?.total || 0} total · {paid.length} converted · {unpaid.length} free
-                {totalComm > 0 && <span className="text-green-400 font-semibold ml-2">· ₹{fmt(totalComm)} commission</span>}
+                {totalComm > 0 && <span className="text-green-400 font-semibold ml-2">· ₹{fmt(totalComm)} Partnership earning</span>}
               </p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function ReferralsModal({ userId, userName, pkgList = [], onClose
                       {r.commission?.commAmount > 0 ? (
                         <span className="text-green-400 text-xs font-bold">+₹{fmt(r.commission.commAmount)}</span>
                       ) : (
-                        <span className="text-gray-600 text-xs">No commission</span>
+                        <span className="text-gray-600 text-xs">No Partnership earning</span>
                       )}
                       <span className="text-gray-600 text-[10px] flex items-center gap-1">
                         <CalendarDays className="w-2.5 h-2.5" />

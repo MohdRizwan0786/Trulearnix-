@@ -545,7 +545,7 @@ export default function LinkGeneratorPage() {
             { icon: '🎓', tip: 'Webinar attendees convert 3-5x better — share widely' },
             { icon: '📸', tip: 'Post reels showing your earnings to attract new referrals organically' },
             { icon: '📊', tip: 'Track all leads and follow-ups in your CRM for higher closure rates' },
-            { icon: '🏆', tip: 'Higher tier packages = higher commission % — upsell wisely' },
+            { icon: '🏆', tip: 'Higher tier packages = higher Partnership earning % — upsell wisely' },
           ].map(({ icon, tip }) => (
             <div key={tip} className="flex items-start gap-3 p-3 rounded-xl bg-white/3 border border-white/5 hover:bg-white/5 transition-colors">
               <span className="text-base flex-shrink-0 mt-0.5">{icon}</span>

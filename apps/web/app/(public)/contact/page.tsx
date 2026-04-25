@@ -51,7 +51,7 @@ const contactInfo = [
 const faqs = [
   { q: 'How do I enroll in a course?', a: 'Browse our courses, select a package that suits you, and complete the payment. You get instant access.' },
   { q: 'Are the classes live or recorded?', a: 'We offer live interactive classes with expert mentors. Recordings are available after each session.' },
-  { q: 'What earning paths do you teach?', a: 'Freelancing (Upwork, Fiverr), Digital Jobs, and Affiliate Marketing (Amazon, ClickBank, and more).' },
+  { q: 'What earning paths do you teach?', a: 'Freelancing (Upwork, Fiverr), Digital Jobs, and Partnership Marketing (Amazon, ClickBank, and more).' },
   { q: 'Is there a refund policy?', a: 'Yes. Refund requests within 7 days of purchase are considered if fewer than 2 classes have been attended.' },
 ]
 

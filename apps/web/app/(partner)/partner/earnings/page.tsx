@@ -185,7 +185,7 @@ export default function EarningsPage() {
               <div className="rounded-xl px-3 py-2 border border-violet-500/20 bg-violet-500/8">
                 <p className="text-violet-400/60 text-[9px] uppercase tracking-wide">TruLearnix</p>
                 <p className="text-violet-300 font-black text-sm">₹{totalEarnings.toLocaleString()}</p>
-                <p className="text-white/20 text-[9px]">commissions</p>
+                <p className="text-white/20 text-[9px]">Partnership earnings</p>
               </div>
             </div>
           </div>
@@ -272,7 +272,7 @@ export default function EarningsPage() {
               </div>
               <div className="text-center">
                 <p className="text-white text-sm font-bold">{monthly.reduce((s: number, m: any) => s + (m.count || 0), 0)}</p>
-                <p className="text-dark-500 text-[10px] mt-0.5">Commissions</p>
+                <p className="text-dark-500 text-[10px] mt-0.5">Partnership earnings</p>
               </div>
               <div className="text-center">
                 <p className="text-white text-sm font-bold">₹{monthly.length > 0 ? Math.round(monthly.reduce((s: number, m: any) => s + (m.total || 0), 0) / monthly.length).toLocaleString() : 0}</p>

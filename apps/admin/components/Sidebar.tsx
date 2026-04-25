@@ -37,7 +37,7 @@ const navItems = [
   { label: 'Packages',        href: '/packages',     icon: Package,         perm: 'packages' },
   {
     label: 'Finance', icon: DollarSign, perm: 'finance', children: [
-      { label: 'Commissions', href: '/finance?tab=commissions', icon: Coins,        perm: 'finance' },
+      { label: 'Partnership earnings', href: '/finance?tab=commissions', icon: Coins,        perm: 'finance' },
       { label: 'Withdrawals', href: '/withdrawals',              icon: DollarSign,   perm: 'withdrawals' },
       { label: 'Purchases',   href: '/finance?tab=purchases',   icon: ShoppingCart, perm: 'finance' },
       { label: 'EMI / Installments', href: '/emi',              icon: CreditCard,   perm: 'emi' },

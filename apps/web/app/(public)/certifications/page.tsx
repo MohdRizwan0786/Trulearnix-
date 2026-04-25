@@ -49,11 +49,11 @@ const CERTS = [
   },
   {
     icon: '🚀',
-    title: 'Partner & Affiliate Marketing',
+    title: 'Partner & Partnership Marketing',
     desc: 'Build an income stream through referrals',
     color: 'from-fuchsia-600 to-purple-600',
     glow: 'rgba(217,70,239,0.25)',
-    skills: ['Affiliate Strategy', 'Funnel Building', 'Email Marketing', 'Performance Tracking'],
+    skills: ['Partnership Strategy', 'Funnel Building', 'Email Marketing', 'Performance Tracking'],
   },
 ]
 

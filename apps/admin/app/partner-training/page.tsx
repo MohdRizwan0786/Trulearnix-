@@ -513,7 +513,7 @@ export default function PartnerTrainingAdminPage() {
               <div>
                 <label className="text-gray-400 text-xs font-medium mb-1.5 block">Tags (comma separated)</label>
                 <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-                  placeholder="e.g. sales, commission, MLM"
+                  placeholder="e.g. sales, Partnership earning, MLM"
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm" />
               </div>
 

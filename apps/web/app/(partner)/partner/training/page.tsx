@@ -310,7 +310,7 @@ function ModuleCard({
 
 /* ─────────── Expandable Tip Card ─────────── */
 const TIPS = [
-  { title: 'Complete training to unlock bonus commissions', detail: 'Partners who complete 100% of the training program earn higher commission rates. Stay consistent and finish every module.', icon: Award, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  { title: 'Complete training to unlock bonus Partnership earnings', detail: 'Partners who complete 100% of the training program earn higher Partnership earning rates. Stay consistent and finish every module.', icon: Award, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
   { title: 'Follow up within 24 hours for best conversion', detail: 'Leads go cold quickly. The moment you capture a lead, reach out within 24 hours via WhatsApp for the highest conversion rates.', icon: Flame, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
   { title: 'Share your partner link everywhere', detail: 'Use your capture link on WhatsApp status, Instagram stories, LinkedIn posts, and Facebook groups to maximize lead flow.', icon: TrendingUp, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' },
   { title: 'Track every lead in CRM consistently', detail: 'Update lead stages after every interaction. Properly tracked leads convert 3x better because you never miss a follow-up.', icon: Target, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },

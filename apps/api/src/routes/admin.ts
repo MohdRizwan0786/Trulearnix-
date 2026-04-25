@@ -1792,7 +1792,7 @@ router.post('/emi/:installmentId/collect-wallet', async (req, res) => {
         await Transaction.create({
           user: (inst as any).partnerUser, type: 'credit', category: 'affiliate_commission',
           amount: commAmt,
-          description: `EMI installment ${inst.installmentNumber} commission`,
+          description: `EMI installment ${inst.installmentNumber} Partnership earning`,
           referenceId: String(inst._id), status: 'completed',
           balanceAfter: updatedPartner?.wallet || 0,
         });
@@ -1806,7 +1806,7 @@ router.post('/emi/:installmentId/collect-wallet', async (req, res) => {
         });
         await EmiInstallment.findByIdAndUpdate(inst._id, { partnerCommissionPaid: true });
         await User.findByIdAndUpdate((inst as any).partnerUser, {
-          $push: { notifications: { type: 'commission', message: `₹${commAmt} EMI commission received (Inst ${inst.installmentNumber}/${inst.totalInstallments})`, read: false, createdAt: new Date() } }
+          $push: { notifications: { type: 'commission', message: `₹${commAmt} EMI Partnership earning received (Inst ${inst.installmentNumber}/${inst.totalInstallments})`, read: false, createdAt: new Date() } }
         });
       }
 
@@ -1816,7 +1816,7 @@ router.post('/emi/:installmentId/collect-wallet', async (req, res) => {
         await User.findByIdAndUpdate((inst as any).managerUser, { $inc: { wallet: mgrAmt, totalEarnings: mgrAmt } });
         await Transaction.create({
           user: (inst as any).managerUser, type: 'credit', category: 'affiliate_commission',
-          amount: mgrAmt, description: `Manager EMI commission (Inst ${inst.installmentNumber}/${inst.totalInstallments})`,
+          amount: mgrAmt, description: `Manager EMI Partnership earning (Inst ${inst.installmentNumber}/${inst.totalInstallments})`,
           referenceId: String(inst._id), status: 'completed',
         });
         await EmiInstallment.findByIdAndUpdate(inst._id, { managerCommissionPaid: true });
@@ -1868,7 +1868,7 @@ router.patch('/emi/:installmentId/mark-paid', async (req, res) => {
       );
       await Transaction.create({
         user: (inst as any).partnerUser, type: 'credit', category: 'affiliate_commission',
-        amount: commAmt, description: `EMI commission — installment ${inst.installmentNumber}/${inst.totalInstallments}`,
+        amount: commAmt, description: `EMI Partnership earning — installment ${inst.installmentNumber}/${inst.totalInstallments}`,
         referenceId: inst._id, status: 'completed',
         balanceAfter: updatedPartner?.wallet || 0,
       });

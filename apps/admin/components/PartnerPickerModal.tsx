@@ -50,7 +50,7 @@ export default function PartnerPickerModal({ open, onClose, onPick, title = 'Sel
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name, email or affiliate code"
+              placeholder="Search by name, email or Partnership code"
               className="w-full pl-9 pr-3 py-2.5 bg-slate-800 border border-white/10 rounded-xl text-white text-sm placeholder-gray-600 focus:outline-none focus:border-violet-500"
             />
           </div>

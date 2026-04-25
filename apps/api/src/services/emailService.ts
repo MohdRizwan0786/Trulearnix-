@@ -156,7 +156,7 @@ export const sendSponsorJoinAlert = async (to: string, sponsorName: string, newU
           </table>
         </div>
 
-        <p style="color:#a0a0b8;font-size:13px;">Encourage them to purchase a package to unlock your commission earnings! 💰</p>
+        <p style="color:#a0a0b8;font-size:13px;">Encourage them to purchase a package to unlock your Partnership earnings! 💰</p>
 
         <div style="text-align:center;margin:24px 0">
           <a href="${process.env.WEB_URL}/partner/dashboard" style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:14px 36px;border-radius:50px;text-decoration:none;display:inline-block;font-weight:700;font-size:15px">View Partner Dashboard →</a>
@@ -168,11 +168,11 @@ export const sendSponsorJoinAlert = async (to: string, sponsorName: string, newU
 
 // Sponsor alert — someone purchased a package through their referral
 export const sendSponsorPurchaseAlert = async (to: string, sponsorName: string, newUserName: string, newUserEmail: string, packageName: string, commission: number) => {
-  await sendEmail(to, '💰 New Sale! Commission Earned!', `
+  await sendEmail(to, '💰 New Sale! Partnership earning Earned!', `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f0f1a;color:#fff;border-radius:12px;overflow:hidden">
       <div style="background:linear-gradient(135deg,#f59e0b,#d97706);padding:32px;text-align:center">
         <h1 style="margin:0;font-size:28px;font-weight:800;color:#fff">🎓 TruLearnix</h1>
-        <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px">You earned a commission!</p>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px">You earned a Partnership earning!</p>
       </div>
       <div style="padding:32px;background:#1a1a2e">
         <h2 style="color:#fff;margin:0 0 16px">Congratulations ${sponsorName}! 🎉</h2>
@@ -194,7 +194,7 @@ export const sendSponsorPurchaseAlert = async (to: string, sponsorName: string, 
               <td style="color:#fff;font-weight:600;font-size:14px">${packageName}</td>
             </tr>
             ${commission > 0 ? `<tr>
-              <td style="color:#a0a0b8;font-size:13px;padding:6px 0">Commission:</td>
+              <td style="color:#a0a0b8;font-size:13px;padding:6px 0">Partnership earning:</td>
               <td style="color:#10b981;font-weight:800;font-size:18px">₹${commission}</td>
             </tr>` : ''}
           </table>

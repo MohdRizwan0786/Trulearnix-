@@ -299,7 +299,7 @@ export default function FinanceDashboard() {
     { id: 'tds', label: 'TDS', icon: ShieldCheck },
     { id: 'expenses', label: 'Expenses', icon: Receipt },
     { id: 'purchases', label: 'Purchases', icon: ShoppingCart },
-    { id: 'commissions', label: 'Commissions', icon: Coins },
+    { id: 'commissions', label: 'Partnership earnings', icon: Coins },
   ]
 
   return (
@@ -365,8 +365,8 @@ export default function FinanceDashboard() {
                 {/* KPI Row 2 */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <KpiCard icon={BadgePercent} label="GST Collected" value={fmtShort(s.gstCollected||0)} sub={`Input: ${fmtShort(s.gstPaidOnExpenses||0)} · Net: ${fmtShort(s.netGstPayable||0)}`} accent="border-orange-500/25" />
-                  <KpiCard icon={ShieldCheck} label="TDS Deducted (2%)" value={fmtShort(s.tdsDeducted||0)} sub={`On ${fmtShort(s.paidCommissions||0)} commissions`} accent="border-red-500/25" />
-                  <KpiCard icon={Coins} label="Commissions Due" value={fmtShort(s.totalCommissions||0)} sub={`${s.pendingCommCount||0} pending · ${fmtShort(s.pendingComm||0)}`} accent="border-amber-500/25" />
+                  <KpiCard icon={ShieldCheck} label="TDS Deducted (2%)" value={fmtShort(s.tdsDeducted||0)} sub={`On ${fmtShort(s.paidCommissions||0)} Partnership earnings`} accent="border-red-500/25" />
+                  <KpiCard icon={Coins} label="Partnership earnings Due" value={fmtShort(s.totalCommissions||0)} sub={`${s.pendingCommCount||0} pending · ${fmtShort(s.pendingComm||0)}`} accent="border-amber-500/25" />
                   <KpiCard icon={Wallet} label="Withdrawals Paid" value={fmtShort(s.withdrawalsPaid||0)} sub={`${s.pendingWithdCount||0} pending · ${fmtShort(s.pendingWithd||0)}`} accent="border-pink-500/25" />
                 </div>
 
@@ -463,7 +463,7 @@ export default function FinanceDashboard() {
                     {[
                       { label: 'Gross Revenue', value: s.grossRevenue||0, color:'text-green-400', note:'' },
                       { label: 'GST Collected (18%)', value: s.gstCollected||0, color:'text-orange-400', note:'Payable to Govt', indent: true },
-                      { label: '(-) Commissions', value: s.totalCommissions||0, color:'text-amber-400', note:'' },
+                      { label: '(-) Partnership earnings', value: s.totalCommissions||0, color:'text-amber-400', note:'' },
                       { label: '(-) Withdrawals Processed', value: s.withdrawalsPaid||0, color:'text-pink-400', note:'' },
                       { label: '(-) Operating Expenses', value: s.totalExpenses||0, color:'text-red-400', note:'', growth: s.expenseGrowth },
                       { label: '(-) TDS @ 2%', value: s.tdsDeducted||0, color:'text-red-300', note:'Govt deposit' },
@@ -543,7 +543,7 @@ export default function FinanceDashboard() {
                           <th className="text-right px-3 py-3 text-gray-400 font-medium">Gross Rev.</th>
                           <th className="text-right px-3 py-3 text-gray-400 font-medium">GST</th>
                           <th className="text-right px-3 py-3 text-gray-400 font-medium">Net Rev.</th>
-                          <th className="text-right px-3 py-3 text-gray-400 font-medium">Commission</th>
+                          <th className="text-right px-3 py-3 text-gray-400 font-medium">Partnership earning</th>
                           <th className="text-right px-3 py-3 text-gray-400 font-medium">TDS</th>
                           <th className="text-right px-3 py-3 text-gray-400 font-medium">Withdrawals</th>
                           <th className="text-right px-3 py-3 text-gray-400 font-medium">Expenses</th>
@@ -693,7 +693,7 @@ export default function FinanceDashboard() {
                 className="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 w-28">
                 {[2024,2025,2026].map(y=><option key={y} value={y}>{y}</option>)}
               </select>
-              <span className="text-gray-500 text-sm">TDS u/s 194H — 2% on partner commissions</span>
+              <span className="text-gray-500 text-sm">TDS u/s 194H — 2% on partner Partnership earnings</span>
             </div>
 
             {loadingTds ? <div className="h-64 bg-gray-900 rounded-2xl animate-pulse border border-gray-800"/> : (
@@ -701,7 +701,7 @@ export default function FinanceDashboard() {
                 {tdsData?.summary && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                      { label:'Total Commission Paid', value: tdsData.summary.totalCommission, isNum: false, color:'text-amber-400 bg-amber-500/10 border-amber-500/25' },
+                      { label:'Total Partnership earning Paid', value: tdsData.summary.totalCommission, isNum: false, color:'text-amber-400 bg-amber-500/10 border-amber-500/25' },
                       { label:'TDS @ 2%', value: tdsData.summary.totalTds, isNum: false, color:'text-red-400 bg-red-500/10 border-red-500/25' },
                       { label:'Net Payable to Partners', value: tdsData.summary.netPayable, isNum: false, color:'text-green-400 bg-green-500/10 border-green-500/25' },
                       { label:'Partners with TDS', value: tdsData.summary.affiliateCount, isNum: true, color:'text-violet-400 bg-violet-500/10 border-violet-500/25' },
@@ -724,7 +724,7 @@ export default function FinanceDashboard() {
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Partner</th>
                         <th className="text-left px-3 py-3 text-gray-400 font-medium">Contact</th>
                         <th className="text-center px-3 py-3 text-gray-400 font-medium">Package</th>
-                        <th className="text-right px-3 py-3 text-gray-400 font-medium">Total Commission</th>
+                        <th className="text-right px-3 py-3 text-gray-400 font-medium">Total Partnership earning</th>
                         <th className="text-right px-3 py-3 text-gray-400 font-medium">TDS 2%</th>
                         <th className="text-right px-4 py-3 text-gray-400 font-medium">Net Payable</th>
                       </tr></thead>
@@ -863,7 +863,7 @@ export default function FinanceDashboard() {
             {commData?.summary && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <div className="bg-gray-900 border border-white/10 rounded-2xl p-4">
-                  <p className="text-gray-500 text-xs">Total Commission</p>
+                  <p className="text-gray-500 text-xs">Total Partnership earning</p>
                   <p className="text-white font-bold text-lg mt-1">{fmtShort(commData.summary.totalCommission)}</p>
                   <p className="text-gray-600 text-xs">{commData.summary.count} records</p>
                 </div>
@@ -928,7 +928,7 @@ export default function FinanceDashboard() {
                           <th className="px-4 py-3 text-left text-gray-500 text-xs font-medium">Buyer</th>
                           <th className="px-4 py-3 text-left text-gray-500 text-xs font-medium">Package</th>
                           <th className="px-4 py-3 text-right text-gray-500 text-xs font-medium">Sale Amt</th>
-                          <th className="px-4 py-3 text-right text-gray-500 text-xs font-medium">Commission</th>
+                          <th className="px-4 py-3 text-right text-gray-500 text-xs font-medium">Partnership earning</th>
                           <th className="px-4 py-3 text-center text-gray-500 text-xs font-medium">Rate</th>
                           <th className="px-4 py-3 text-center text-gray-500 text-xs font-medium">Status</th>
                           <th className="px-4 py-3 text-right text-gray-500 text-xs font-medium">Date</th>
@@ -961,7 +961,7 @@ export default function FinanceDashboard() {
                           </tr>
                         ))}
                         {(commData?.commissions || []).length === 0 && (
-                          <tr><td colSpan={8} className="text-center py-12 text-gray-600">No commissions found</td></tr>
+                          <tr><td colSpan={8} className="text-center py-12 text-gray-600">No Partnership earnings found</td></tr>
                         )}
                       </tbody>
                     </table>

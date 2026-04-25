@@ -207,7 +207,7 @@ function EarningsCalc({ rate, accentColor, accentColor2 }: { rate: number; accen
         </div>
 
         <div className="text-center">
-          <p className="text-gray-600 text-xs">{rate}% commission rate × {referrals} people × ₹{tier.toLocaleString()}</p>
+          <p className="text-gray-600 text-xs">{rate}% Partnership earning rate × {referrals} people × ₹{tier.toLocaleString()}</p>
         </div>
       </div>
     </div>

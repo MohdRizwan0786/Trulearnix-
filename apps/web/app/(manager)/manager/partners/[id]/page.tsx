@@ -210,7 +210,7 @@ export default function PartnerDetailPage({ params }: { params: { id: string } }
           <div className="bg-dark-800 rounded-2xl border border-white/5 p-5">
             <h3 className="text-white font-bold mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-400" /> Partner Performance</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-gray-500">Commission Rate</p><p className="text-white font-bold mt-0.5">{p.commissionRate || 0}%</p></div>
+              <div><p className="text-gray-500">Partnership earning Rate</p><p className="text-white font-bold mt-0.5">{p.commissionRate || 0}%</p></div>
               <div><p className="text-gray-500">Package Tier</p><p className="text-white font-bold mt-0.5 capitalize">{p.packageTier}</p></div>
               <div><p className="text-gray-500">Paid Referrals</p><p className="text-white font-bold mt-0.5">{data.l1Paid} / {data.l1Total}</p></div>
               <div><p className="text-gray-500">Active Goals</p><p className="text-white font-bold mt-0.5">{goals.filter((g: any) => g.status === 'active').length}</p></div>
@@ -220,7 +220,7 @@ export default function PartnerDetailPage({ params }: { params: { id: string } }
           {/* Recent commissions */}
           {data.commissions?.length > 0 && (
             <div className="bg-dark-800 rounded-2xl border border-white/5 p-5">
-              <h3 className="text-white font-bold mb-4 flex items-center gap-2"><Award className="w-4 h-4 text-yellow-400" /> Recent Commissions</h3>
+              <h3 className="text-white font-bold mb-4 flex items-center gap-2"><Award className="w-4 h-4 text-yellow-400" /> Recent Partnership earnings</h3>
               <div className="space-y-2">
                 {data.commissions.slice(0, 5).map((c: any) => (
                   <div key={c._id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">

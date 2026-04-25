@@ -408,7 +408,7 @@ export default function NewOrderPage() {
               )}
               {selectedPackage?.salesTeamCommission?.value > 0 && (
                 <div className="flex justify-between text-sm pt-2 border-t border-white/5">
-                  <span className="text-green-400">Your Commission</span>
+                  <span className="text-green-400">Your Partnership earning</span>
                   <span className="text-green-400 font-black">
                     +₹{(selectedPackage.salesTeamCommission.type === 'percentage'
                       ? ((selectedPackage.price * selectedPackage.salesTeamCommission.value) / 100)

@@ -751,10 +751,10 @@ router.get('/achievements', ...salesGuard, async (req: any, res) => {
         { title: 'First Sale', description: 'Closed your very first sale!', badge: '🎯', triggerType: 'first_earn', triggerValue: 0, requirement: 'Close 1 sale', posterTheme: 1, order: 1, category: 'sales', enabled: true },
         { title: '5 Sales Club', description: 'Closed 5 successful sales!', badge: '🔥', triggerType: 'earn_amount', triggerValue: 1, requirement: 'Close 5 sales', posterTheme: 5, order: 2, category: 'sales', enabled: true },
         { title: '20 Sales Warrior', description: 'Closed 20 successful sales!', badge: '⚡', triggerType: 'earn_amount', triggerValue: 1, requirement: 'Close 20 sales', posterTheme: 2, order: 3, category: 'sales', enabled: true },
-        { title: '₹10K Earner', description: 'Crossed ₹10,000 in total commissions!', badge: '💰', triggerType: 'earn_amount', triggerValue: 10000, requirement: 'Earn ₹10,000', posterTheme: 2, order: 4, category: 'sales', enabled: true },
-        { title: '₹50K Sales Pro', description: 'Crossed ₹50,000 in total commissions!', badge: '🏆', triggerType: 'earn_amount', triggerValue: 50000, requirement: 'Earn ₹50,000', posterTheme: 3, order: 5, category: 'sales', enabled: true },
-        { title: 'Lakhpati Seller', description: 'Crossed ₹1,00,000 in total commissions!', badge: '👑', triggerType: 'earn_amount', triggerValue: 100000, requirement: 'Earn ₹1 Lakh', posterTheme: 4, order: 6, category: 'sales', enabled: true },
-        { title: '50 Sales Legend', description: 'Crossed ₹5 Lakh in commissions!', badge: '🦁', triggerType: 'earn_amount', triggerValue: 500000, requirement: 'Earn ₹5 Lakh', posterTheme: 1, order: 7, category: 'sales', enabled: true },
+        { title: '₹10K Earner', description: 'Crossed ₹10,000 in total Partnership earnings!', badge: '💰', triggerType: 'earn_amount', triggerValue: 10000, requirement: 'Earn ₹10,000', posterTheme: 2, order: 4, category: 'sales', enabled: true },
+        { title: '₹50K Sales Pro', description: 'Crossed ₹50,000 in total Partnership earnings!', badge: '🏆', triggerType: 'earn_amount', triggerValue: 50000, requirement: 'Earn ₹50,000', posterTheme: 3, order: 5, category: 'sales', enabled: true },
+        { title: 'Lakhpati Seller', description: 'Crossed ₹1,00,000 in total Partnership earnings!', badge: '👑', triggerType: 'earn_amount', triggerValue: 100000, requirement: 'Earn ₹1 Lakh', posterTheme: 4, order: 6, category: 'sales', enabled: true },
+        { title: '50 Sales Legend', description: 'Crossed ₹5 Lakh in Partnership earnings!', badge: '🦁', triggerType: 'earn_amount', triggerValue: 500000, requirement: 'Earn ₹5 Lakh', posterTheme: 1, order: 7, category: 'sales', enabled: true },
       ]);
       allAchievements = await AchievementModel.find({ enabled: true, category: 'sales' }).sort({ order: 1 }).lean();
     }

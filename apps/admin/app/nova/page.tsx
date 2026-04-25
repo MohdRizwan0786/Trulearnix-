@@ -292,7 +292,7 @@ export default function NovaPage() {
           <PulseCard label="Today Revenue" value={fmt(pulse?.today?.revenue || 0)} sub={`${pulse?.today?.sales || 0} sales`} icon={IndianRupee} color="bg-emerald-500/10 border-emerald-500/20 text-emerald-300" />
           <PulseCard label="Month Revenue" value={fmt(pulse?.month?.revenue || 0)} sub={`${pulse?.month?.sales || 0} sales`} icon={TrendingUp} color="bg-blue-500/10 border-blue-500/20 text-blue-300" />
           <PulseCard label="Learners" value={String(pulse?.today?.newLearners || 0)} sub={`+today / ${pulse?.totalLearners || 0} total`} icon={Users} color="bg-violet-500/10 border-violet-500/20 text-violet-300" />
-          <PulseCard label="Partners" value={String(pulse?.totalPartners || 0)} sub={`${pulse?.pendingCommissions?.count || 0} pending comm.`} icon={UserCheck} color="bg-cyan-500/10 border-cyan-500/20 text-cyan-300" />
+          <PulseCard label="Partners" value={String(pulse?.totalPartners || 0)} sub={`${pulse?.pendingCommissions?.count || 0} pending earning`} icon={UserCheck} color="bg-cyan-500/10 border-cyan-500/20 text-cyan-300" />
           <PulseCard label="Live Now" value={String((pulse?.liveClasses || 0) + (pulse?.liveWebinars || 0))} sub={`${pulse?.liveClasses || 0} class · ${pulse?.liveWebinars || 0} webinar`} icon={Video} color={(pulse?.liveClasses > 0 || pulse?.liveWebinars > 0) ? "bg-red-500/10 border-red-500/30 text-red-300 animate-pulse" : "bg-gray-500/10 border-gray-500/20 text-gray-400"} />
           <PulseCard label="Hot Leads" value={String(pulse?.hotLeads || 0)} sub="CRM pipeline" icon={Activity} color={pulse?.hotLeads > 0 ? "bg-orange-500/10 border-orange-500/20 text-orange-300" : "bg-gray-500/10 border-gray-500/20 text-gray-400"} />
           <PulseCard label="Pending" value={String((pulse?.pendingWithdrawals || 0) + (pulse?.pendingKyc || 0) + (pulse?.openTickets || 0))} sub={`${pulse?.pendingWithdrawals || 0} wd · ${pulse?.pendingKyc || 0} kyc · ${pulse?.openTickets || 0} tickets`} icon={MessageSquare} color={(pulse?.pendingWithdrawals > 0 || pulse?.pendingKyc > 0) ? "bg-amber-500/10 border-amber-500/20 text-amber-300" : "bg-gray-500/10 border-gray-500/20 text-gray-400"} />
@@ -510,7 +510,7 @@ export default function NovaPage() {
                         </div>
                         {empDetailData.performance?.weeklyCommission > 0 && (
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-300">Commission earned</span>
+                            <span className="text-gray-300">Partnership earning</span>
                             <span className="text-emerald-300 font-medium">₹{(empDetailData.performance?.weeklyCommission || 0).toLocaleString('en-IN')}</span>
                           </div>
                         )}

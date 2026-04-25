@@ -12,7 +12,7 @@ import {
 const navItems = [
   { href: '/manager/dashboard',       icon: LayoutDashboard,  label: 'Dashboard' },
   { href: '/manager/partners',        icon: Users,            label: 'My Partners' },
-  { href: '/manager/emi-commissions', icon: CalendarCheck,    label: 'EMI Commissions' },
+  { href: '/manager/emi-commissions', icon: CalendarCheck,    label: 'EMI Partnership earnings' },
   { href: '/manager/withdraw',        icon: ArrowDownToLine,  label: 'Withdraw' },
   { href: '/manager/kanban',          icon: Kanban,           label: 'Kanban' },
   { href: '/manager/calendar',        icon: CalendarDays,     label: 'Calendar' },
