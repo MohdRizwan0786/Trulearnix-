@@ -112,7 +112,7 @@ function SessionCard({ session, type, isLive }: { session: any; type: 'class' | 
 export default function DashboardPage() {
   const qc = useQueryClient()
   const [refreshing, setRefreshing] = useState(false)
-  const [period, setPeriod] = useState('30d')
+  const [period, setPeriod] = useState('all')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [showCustom, setShowCustom] = useState(false)
@@ -122,8 +122,16 @@ export default function DashboardPage() {
   const effectiveTo = period === 'custom' ? customTo : undefined
 
   // ── Data queries ──────────────────────────────────────────────────────────
-  const { data: dash } = useQuery({ queryKey: ['analytics-dash'], queryFn: () => adminAPI.analyticsDashboard().then(r => r.data) })
-  const { data: basicDash } = useQuery({ queryKey: ['basic-dash'], queryFn: () => adminAPI.dashboard().then(r => r.data) })
+  const { data: dash } = useQuery({
+    queryKey: ['analytics-dash', effectivePeriod, effectiveFrom, effectiveTo],
+    queryFn: () => adminAPI.analyticsDashboard(effectivePeriod, effectiveFrom, effectiveTo).then(r => r.data),
+    enabled: effectivePeriod !== 'custom' || !!effectiveFrom,
+  })
+  const { data: basicDash } = useQuery({
+    queryKey: ['basic-dash', effectivePeriod, effectiveFrom, effectiveTo],
+    queryFn: () => adminAPI.dashboard(effectivePeriod, effectiveFrom, effectiveTo).then(r => r.data),
+    enabled: effectivePeriod !== 'custom' || !!effectiveFrom,
+  })
   const { data: pending, refetch: refetchPending } = useQuery({ queryKey: ['pending-courses'], queryFn: () => adminAPI.pendingCourses().then(r => r.data) })
   const { data: revData } = useQuery({ queryKey: ['rev', effectivePeriod, effectiveFrom, effectiveTo], queryFn: () => adminAPI.analyticsRevenue(effectivePeriod, effectiveFrom, effectiveTo).then(r => r.data), enabled: effectivePeriod !== 'custom' || !!effectiveFrom })
   const { data: userData } = useQuery({ queryKey: ['usr', effectivePeriod, effectiveFrom, effectiveTo], queryFn: () => adminAPI.analyticsUsers(effectivePeriod, effectiveFrom, effectiveTo).then(r => r.data), enabled: effectivePeriod !== 'custom' || !!effectiveFrom })
@@ -273,7 +281,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex flex-col gap-1.5">
                 <div className="flex gap-1 bg-slate-900/60 rounded-xl p-1 border border-white/5">
-                  {([['today','Today'],['7d','7 Days'],['30d','30 Days'],['custom','Custom']] as const).map(([v,l]) => (
+                  {([['today','Today'],['7d','7 Days'],['30d','30 Days'],['90d','90 Days'],['all','All Time'],['custom','Custom']] as const).map(([v,l]) => (
                     <button key={v} onClick={() => { setPeriod(v); setShowCustom(v === 'custom') }}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${period === v ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20' : 'text-gray-500 hover:text-white'}`}>{l}
                     </button>
