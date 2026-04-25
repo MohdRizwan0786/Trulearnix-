@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import {
   Mic, MicOff, Video, VideoOff, Users, MessageSquare, Send,
   LogOut, Radio, Copy, BarChart2, Clock, Download, ExternalLink,
-  Play, Square, CheckCircle2, XCircle, ArrowLeft, Monitor, MonitorOff,
+  Play, Square, CheckCircle2, XCircle, ArrowLeft, Monitor, MonitorOff, Pencil,
 } from 'lucide-react'
 import { Room, RoomEvent, Track } from 'livekit-client'
 import { format } from 'date-fns'
@@ -424,6 +424,14 @@ export default function WebinarRoomPage({ params }: { params: { id: string } }) 
                   >
                     {screenOn ? <MonitorOff className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
                     {screenOn ? 'Stop Screen Share' : 'Share Screen'}
+                  </button>
+                  <button
+                    onClick={() => window.open('/air-drawer', '_blank', 'noopener,noreferrer')}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors bg-gradient-to-r from-cyan-500/20 to-violet-600/20 text-violet-300 border border-violet-500/30 hover:from-cyan-500/30 hover:to-violet-600/30"
+                    title="Open Air Drawer whiteboard in a new tab — share its tab to show attendees"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Air Drawer Whiteboard
                   </button>
 
                   {/* Room-wide controls */}

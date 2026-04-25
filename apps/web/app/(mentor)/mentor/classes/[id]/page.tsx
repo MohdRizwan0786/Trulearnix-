@@ -8,7 +8,7 @@ import Logo from '@/components/ui/Logo'
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, MessageSquare, Users,
   ThumbsUp, Heart, Star, Smile, Send, Square, Copy, FileQuestion,
-  Trophy, Play, X, CheckCircle2, BarChart2, Plus, Trash2, BarChart
+  Trophy, Play, X, CheckCircle2, BarChart2, Plus, Trash2, BarChart, Pencil
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
@@ -1087,6 +1087,13 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
           <TBtn active={micOn} onClick={toggleMic} icon={micOn ? Mic : MicOff} label="Mic" offCls="bg-red-500/20 text-red-400" />
           <TBtn active={camOn} onClick={toggleCam} icon={camOn ? Video : VideoOff} label="Cam" offCls="bg-red-500/20 text-red-400" />
           <TBtn active={!screenSharing} onClick={toggleScreenShare} icon={screenSharing ? MonitorOff : Monitor} label="Share" offCls="bg-blue-500/20 text-blue-400" />
+          {/* AirDrawer (gesture whiteboard) — opens in a new tab; mentor screen-shares that tab */}
+          <button onClick={() => window.open('/air-drawer', '_blank', 'noopener,noreferrer')}
+            className="flex flex-col items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl transition-colors bg-gradient-to-br from-cyan-500/20 to-violet-600/20 text-violet-300 hover:from-cyan-500/30 hover:to-violet-600/30"
+            title="Open Air Drawer whiteboard in a new tab — share its tab to show students">
+            <Pencil className="w-5 h-5" />
+            <span className="hidden sm:block text-[10px]">Draw</span>
+          </button>
           {/* Mute All / Unmute All */}
           <button onClick={toggleMuteAll}
             className={`flex flex-col items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl transition-colors ${

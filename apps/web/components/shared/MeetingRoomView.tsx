@@ -22,7 +22,8 @@ export default function MeetingRoomView({ meetingId, backPath }: { meetingId: st
   const { user } = useAuthStore()
   const router   = useRouter()
   const isAdmin  = ['admin', 'superadmin', 'manager'].includes(user?.role || '')
-  const canDraw  = ['admin', 'superadmin', 'manager', 'mentor', 'salesperson'].includes(user?.role || '')
+  const [isHost, setIsHost] = useState(false)
+  const canDraw  = isAdmin || isHost
 
   const roomRef      = useRef<Room | null>(null)
   const localVideoRef = useRef<HTMLVideoElement>(null)
@@ -59,6 +60,7 @@ export default function MeetingRoomView({ meetingId, backPath }: { meetingId: st
       const data = res.data
       if (!data.success) { toast.error(data.message || 'Failed to get token'); return }
       setMeetingTitle(data.meetingTitle || 'Meeting')
+      setIsHost(!!data.isHost)
 
       const room = new Room({
         adaptiveStream: true,
