@@ -140,7 +140,7 @@ export default function EarningsPage() {
           {isAllTime && isIndustrialPartner && industrialEarning > 0 && (
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <span className="text-violet-200 text-[11px]">
-                Commissions: <span className="font-bold text-white">₹{totalEarnings.toLocaleString()}</span>
+                Partnership earnings: <span className="font-bold text-white">₹{totalEarnings.toLocaleString()}</span>
               </span>
               <span className="text-amber-300 text-[11px] flex items-center gap-1">
                 🏭 Industrial: <span className="font-bold text-amber-200">₹{industrialEarning.toLocaleString()}</span>
@@ -293,14 +293,14 @@ export default function EarningsPage() {
       <div className="bg-dark-800 rounded-2xl border border-dark-700 p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-white font-semibold flex items-center gap-2">
-            <Clock className="w-4 h-4 text-blue-400" /> Recent Commissions
+            <Clock className="w-4 h-4 text-blue-400" /> Recent Partnership earnings
           </h3>
           {recent.length > 0 && <span className="text-dark-500 text-xs">{recent.length} entries</span>}
         </div>
         {recent.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Award className="w-8 h-8 text-dark-600 mb-2" />
-            <p className="text-dark-400 text-sm">No commissions yet</p>
+            <p className="text-dark-400 text-sm">No Partnership earnings yet</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -347,7 +347,7 @@ export default function EarningsPage() {
       {/* ── EMI Commissions ── */}
       <div className="bg-dark-800 rounded-2xl border border-dark-700 p-5">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-          <CreditCard className="w-4 h-4 text-violet-400" /> EMI Commissions
+          <CreditCard className="w-4 h-4 text-violet-400" /> EMI Partnership earnings
         </h3>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
