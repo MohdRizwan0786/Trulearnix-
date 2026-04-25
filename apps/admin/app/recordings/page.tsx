@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
 import AdminLayout from '@/components/AdminLayout'
@@ -25,6 +25,7 @@ function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
   const recBatchId = rec.batch?._id || rec.batch || ''
   const recBatchLabel = rec.batch ? `Batch #${rec.batch.batchNumber}${rec.batch.label ? ' — ' + rec.batch.label : ''}` : ''
 
+  const initialLessonId: string = rec.lessonId || ''
   const [courseId, setCourseId] = useState(rec.course?._id || rec.course || '')
   const [moduleIdx, setModuleIdx] = useState('')
   const [lessonId, setLessonId] = useState('')
@@ -46,6 +47,19 @@ function LinkLessonModal({ rec, onClose }: { rec: any; onClose: () => void }) {
   const courses = coursesData?.courses || []
   const modules: any[] = courseData?.course?.modules || []
   const lessons: any[] = moduleIdx !== '' ? (modules[Number(moduleIdx)]?.lessons || []) : []
+
+  // Auto-pick module + lesson if recording was linked to a specific lesson at creation time
+  useEffect(() => {
+    if (!initialLessonId || modules.length === 0 || lessonId) return
+    for (let i = 0; i < modules.length; i++) {
+      const found = (modules[i]?.lessons || []).find((l: any) => String(l._id) === String(initialLessonId))
+      if (found) {
+        setModuleIdx(String(i))
+        setLessonId(String(initialLessonId))
+        break
+      }
+    }
+  }, [modules, initialLessonId, lessonId])
 
   const saveMutation = useMutation({
     mutationFn: () => {
