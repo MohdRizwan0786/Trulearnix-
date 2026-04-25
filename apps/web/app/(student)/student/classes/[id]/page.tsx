@@ -219,28 +219,30 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
           noiseSuppression: true,
           autoGainControl: true,
           sampleRate: 48000,
-          channelCount: 2,
+          channelCount: 1, // mono — voice mics are mono, RED + opus works reliably in mono
         },
         publishDefaults: {
           videoCodec: 'vp9',
-          audioPreset: { maxBitrate: 320_000 },
+          audioPreset: { maxBitrate: 64_000 }, // 64kbps mono opus — clear voice, robust on poor links
           dtx: false,
           red: true,
         },
       })
       roomRef.current = room
 
-      room.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
+      room.on(RoomEvent.TrackSubscribed, (track, pub, _participant) => {
         if (track.kind === Track.Kind.Video) {
           setMentorOnline(true)
-          setTimeout(() => {
-            if (mentorVideoContainerRef.current) track.attach(mentorVideoContainerRef.current)
-          }, 200)
-          addSystemMsg('🎥 Mentor started video')
+          if (!pub?.isMuted) {
+            setTimeout(() => {
+              if (mentorVideoContainerRef.current) track.attach(mentorVideoContainerRef.current)
+            }, 200)
+            addSystemMsg('🎥 Mentor started video')
+          }
         }
         if (track.kind === Track.Kind.Audio) {
           setMentorOnline(true)
-          if (!muted) {
+          if (!muted && !pub?.isMuted) {
             const el = track.attach()
             el.style.display = 'none'
             document.body.appendChild(el)
@@ -251,6 +253,21 @@ export default function StudentClassRoom({ params }: { params: { id: string } })
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
         track.detach()
         if (track.kind === Track.Kind.Video) setMentorOnline(false)
+      })
+
+      // mute/unmute does not fire subscribe/unsubscribe — react to mute events for accurate UI/audio
+      room.on(RoomEvent.TrackMuted, (pub, _participant) => {
+        if (pub?.track) pub.track.detach()
+      })
+      room.on(RoomEvent.TrackUnmuted, (pub, _participant) => {
+        if (!pub?.track) return
+        if (pub.kind === Track.Kind.Video) {
+          if (mentorVideoContainerRef.current) pub.track.attach(mentorVideoContainerRef.current)
+        } else if (pub.kind === Track.Kind.Audio && !muted) {
+          const el = pub.track.attach()
+          el.style.display = 'none'
+          document.body.appendChild(el)
+        }
       })
 
       room.on(RoomEvent.ParticipantDisconnected, () => {

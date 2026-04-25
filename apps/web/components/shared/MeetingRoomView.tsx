@@ -65,33 +65,80 @@ export default function MeetingRoomView({ meetingId, backPath }: { meetingId: st
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
-        audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        publishDefaults: { videoCodec: 'vp9', dtx: false, red: true },
+        audioCaptureDefaults: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 1, // mono — voice mics are mono, RED + opus works reliably in mono
+        },
+        publishDefaults: {
+          videoCodec: 'vp9',
+          audioPreset: { maxBitrate: 64_000 }, // 64kbps mono opus — clear voice, robust on poor links
+          dtx: false,
+          red: true,
+        },
       })
       roomRef.current = room
 
-      room.on(RoomEvent.ParticipantConnected, (participant) => {
+      const wireParticipant = (participant: any) => {
         const identity = participant.identity
         const name     = participant.name || identity
         setRemoteUsers(prev => prev.find(u => u.identity === identity) ? prev : [...prev, { identity, name, hasVideo: false, hasAudio: false }])
-        setChatMsgs(p => [...p, { id: Date.now(), name: 'System', msg: `${name} joined`, time: nowStr() }])
 
-        participant.on(ParticipantEvent.TrackSubscribed, (track) => {
+        participant.on(ParticipantEvent.TrackSubscribed, (track: any, pub: any) => {
           const isVideo = track.kind === Track.Kind.Video
           const isAudio = track.kind === Track.Kind.Audio
+          const live = !pub?.isMuted
           setRemoteUsers(prev => prev.map(u => u.identity === identity
-            ? { ...u, hasVideo: isVideo ? true : u.hasVideo, hasAudio: isAudio ? true : u.hasAudio, videoTrack: isVideo ? track : u.videoTrack, audioTrack: isAudio ? track : u.audioTrack }
+            ? { ...u, hasVideo: isVideo ? live : u.hasVideo, hasAudio: isAudio ? live : u.hasAudio, videoTrack: isVideo ? track : u.videoTrack, audioTrack: isAudio ? track : u.audioTrack }
             : u))
           if (isVideo) { setTimeout(() => { const el = document.getElementById(`rv-${identity}`) as HTMLVideoElement | null; if (el) track.attach(el) }, 200) }
           if (isAudio) { const el = track.attach(); el.style.display = 'none'; document.body.appendChild(el) }
         })
 
-        participant.on(ParticipantEvent.TrackUnsubscribed, (track) => {
+        participant.on(ParticipantEvent.TrackUnsubscribed, (track: any) => {
           track.detach()
           setRemoteUsers(prev => prev.map(u => u.identity === identity
             ? { ...u, hasVideo: track.kind === Track.Kind.Video ? false : u.hasVideo, hasAudio: track.kind === Track.Kind.Audio ? false : u.hasAudio }
             : u))
         })
+
+        // mute/unmute does not fire subscribe/unsubscribe — track them so the icon matches reality
+        participant.on(ParticipantEvent.TrackMuted, (pub: any) => {
+          const isVideo = pub?.kind === Track.Kind.Video
+          const isAudio = pub?.kind === Track.Kind.Audio
+          setRemoteUsers(prev => prev.map(u => u.identity === identity
+            ? { ...u, hasVideo: isVideo ? false : u.hasVideo, hasAudio: isAudio ? false : u.hasAudio }
+            : u))
+        })
+        participant.on(ParticipantEvent.TrackUnmuted, (pub: any) => {
+          const isVideo = pub?.kind === Track.Kind.Video
+          const isAudio = pub?.kind === Track.Kind.Audio
+          setRemoteUsers(prev => prev.map(u => u.identity === identity
+            ? { ...u, hasVideo: isVideo ? true : u.hasVideo, hasAudio: isAudio ? true : u.hasAudio }
+            : u))
+        })
+
+        // Attach tracks already published before we joined
+        participant.trackPublications.forEach((pub: any) => {
+          const track = pub.track
+          if (!track) return
+          const live = !pub.isMuted
+          if (track.kind === Track.Kind.Video) {
+            setRemoteUsers(prev => prev.map(u => u.identity === identity ? { ...u, hasVideo: live, videoTrack: track } : u))
+            setTimeout(() => { const el = document.getElementById(`rv-${identity}`) as HTMLVideoElement | null; if (el) track.attach(el) }, 300)
+          }
+          if (track.kind === Track.Kind.Audio) {
+            setRemoteUsers(prev => prev.map(u => u.identity === identity ? { ...u, hasAudio: live, audioTrack: track } : u))
+            const el = track.attach(); el.style.display = 'none'; document.body.appendChild(el)
+          }
+        })
+      }
+
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        wireParticipant(participant)
+        setChatMsgs(p => [...p, { id: Date.now(), name: 'System', msg: `${participant.name || participant.identity} joined`, time: nowStr() }])
       })
 
       room.on(RoomEvent.ParticipantDisconnected, (participant) => {
@@ -108,36 +155,8 @@ export default function MeetingRoomView({ meetingId, backPath }: { meetingId: st
 
       await room.connect(data.livekitUrl, data.token)
 
-      // Load participants already in the room before we joined
-      room.remoteParticipants.forEach((participant) => {
-        const identity = participant.identity
-        const name     = participant.name || identity
-        setRemoteUsers(prev => prev.find(u => u.identity === identity) ? prev : [...prev, { identity, name, hasVideo: false, hasAudio: false }])
-
-        participant.on(ParticipantEvent.TrackSubscribed, (track) => {
-          const isVideo = track.kind === Track.Kind.Video
-          const isAudio = track.kind === Track.Kind.Audio
-          setRemoteUsers(prev => prev.map(u => u.identity === identity
-            ? { ...u, hasVideo: isVideo ? true : u.hasVideo, hasAudio: isAudio ? true : u.hasAudio, videoTrack: isVideo ? track : u.videoTrack, audioTrack: isAudio ? track : u.audioTrack }
-            : u))
-          if (isVideo) { setTimeout(() => { const el = document.getElementById(`rv-${identity}`) as HTMLVideoElement | null; if (el) track.attach(el) }, 200) }
-          if (isAudio) { const el = track.attach(); el.style.display = 'none'; document.body.appendChild(el) }
-        })
-
-        // Attach already-published tracks
-        participant.trackPublications.forEach((pub) => {
-          const track = pub.track
-          if (!track) return
-          if (track.kind === Track.Kind.Video) {
-            setRemoteUsers(prev => prev.map(u => u.identity === identity ? { ...u, hasVideo: true, videoTrack: track } : u))
-            setTimeout(() => { const el = document.getElementById(`rv-${identity}`) as HTMLVideoElement | null; if (el) track.attach(el) }, 300)
-          }
-          if (track.kind === Track.Kind.Audio) {
-            setRemoteUsers(prev => prev.map(u => u.identity === identity ? { ...u, hasAudio: true, audioTrack: track } : u))
-            const el = track.attach(); el.style.display = 'none'; document.body.appendChild(el)
-          }
-        })
-      })
+      // wire any participants who joined before us
+      room.remoteParticipants.forEach(p => wireParticipant(p))
 
       try { await room.localParticipant.setMicrophoneEnabled(true) } catch {}
       try {
