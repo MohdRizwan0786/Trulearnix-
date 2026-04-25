@@ -2,13 +2,23 @@
 import React, { useRef, useEffect } from 'react';
 import { HandTracker } from '../_modules/handTracking';
 
+const TARGET_FPS = 15;
+const FRAME_INTERVAL_MS = 1000 / TARGET_FPS;
+
 const CameraView = ({ onResults }) => {
   const videoRef = useRef(null);
   const trackerRef = useRef(null);
+  const onResultsRef = useRef(onResults);
+
+  useEffect(() => { onResultsRef.current = onResults; }, [onResults]);
 
   useEffect(() => {
     const video = videoRef.current;
     let stopped = false;
+    let inflight = false;
+    let lastSentAt = 0;
+    let rafId = 0;
+    let stream = null;
 
     const waitForMediaPipe = () => new Promise((resolve) => {
       const check = () => {
@@ -23,10 +33,11 @@ const CameraView = ({ onResults }) => {
         await waitForMediaPipe();
         if (stopped) return;
 
-        const stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 24, max: 30 },
             facingMode: 'user',
           },
         });
@@ -42,33 +53,52 @@ const CameraView = ({ onResults }) => {
 
     const startTracking = () => {
       try {
-        trackerRef.current = new HandTracker(onResults);
+        trackerRef.current = new HandTracker((results) => {
+          const cb = onResultsRef.current;
+          if (cb) cb(results);
+        });
       } catch (err) {
         console.error('Hand tracker init failed:', err);
         return;
       }
 
-      const processFrame = async () => {
+      const processFrame = async (now) => {
         if (stopped) return;
-        if (video.readyState === 4) {
-          try { await trackerRef.current.send(video); } catch {}
+        rafId = requestAnimationFrame(processFrame);
+        if (inflight) return;
+        if (now - lastSentAt < FRAME_INTERVAL_MS) return;
+        if (video.readyState !== 4) return;
+
+        inflight = true;
+        lastSentAt = now;
+        try {
+          await trackerRef.current.send(video);
+        } catch {
+          // ignore transient send errors
+        } finally {
+          inflight = false;
         }
-        requestAnimationFrame(processFrame);
       };
 
-      processFrame();
+      rafId = requestAnimationFrame(processFrame);
     };
 
     startCamera();
 
     return () => {
       stopped = true;
-      if (video && video.srcObject) {
-        const tracks = video.srcObject.getTracks();
-        tracks.forEach(track => track.stop());
+      if (rafId) cancelAnimationFrame(rafId);
+      if (stream) {
+        try { stream.getTracks().forEach(t => t.stop()); } catch {}
       }
+      if (video && video.srcObject) {
+        try { video.srcObject.getTracks().forEach(t => t.stop()); } catch {}
+        video.srcObject = null;
+      }
+      try { trackerRef.current?.hands?.close?.(); } catch {}
+      trackerRef.current = null;
     };
-  }, [onResults]);
+  }, []);
 
   return (
     <div style={{
@@ -91,6 +121,7 @@ const CameraView = ({ onResults }) => {
           filter: 'brightness(1)',
         }}
         playsInline
+        muted
       />
     </div>
   );
