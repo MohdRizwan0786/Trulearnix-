@@ -11,7 +11,7 @@ import Coupon from '../models/Coupon';
 import Transaction from '../models/Transaction';
 import Commission from '../models/Commission';
 import EmiInstallment from '../models/EmiInstallment';
-import { sendPurchaseWelcomeEmail } from '../services/emailService';
+import { sendPurchaseWelcomeEmail, sendSponsorPurchaseAlert } from '../services/emailService';
 import { sendWhatsAppText } from '../services/whatsappMetaService';
 import redisClient from '../config/redis';
 import { checkEarningMilestones } from '../services/milestoneService';
@@ -656,6 +656,26 @@ router.get('/status/:merchantOrderId', protect, async (req: any, res) => {
         console.error('[PhonePe Package Commission Error]', commErr.message);
       }
 
+      // ── NON-CRITICAL: notify sponsor (earning email + WhatsApp) ───────────
+      try {
+        const buyerForNotify = await User.findById(req.user._id).select('name email referredBy upline1');
+        const sponsorId = (buyerForNotify as any)?.upline1 || (buyerForNotify as any)?.referredBy;
+        const sponsor = sponsorId ? await User.findById(sponsorId).select('name email phone') : null;
+        if (buyerForNotify && sponsor) {
+          const pkgDoc = await Package.findById(purchase.package).select('name tier');
+          const pkgName = (pkgDoc as any)?.name || pkgTier;
+          const comm = await Commission.findOne({ buyer: buyerForNotify._id, earner: sponsor._id, packagePurchaseId: purchase._id, level: 1 }).sort({ createdAt: -1 });
+          const commAmount = comm?.commissionAmount || 0;
+          const waToSponsor = `💰 *New Sale — Commission Earned!*\n\nHi *${sponsor.name}*! Your referral just purchased a package.\n\n👤 *Member:* ${buyerForNotify.name}\n📦 *Package:* ${pkgName}${commAmount > 0 ? `\n💰 *Commission:* ₹${commAmount}` : ''}\n\n👉 ${process.env.WEB_URL}/partner/earnings`;
+          await Promise.all([
+            sendSponsorPurchaseAlert(sponsor.email, sponsor.name, buyerForNotify.name, buyerForNotify.email, pkgName, commAmount),
+            sponsor.phone ? sendWhatsAppText(sponsor.phone, waToSponsor) : Promise.resolve(),
+          ]);
+        }
+      } catch (notifyErr: any) {
+        console.error('[PhonePe Package SponsorNotify Error]', notifyErr?.message || notifyErr);
+      }
+
       // ── NON-CRITICAL: welcome notification ───────────────────────────────
       try {
         await User.findByIdAndUpdate(req.user._id, {
@@ -753,6 +773,29 @@ router.get('/status/:merchantOrderId', protect, async (req: any, res) => {
         }
       } catch (commErr: any) {
         console.error('[PhonePe Course Commission Error]', commErr.message);
+      }
+
+      // ── NON-CRITICAL: notify affiliate (earning email + WhatsApp) ─────────
+      try {
+        const affiliateId = (payment as any).affiliateUser?._id || (payment as any).affiliateUser;
+        if (affiliateId) {
+          const affiliate = await User.findById(affiliateId).select('name email phone');
+          const buyerForNotify = await User.findById(req.user._id).select('name email');
+          if (affiliate && buyerForNotify) {
+            const Course = (await import('../models/Course')).default;
+            const courseDoc = await Course.findById(courseId as any).select('title');
+            const courseName = (courseDoc as any)?.title || 'a course';
+            const comm = await Commission.findOne({ buyer: buyerForNotify._id, earner: affiliate._id, paymentId: payment._id }).sort({ createdAt: -1 });
+            const commAmount = comm?.commissionAmount || 0;
+            const waToAffiliate = `💰 *New Sale — Commission Earned!*\n\nHi *${affiliate.name}*! Your referral just enrolled in a course.\n\n👤 *Member:* ${buyerForNotify.name}\n📦 *Course:* ${courseName}${commAmount > 0 ? `\n💰 *Commission:* ₹${commAmount}` : ''}\n\n👉 ${process.env.WEB_URL}/partner/earnings`;
+            await Promise.all([
+              sendSponsorPurchaseAlert(affiliate.email, affiliate.name, buyerForNotify.name, buyerForNotify.email, courseName, commAmount),
+              affiliate.phone ? sendWhatsAppText(affiliate.phone, waToAffiliate) : Promise.resolve(),
+            ]);
+          }
+        }
+      } catch (notifyErr: any) {
+        console.error('[PhonePe Course SponsorNotify Error]', notifyErr?.message || notifyErr);
       }
 
       // ── NON-CRITICAL: coupon ──────────────────────────────────────────────
