@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import {
   Mic, MicOff, Video, VideoOff, Users, MessageSquare, Send,
-  LogOut, X, PhoneOff, MonitorUp,
+  LogOut, X, PhoneOff, MonitorUp, Pencil,
 } from 'lucide-react'
 import { Room, RoomEvent, Track, ParticipantEvent } from 'livekit-client'
 
@@ -364,6 +364,13 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
               title={screenOn ? 'Stop sharing' : 'Share screen'}>
               {screenOn ? <MonitorUp className="w-5 h-5 text-blue-200" /> : <MonitorUp className="w-5 h-5" />}
             </button>
+            {(isAdmin || ['mentor', 'teacher'].includes(myRole)) && (
+              <button onClick={() => window.open('/air-drawer', '_blank', 'noopener,noreferrer')}
+                className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br from-cyan-500 to-violet-600 hover:from-cyan-400 hover:to-violet-500 text-white transition-all"
+                title="Open Air Drawer whiteboard in a new tab — share its tab via screen share to show students">
+                <Pencil className="w-5 h-5" />
+              </button>
+            )}
             <button onClick={() => { setPanelTab('chat'); setPanelOpen(v => panelTab === 'chat' ? !v : true) }}
               className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white transition-all relative">
               <MessageSquare className="w-5 h-5" />
