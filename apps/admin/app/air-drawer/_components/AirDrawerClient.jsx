@@ -29,6 +29,26 @@ function loadScriptOnce(src) {
   });
 }
 
+const PRIMARY_BASE_STYLE = {
+  position: 'fixed',
+  borderRadius: '50%',
+  transform: 'translate(-50%, -50%)',
+  zIndex: 40,
+  pointerEvents: 'none',
+  willChange: 'left, top, width, height, background-color, box-shadow',
+  display: 'none',
+};
+
+const SECONDARY_BASE_STYLE = {
+  position: 'fixed',
+  borderRadius: '50%',
+  transform: 'translate(-50%, -50%)',
+  zIndex: 40,
+  pointerEvents: 'none',
+  willChange: 'left, top, box-shadow, border-color',
+  display: 'none',
+};
+
 export default function AirDrawerClient() {
   const router = useRouter();
 
@@ -43,13 +63,12 @@ export default function AirDrawerClient() {
 
   const [gesture, setGesture] = useState(GESTURES.IDLE);
   const [landmark, setLandmark] = useState(null);
-  const [fingertips, setFingertips] = useState([]);
 
   const [controlGesture, setControlGesture] = useState(CONTROL_GESTURES.IDLE);
   const [controlLandmark, setControlLandmark] = useState(null);
-  const [controlFingertips, setControlFingertips] = useState([]);
-  const [controlPinchDelta, setControlPinchDelta] = useState(0);
-  const [controlAngleDelta, setControlAngleDelta] = useState(0);
+  const controlPinchDeltaRef = useRef(0);
+  const controlAngleDeltaRef = useRef(0);
+  const [, forceTransformTick] = useState(0);
 
   const [cameraVisible, setCameraVisible] = useState(true);
   const [gesturesEnabled, setGesturesEnabled] = useState(true);
@@ -57,6 +76,36 @@ export default function AirDrawerClient() {
 
   const canvasRef = useRef(null);
   const interpreter = useMemo(() => new GestureInterpreter(), []);
+
+  // Refs for cursor divs (2 primary fingertip slots, 2 secondary). Updated directly
+  // from onResults to avoid React re-renders at hand-tracking frame rate.
+  const primary0Ref = useRef(null);
+  const primary1Ref = useRef(null);
+  const secondary0Ref = useRef(null);
+  const secondary1Ref = useRef(null);
+
+  const prevStateRef = useRef({
+    pGesture: GESTURES.IDLE,
+    pHasLm: false,
+    sGesture: CONTROL_GESTURES.IDLE,
+    sHasLm: false,
+  });
+
+  const updateCursor = (el, tip, opts) => {
+    if (!el) return;
+    if (!tip) { el.style.display = 'none'; return; }
+    const x = (1 - tip.x) * window.innerWidth;
+    const y = tip.y * window.innerHeight;
+    el.style.display = 'block';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.width = opts.size;
+    el.style.height = opts.size;
+    el.style.backgroundColor = opts.bg;
+    el.style.boxShadow = opts.shadow;
+    el.style.opacity = opts.opacity;
+    if (opts.border !== undefined) el.style.border = opts.border;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -76,27 +125,106 @@ export default function AirDrawerClient() {
 
   const onResults = useCallback((results) => {
     if (!gesturesEnabled) {
+      const prev = prevStateRef.current;
+      // Always blank cursors on disable, but only setState if needed
+      updateCursor(primary0Ref.current, null, {});
+      updateCursor(primary1Ref.current, null, {});
+      updateCursor(secondary0Ref.current, null, {});
+      updateCursor(secondary1Ref.current, null, {});
+      if (prev.pGesture === GESTURES.IDLE && !prev.pHasLm
+       && prev.sGesture === CONTROL_GESTURES.IDLE && !prev.sHasLm) return;
+      prevStateRef.current = {
+        pGesture: GESTURES.IDLE, pHasLm: false,
+        sGesture: CONTROL_GESTURES.IDLE, sHasLm: false,
+      };
       setGesture(GESTURES.IDLE);
       setLandmark(null);
-      setFingertips([]);
       setControlGesture(CONTROL_GESTURES.IDLE);
       setControlLandmark(null);
-      setControlFingertips([]);
       return;
     }
 
     const { primary, secondary } = interpreter.interpret(results);
+    const pHasLm = !!primary.landmark;
+    const sHasLm = !!secondary.landmark;
+
+    // Direct DOM cursor update — no React render
+    const pTips = primary.fingertips || [];
+    const color = settings.color;
+    updateCursor(primary0Ref.current, pTips[0], {
+      size: '10px', bg: color, shadow: `0 0 10px 2px ${color}`, opacity: 0.6,
+    });
+    if (primary.gesture === 'ERASE') {
+      updateCursor(primary1Ref.current, pTips[1], {
+        size: '60px', bg: 'transparent',
+        shadow: '0 0 15px 4px rgba(255,0,0,0.8), inset 0 0 10px 2px rgba(255,0,0,0.5)',
+        opacity: 1, border: '2px solid rgba(255,50,50,0.8)',
+      });
+    } else {
+      updateCursor(primary1Ref.current, pTips[1], {
+        size: '16px', bg: color, shadow: `0 0 15px 4px ${color}`,
+        opacity: 1, border: 'none',
+      });
+    }
+
+    const sTips = secondary.fingertips || [];
+    updateCursor(secondary0Ref.current, sTips[0], {
+      size: '10px', bg: 'transparent',
+      shadow: '0 0 8px 2px rgba(255,165,0,0.5)', opacity: 0.5,
+      border: '1.5px solid rgba(255,165,0,0.6)',
+    });
+    let sShadow = '0 0 8px 2px rgba(255,165,0,0.5)';
+    let sBorder = '1.5px solid rgba(255,165,0,0.6)';
+    if (secondary.gesture === CONTROL_GESTURES.MOVE) {
+      sShadow = '0 0 20px 4px rgba(100,180,255,0.8)';
+      sBorder = '2px solid rgba(100,180,255,0.8)';
+    } else if (secondary.gesture === CONTROL_GESTURES.SCALE) {
+      sShadow = '0 0 20px 4px rgba(0,255,200,0.8)';
+      sBorder = '2px solid rgba(0,255,200,0.8)';
+    } else if (secondary.gesture === CONTROL_GESTURES.ROTATE) {
+      sShadow = '0 0 20px 4px rgba(255,165,0,0.8)';
+      sBorder = '2px solid rgba(255,165,0,0.8)';
+    }
+    updateCursor(secondary1Ref.current, sTips[1], {
+      size: '18px', bg: 'transparent', shadow: sShadow, opacity: 1, border: sBorder,
+    });
+
+    // Pinch/angle deltas drive transform engine — refs ok, DrawingCanvas reads via prop
+    controlPinchDeltaRef.current = secondary.pinchDelta || 0;
+    controlAngleDeltaRef.current = secondary.angleDelta || 0;
+
+    // Skip React render if gesture state is unchanged (e.g. just landmark drift on idle)
+    const prev = prevStateRef.current;
+    const gestureChanged = prev.pGesture !== primary.gesture || prev.sGesture !== secondary.gesture;
+    const visibilityChanged = prev.pHasLm !== pHasLm || prev.sHasLm !== sHasLm;
+
+    // For DRAW/ERASE/MOVE/SCALE/ROTATE we always need React to forward the new landmark
+    // to DrawingCanvas. For IDLE-with-landmark we only need to render once when state flips.
+    const isActive = primary.gesture !== GESTURES.IDLE || secondary.gesture !== CONTROL_GESTURES.IDLE;
+
+    if (!isActive && !gestureChanged && !visibilityChanged) {
+      // Nothing to commit to React — cursors already moved via DOM
+      if (sHasLm && (controlPinchDeltaRef.current !== 0 || controlAngleDeltaRef.current !== 0)) {
+        // still bump transform tick? No — only active gestures use these
+      }
+      return;
+    }
+
+    prevStateRef.current = {
+      pGesture: primary.gesture, pHasLm,
+      sGesture: secondary.gesture, sHasLm,
+    };
 
     setGesture(primary.gesture);
     setLandmark(primary.landmark);
-    setFingertips(primary.fingertips);
-
     setControlGesture(secondary.gesture);
     setControlLandmark(secondary.landmark);
-    setControlFingertips(secondary.fingertips);
-    setControlPinchDelta(secondary.pinchDelta);
-    setControlAngleDelta(secondary.angleDelta);
-  }, [interpreter, gesturesEnabled]);
+
+    // Tick to push pinch/angle deltas through to DrawingCanvas useEffect
+    if (secondary.gesture !== CONTROL_GESTURES.IDLE) {
+      forceTransformTick(t => (t + 1) & 0xff);
+    }
+  }, [interpreter, gesturesEnabled, settings.color]);
 
   const handleSave = () => {
     const dataUrl = canvasRef.current?.save();
@@ -141,8 +269,8 @@ export default function AirDrawerClient() {
         landmark={landmark}
         controlGesture={controlGesture}
         controlLandmark={controlLandmark}
-        controlPinchDelta={controlPinchDelta}
-        controlAngleDelta={controlAngleDelta}
+        controlPinchDelta={controlPinchDeltaRef.current}
+        controlAngleDelta={controlAngleDeltaRef.current}
       />
 
       <ControlPanel
@@ -157,7 +285,7 @@ export default function AirDrawerClient() {
         gestureVisible={gesturesEnabled}
         onToggleGestures={() => setGesturesEnabled(!gesturesEnabled)}
         onHelp={() => setIsHelpOpen(true)}
-        onExit={() => router.push('/live-classes')}
+        onExit={() => router.back()}
       />
 
       <HelpPanel isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
@@ -175,96 +303,11 @@ export default function AirDrawerClient() {
         )}
       </AnimatePresence>
 
-      {fingertips.map((tip, i) => {
-        if (!tip) return null;
-        const x = (1 - tip.x) * window.innerWidth;
-        const y = tip.y * window.innerHeight;
-
-        let size = '10px';
-        let opacity = 0.6;
-        let color = settings.color;
-        let shadow = `0 0 10px 2px ${color}`;
-
-        if (i === 1) {
-          if (gesture === 'ERASE') {
-            size = '60px';
-            color = 'transparent';
-            shadow = '0 0 15px 4px rgba(255, 0, 0, 0.8), inset 0 0 10px 2px rgba(255, 0, 0, 0.5)';
-            opacity = 1;
-          } else {
-            size = '16px';
-            opacity = 1;
-            shadow = `0 0 15px 4px ${color}`;
-          }
-        }
-
-        return (
-          <div
-            key={`p-${i}`}
-            style={{
-              position: 'fixed',
-              left: x, top: y,
-              width: size, height: size,
-              backgroundColor: color,
-              border: gesture === 'ERASE' ? '2px solid rgba(255, 50, 50, 0.8)' : 'none',
-              borderRadius: '50%',
-              transform: 'translate(-50%, -50%)',
-              boxShadow: shadow,
-              opacity,
-              zIndex: 40,
-              pointerEvents: 'none',
-              transition: 'width 0.1s, height 0.1s',
-            }}
-          />
-        );
-      })}
-
-      {controlFingertips.map((tip, i) => {
-        if (!tip) return null;
-        const x = (1 - tip.x) * window.innerWidth;
-        const y = tip.y * window.innerHeight;
-
-        let size = '10px';
-        let opacity = 0.5;
-        let color = 'transparent';
-        let shadow = '0 0 8px 2px rgba(255, 165, 0, 0.5)';
-        let border = '1.5px solid rgba(255, 165, 0, 0.6)';
-
-        if (i === 1) {
-          size = '18px';
-          opacity = 1;
-          if (controlGesture === CONTROL_GESTURES.MOVE) {
-            shadow = '0 0 20px 4px rgba(100, 180, 255, 0.8)';
-            border = '2px solid rgba(100, 180, 255, 0.8)';
-          } else if (controlGesture === CONTROL_GESTURES.SCALE) {
-            shadow = '0 0 20px 4px rgba(0, 255, 200, 0.8)';
-            border = '2px solid rgba(0, 255, 200, 0.8)';
-          } else if (controlGesture === CONTROL_GESTURES.ROTATE) {
-            shadow = '0 0 20px 4px rgba(255, 165, 0, 0.8)';
-            border = '2px solid rgba(255, 165, 0, 0.8)';
-          }
-        }
-
-        return (
-          <div
-            key={`s-${i}`}
-            style={{
-              position: 'fixed',
-              left: x, top: y,
-              width: size, height: size,
-              backgroundColor: color,
-              border,
-              borderRadius: '50%',
-              transform: 'translate(-50%, -50%)',
-              boxShadow: shadow,
-              opacity,
-              zIndex: 40,
-              pointerEvents: 'none',
-              transition: 'width 0.1s, height 0.1s',
-            }}
-          />
-        );
-      })}
+      {/* Fixed cursor slots — positioned via direct DOM updates from onResults */}
+      <div ref={primary0Ref} style={PRIMARY_BASE_STYLE} />
+      <div ref={primary1Ref} style={PRIMARY_BASE_STYLE} />
+      <div ref={secondary0Ref} style={SECONDARY_BASE_STYLE} />
+      <div ref={secondary1Ref} style={SECONDARY_BASE_STYLE} />
 
       {!landmark && !controlLandmark && (
         <div className="airdrawer-overlay-message">
