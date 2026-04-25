@@ -195,12 +195,19 @@ export default function QualificationsPage() {
         </div>
       )}
 
-      {/* Partner picker for poster generation */}
+      {/* Partner picker for poster generation — filters to only QUALIFIED partners */}
       <PartnerPickerModal
         open={pickerOpen}
         onClose={() => { setPickerOpen(false); setPosterTarget(null) }}
         onPick={onPickPartner}
         title={posterTarget ? `Pick partner for "${posterTarget.title}"` : 'Select Partner'}
+        qualification={posterTarget ? {
+          _id: posterTarget._id,
+          title: posterTarget.title,
+          metricType: posterTarget.metricType,
+          target: posterTarget.target,
+          unit: posterTarget.unit,
+        } : undefined}
       />
 
       {/* Poster preview / download */}

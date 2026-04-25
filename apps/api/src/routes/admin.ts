@@ -2273,6 +2273,78 @@ router.delete('/qualifications/:id', protect, async (req: any, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// ── Qualified partners for a milestone (used by poster picker) ───────────────
+// Returns only partners who have actually achieved the milestone target,
+// with their actual metric value (TruLearnix earnings only — never industrial).
+router.get('/qualifications/:id/qualified-partners', protect, async (req: any, res) => {
+  try {
+    const Qualification = (await import('../models/Qualification')).default as any;
+    const qual = await Qualification.findById(req.params.id);
+    if (!qual) return res.status(404).json({ success: false, message: 'Qualification not found' });
+
+    const search = String(req.query.search || '');
+    const limit = Math.min(Number(req.query.limit) || 30, 100);
+    const baseFilter: any = {
+      isAffiliate: true,
+      role: { $nin: ['admin', 'superadmin', 'manager', 'mentor'] },
+    };
+    if (search) {
+      baseFilter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { affiliateCode: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    let partners: any[] = [];
+
+    if (qual.metricType === 'totalEarnings') {
+      const docs = await User.find({ ...baseFilter, totalEarnings: { $gte: qual.target } })
+        .select('name email phone avatar affiliateCode packageTier totalEarnings')
+        .sort('-totalEarnings')
+        .limit(limit)
+        .lean();
+      partners = docs.map((p: any) => ({ ...p, _metric: p.totalEarnings || 0, _target: qual.target }));
+    } else if (qual.metricType === 'l1Count' || qual.metricType === 'l1Paid') {
+      const matchStage: any = { upline1: { $exists: true, $ne: null } };
+      if (qual.metricType === 'l1Paid') matchStage.packageTier = { $ne: 'free' };
+      const counts = await User.aggregate([
+        { $match: matchStage },
+        { $group: { _id: '$upline1', cnt: { $sum: 1 } } },
+        { $match: { cnt: { $gte: qual.target } } },
+        { $sort: { cnt: -1 } },
+        { $limit: limit * 2 },
+      ]);
+      const ids = counts.map((c: any) => c._id);
+      const users = await User.find({ _id: { $in: ids }, ...baseFilter })
+        .select('name email phone avatar affiliateCode packageTier totalEarnings')
+        .lean();
+      const userMap: Record<string, any> = {};
+      users.forEach((u: any) => { userMap[u._id.toString()] = u; });
+      partners = counts
+        .map((c: any) => userMap[c._id.toString()] ? { ...userMap[c._id.toString()], _metric: c.cnt, _target: qual.target } : null)
+        .filter(Boolean)
+        .slice(0, limit);
+    } else if (qual.metricType === 'tierUpgrade') {
+      const docs = await User.find({ ...baseFilter, packageTier: { $in: ['pro', 'proedge', 'elite', 'supreme'] } })
+        .select('name email phone avatar affiliateCode packageTier totalEarnings')
+        .sort('-totalEarnings')
+        .limit(limit)
+        .lean();
+      partners = docs.map((p: any) => ({ ...p, _metric: 1, _target: qual.target }));
+    }
+
+    res.json({
+      success: true,
+      partners,
+      qualification: {
+        _id: qual._id, title: qual.title, target: qual.target,
+        metricType: qual.metricType, unit: qual.unit,
+      },
+    });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // ── Achievements (admin CRUD) ─────────────────────────────────────────────────
 router.get('/achievements', protect, async (_req, res) => {
   try {
