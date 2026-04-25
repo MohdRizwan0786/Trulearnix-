@@ -12,7 +12,8 @@ export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
   try {
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
 
-    const [totalUsers, totalStudents, totalMentors, totalCourses, totalEnrollments, recentPayments,
+    const [totalUsers, totalStudents, totalMentors, totalCourses, totalEnrollments,
+      recentCoursePayments, recentPackagePurchases,
       paymentRev, packageRev, paymentMonthly, packageMonthly] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ role: 'student' }),
@@ -20,6 +21,7 @@ export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
       Course.countDocuments({ status: 'published' }),
       Enrollment.countDocuments(),
       Payment.find({ status: 'paid' }).sort('-createdAt').limit(10).populate('user', 'name email').populate('course', 'title'),
+      PackagePurchase.find({ status: 'paid' }).sort('-createdAt').limit(10).populate('user', 'name email').populate('package', 'name tier'),
       Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       PackagePurchase.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Payment.aggregate([
@@ -43,6 +45,27 @@ export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
       monthlyMap[key].count += m.count;
     });
     const monthlyRevenue = Object.values(monthlyMap).sort((a, b) => (a._id.year - b._id.year) || (a._id.month - b._id.month));
+
+    // Merge course payments + package purchases into a single recent-payments feed
+    const recentPayments = [
+      ...recentCoursePayments.map((p: any) => ({
+        _id: p._id,
+        user: p.user,
+        amount: p.amount,
+        createdAt: p.createdAt,
+        description: p.course?.title || 'Course Purchase',
+        course: p.course,
+      })),
+      ...recentPackagePurchases.map((p: any) => ({
+        _id: p._id,
+        user: p.user,
+        amount: p.totalAmount || p.amount,
+        createdAt: p.createdAt,
+        description: p.package?.name ? `${p.package.name} Package` : 'Package Purchase',
+      })),
+    ]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 10);
 
     res.json({
       success: true,
