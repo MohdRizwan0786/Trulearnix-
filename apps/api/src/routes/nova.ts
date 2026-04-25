@@ -702,6 +702,98 @@ async function runEmiReminders() {
   }
 }
 
+// Auto-create withdrawal requests for any partner / salesperson / partner-manager
+// who has a positive wallet balance and complete KYC bank details.
+// Runs daily — full wallet amount becomes a pending withdrawal request that admin
+// then processes manually (or via Razorpay payout).
+export async function runAutoWithdrawals() {
+  try {
+    const Withdrawal = (await import('../models/Withdrawal')).default;
+    const Transaction = (await import('../models/Transaction')).default;
+
+    const candidates = await User.find({
+      isActive: true,
+      wallet: { $gt: 0 },
+      'kyc.bankAccount': { $exists: true, $ne: '' },
+      'kyc.bankIfsc': { $exists: true, $ne: '' },
+      $or: [
+        { isAffiliate: true },
+        { role: 'salesperson' },
+        { role: 'manager' },
+      ],
+    }).select('_id name wallet kyc role isAffiliate').lean();
+
+    let created = 0;
+    let skippedPending = 0;
+
+    for (const u of candidates) {
+      try {
+        const existing = await Withdrawal.findOne({
+          user: u._id,
+          status: { $in: ['pending', 'processing'] },
+        }).select('_id').lean();
+        if (existing) { skippedPending++; continue; }
+
+        // Atomic deduction — guards against concurrent wallet changes
+        const beforeDebit = await User.findById(u._id).select('wallet').lean();
+        const amt = beforeDebit?.wallet || 0;
+        if (amt <= 0) continue;
+
+        const debited = await User.findOneAndUpdate(
+          { _id: u._id, wallet: { $gte: amt } },
+          { $inc: { wallet: -amt, totalWithdrawn: amt } },
+          { new: true }
+        ).select('wallet').lean();
+        if (!debited) continue;
+
+        const tdsRate = 2;
+        const tdsAmount = Math.round(amt * tdsRate / 100);
+        const gatewayFeeBase = 4.40;
+        const gatewayFeeGst = Math.round(gatewayFeeBase * 0.18 * 100) / 100;
+        const totalGatewayFee = Math.round((gatewayFeeBase + gatewayFeeGst) * 100) / 100;
+        const netAmount = amt - tdsAmount - totalGatewayFee;
+
+        const withdrawal = await Withdrawal.create({
+          user: u._id,
+          amount: amt,
+          method: 'bank',
+          accountName: u.kyc?.bankHolderName,
+          accountNumber: u.kyc?.bankAccount,
+          ifscCode: u.kyc?.bankIfsc,
+          status: 'pending',
+          hrStatus: 'pending',
+          tdsRate,
+          tdsAmount,
+          gatewayFee: totalGatewayFee,
+          gatewayFeeGst,
+          netAmount,
+        });
+
+        await Transaction.create({
+          user: u._id,
+          type: 'debit',
+          category: 'withdrawal',
+          amount: amt,
+          description: 'Auto withdrawal request (full wallet balance)',
+          referenceId: withdrawal._id.toString(),
+          status: 'pending',
+          balanceAfter: 0,
+        });
+
+        created++;
+      } catch (innerErr: any) {
+        console.error('[Auto-Withdrawal] user', u._id?.toString(), innerErr.message);
+      }
+    }
+
+    console.log(`[Auto-Withdrawal Cron] candidates:${candidates.length} created:${created} pending-skip:${skippedPending}`);
+    return { candidates: candidates.length, created, skippedPending };
+  } catch (e: any) {
+    console.error('[Auto-Withdrawal Cron Error]', e);
+    return { candidates: 0, created: 0, skippedPending: 0, error: e.message };
+  }
+}
+
 export async function bootstrapNovaCrons() {
   try {
     const config = await NovaConfig.findOne();
@@ -709,6 +801,8 @@ export async function bootstrapNovaCrons() {
 
     // EMI reminders — daily at 9 AM IST regardless of nova config
     new CronJob('0 0 9 * * *', runEmiReminders, null, true, 'Asia/Kolkata');
+    // Auto-create withdrawal requests — daily at 9:30 AM IST
+    new CronJob('0 30 9 * * *', runAutoWithdrawals, null, true, 'Asia/Kolkata');
     console.log('[NOVA] Crons initialized');
   } catch (e) {
     console.error('[NOVA] Cron bootstrap error:', e);

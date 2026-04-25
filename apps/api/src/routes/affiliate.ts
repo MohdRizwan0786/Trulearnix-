@@ -115,10 +115,21 @@ router.post('/withdraw', protect, async (req: any, res) => {
     if (!user || user.wallet < amount) return res.status(400).json({ success: false, message: 'Insufficient wallet balance' });
     if (amount < 500) return res.status(400).json({ success: false, message: 'Minimum withdrawal is ₹500' });
 
+    // Compute TDS, gateway fee and net amount so email/receipt show real values
+    const tdsRate = 2;
+    const tdsAmount = Math.round(amount * tdsRate / 100);
+    const gatewayFeeBase = 4.40;
+    const gatewayFeeGst = Math.round(gatewayFeeBase * 0.18 * 100) / 100;
+    const totalGatewayFee = Math.round((gatewayFeeBase + gatewayFeeGst) * 100) / 100;
+    const netAmount = amount - tdsAmount - totalGatewayFee;
+
     // Deduct wallet
     await User.findByIdAndUpdate(req.user._id, { $inc: { wallet: -amount, totalWithdrawn: amount } });
 
-    const withdrawal = await Withdrawal.create({ user: req.user._id, amount, method, upiId, accountNumber, ifscCode, accountName });
+    const withdrawal = await Withdrawal.create({
+      user: req.user._id, amount, method, upiId, accountNumber, ifscCode, accountName,
+      tdsRate, tdsAmount, gatewayFee: totalGatewayFee, gatewayFeeGst, netAmount,
+    });
 
     await Transaction.create({
       user: req.user._id,
