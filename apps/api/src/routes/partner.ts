@@ -701,8 +701,15 @@ router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
       tierUpgrade: ['pro','proedge','elite','supreme'].includes(user?.packageTier || '') ? 999999 : 0,
     };
 
-    // Load from DB; fall back to hardcoded defaults if none exist
+    // Load from DB, then filter by active campaign window (startDate/endDate optional);
+    // fall back to hardcoded defaults if none exist.
+    const now = new Date();
     let dbMilestones = await Qualification.find({ isActive: true }).sort({ order: 1 });
+    dbMilestones = dbMilestones.filter((m: any) => {
+      if (m.startDate && new Date(m.startDate) > now) return false;
+      if (m.endDate && new Date(m.endDate) < now) return false;
+      return true;
+    });
 
     let milestones: any[];
     if (dbMilestones.length > 0) {
@@ -715,6 +722,7 @@ router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
           achieved: current >= m.target,
           badgeGradient: m.badgeGradient, certificateEnabled: m.certificateEnabled,
           order: m.order,
+          startDate: m.startDate || null, endDate: m.endDate || null,
         };
       });
     } else {
@@ -782,7 +790,7 @@ router.get('/achievements', protect, affiliateGuard, async (req: any, res) => {
 
     let allAchievements = await Achievement.find({ enabled: true }).sort({ order: 1 });
 
-    // Seed defaults if none exist
+    // Seed defaults if DB is genuinely empty (before window filter)
     if (allAchievements.length === 0) {
       await Achievement.insertMany([
         { title: 'TruLearnix Partner', description: 'Welcome to the TruLearnix Partner Network!', badge: '🎉', triggerType: 'join', triggerValue: 0, requirement: 'Join TruLearnix', posterTheme: 0, order: 0 },
@@ -796,6 +804,14 @@ router.get('/achievements', protect, affiliateGuard, async (req: any, res) => {
       ]);
       allAchievements = await Achievement.find({ enabled: true }).sort({ order: 1 });
     }
+
+    // Apply campaign window filter (post-seed so defaults aren't re-inserted)
+    const nowTs = new Date();
+    allAchievements = allAchievements.filter((a: any) => {
+      if (a.startDate && new Date(a.startDate) > nowTs) return false;
+      if (a.endDate && new Date(a.endDate) < nowTs) return false;
+      return true;
+    });
 
     // Get existing user achievements
     const userAchievements = await UserAchievement.find({ userId: req.user._id });
@@ -838,6 +854,8 @@ router.get('/achievements', protect, affiliateGuard, async (req: any, res) => {
       requirement: ach.requirement,
       posterTheme: ach.posterTheme,
       order: ach.order,
+      startDate: ach.startDate || null,
+      endDate: ach.endDate || null,
       earned: !!earnedMap[ach._id.toString()],
       earnedAt: earnedMap[ach._id.toString()] || null,
     }));
