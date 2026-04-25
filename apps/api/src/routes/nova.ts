@@ -802,7 +802,7 @@ export async function bootstrapNovaCrons() {
     // EMI reminders — daily at 9 AM IST regardless of nova config
     new CronJob('0 0 9 * * *', runEmiReminders, null, true, 'Asia/Kolkata');
     // Auto-create withdrawal requests — daily at 9:30 AM IST
-    new CronJob('0 30 9 * * *', runAutoWithdrawals, null, true, 'Asia/Kolkata');
+    new CronJob('0 30 9 * * *', () => { runAutoWithdrawals().catch(() => {}); }, null, true, 'Asia/Kolkata');
     console.log('[NOVA] Crons initialized');
   } catch (e) {
     console.error('[NOVA] Cron bootstrap error:', e);
