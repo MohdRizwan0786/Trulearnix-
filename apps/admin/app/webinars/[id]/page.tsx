@@ -101,7 +101,11 @@ export default function WebinarRoomPage({ params }: { params: { id: string } }) 
       setJoined(true)
       updateRemotes(room)
       // Start recording after host has joined (room now exists)
-      adminAPI.startWebinarRecording(params.id).catch(() => {})
+      adminAPI.startWebinarRecording(params.id).catch(e => {
+        const msg = e?.response?.data?.message || e?.message || 'Unknown error'
+        console.warn('Webinar recording start failed:', msg)
+        toast.error(`⚠️ Recording start nahi hui: ${msg}. Webinar continue hoga but recording save nahi hogi.`, { duration: 8000 })
+      })
     } catch (e: any) {
       toast.error('Failed to connect: ' + e.message)
     }
