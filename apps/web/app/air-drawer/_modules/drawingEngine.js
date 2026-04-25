@@ -48,9 +48,19 @@ export class DrawingEngine {
         return;
       }
 
+      // Quadratic Bezier through midpoints — gives smooth curves from sparse samples
+      // (essential at low tracking framerates so circles / handwriting don't look polygonal)
       ctx.moveTo(points[0].x, points[0].y);
-      for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y);
+      if (points.length === 2) {
+        ctx.lineTo(points[1].x, points[1].y);
+      } else {
+        for (let i = 1; i < points.length - 1; i++) {
+          const midX = (points[i].x + points[i + 1].x) / 2;
+          const midY = (points[i].y + points[i + 1].y) / 2;
+          ctx.quadraticCurveTo(points[i].x, points[i].y, midX, midY);
+        }
+        const last = points[points.length - 1];
+        ctx.lineTo(last.x, last.y);
       }
 
       ctx.strokeStyle = stroke.color;
