@@ -257,12 +257,11 @@ export default function MTypePage() {
   })
 
   const l1: any[] = data?.l1 || []
-  const l2: any[] = data?.l2 || []
-  const l3: any[] = data?.l3 || []
   const teamEarnings: any[] = data?.teamEarnings || []
   const getEarnings = (n: number) => teamEarnings.find((e: any) => e._id === n)?.total || 0
-  const totalEarnings = getEarnings(1) + getEarnings(2) + getEarnings(3)
-  const totalTeam = l1.length + l2.length + l3.length
+  const totalEarnings = getEarnings(1)
+  const totalTeam = l1.length
+  const VISIBLE_LEVELS = LEVELS.filter(lv => lv.key === 'l1')
 
   const copyCode = () => {
     navigator.clipboard.writeText(user?.affiliateCode || '')
@@ -317,7 +316,7 @@ export default function MTypePage() {
     },
     {
       label: 'Depth',
-      value: l3.length > 0 ? 'L1–L3' : l2.length > 0 ? 'L1–L2' : 'L1',
+      value: 'L1',
       icon: Layers,
       color: 'text-cyan-400',
       bg: 'from-cyan-600/20 to-cyan-500/5',
@@ -359,7 +358,7 @@ export default function MTypePage() {
             </span>
           </h1>
           <p className="text-violet-300/50 text-sm mt-1.5">
-            3-level deep partner network visualization
+            Your direct referrals network
           </p>
         </div>
       </div>
@@ -490,7 +489,7 @@ export default function MTypePage() {
         </div>
 
         {/* Level nodes */}
-        {LEVELS.map((lv, i) => (
+        {VISIBLE_LEVELS.map((lv, i) => (
           <LevelNode
             key={lv.key}
             lv={lv}
