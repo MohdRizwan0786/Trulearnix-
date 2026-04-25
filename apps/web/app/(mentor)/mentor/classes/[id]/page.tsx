@@ -262,7 +262,11 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
       addSysMsg('✅ You are live!')
 
       // Start server-side egress recording
-      classAPI.startEgress(params.id).catch(e => console.warn('Egress start failed:', e?.response?.data?.message || e?.message))
+      classAPI.startEgress(params.id).catch(e => {
+        const msg = e?.response?.data?.message || e?.message || 'Unknown error'
+        console.warn('Egress start failed:', msg)
+        toast.error(`⚠️ Recording start nahi hui: ${msg}. Class continue hogi but recording save nahi hogi.`, { duration: 8000 })
+      })
     } catch (err: any) { toast.error('Connection error: ' + (err?.message || 'Unknown')) }
   }
 
