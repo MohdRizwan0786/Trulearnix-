@@ -10,6 +10,8 @@ export interface PickedPartner {
   affiliateCode?: string
   avatar?: string
   packageTier?: string
+  packageName?: string
+  packagePrice?: number
 }
 
 export interface QualificationFilter {
@@ -130,9 +132,9 @@ export default function PartnerPickerModal({ open, onClose, onPick, title = 'Sel
                         {fmtAchievementMetric(achievement, p._metric || 0)}
                       </span>
                     )}
-                    {p.packageTier && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300 capitalize">
-                        {p.packageTier}
+                    {(p.packageName || p.packageTier) && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300">
+                        {p.packageName || (p.packageTier as string).charAt(0).toUpperCase() + (p.packageTier as string).slice(1)}
                       </span>
                     )}
                   </div>
@@ -140,9 +142,9 @@ export default function PartnerPickerModal({ open, onClose, onPick, title = 'Sel
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-semibold flex-shrink-0">
                     {fmtMetric(qualification, p._metric || 0)}
                   </span>
-                ) : p.packageTier && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 capitalize flex-shrink-0">
-                    {p.packageTier}
+                ) : (p.packageName || p.packageTier) && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 flex-shrink-0">
+                    {p.packageName || (p.packageTier as string).charAt(0).toUpperCase() + (p.packageTier as string).slice(1)}
                   </span>
                 )}
               </button>
