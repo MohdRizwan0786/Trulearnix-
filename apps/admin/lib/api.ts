@@ -163,6 +163,8 @@ export const adminAPI = {
   createAchievement: (data: any) => api.post('/admin/achievements', data),
   updateAchievement: (id: string, data: any) => api.patch(`/admin/achievements/${id}`, data),
   deleteAchievement: (id: string) => api.delete(`/admin/achievements/${id}`),
+  eligiblePartnersForAchievement: (id: string, params?: { search?: string; limit?: number }) =>
+    api.get(`/admin/achievements/${id}/eligible-partners`, { params }),
   // Coupons
   coupons: () => api.get('/coupons'),
   createCoupon: (data: any) => api.post('/coupons', data),

@@ -150,6 +150,7 @@ export async function generateAchievementPoster(opts: {
   earnedAt?: Date | string | null
   affiliateCode: string
   themeIndex: number
+  packageTier?: string
 }): Promise<string> {
   const W = 1080, H = 1080
   const canvas = document.createElement('canvas')
@@ -263,9 +264,16 @@ export async function generateAchievementPoster(opts: {
   ctx.font = 'bold 24px Arial'; ctx.fillStyle = `rgba(${p},0.8)`
   ctx.fillText(`Partnership Code: ${opts.affiliateCode}`, W/2, divY + 50)
 
+  if (opts.packageTier) {
+    const tierLabel = opts.packageTier.charAt(0).toUpperCase() + opts.packageTier.slice(1)
+    ctx.font = 'bold 22px Arial'; ctx.fillStyle = `rgba(${p},0.7)`
+    ctx.fillText(`Package: ${tierLabel}`, W/2, divY + 86)
+  }
+
   if (opts.earnedAt) {
     ctx.font = '22px Arial'; ctx.fillStyle = 'rgba(156,163,175,0.7)'
-    ctx.fillText(new Date(opts.earnedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }), W/2, divY + 88)
+    const dateY = opts.packageTier ? divY + 122 : divY + 88
+    ctx.fillText(new Date(opts.earnedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }), W/2, dateY)
   }
 
   ctx.fillStyle = `rgba(${p},0.1)`
