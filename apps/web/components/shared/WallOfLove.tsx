@@ -55,7 +55,7 @@ function VideoModal({ v, onClose }: { v: Video; onClose: () => void }) {
                   autoPlay
                   muted
                   playsInline
-                  preload="metadata"
+                  preload="auto"
                   poster={v.avatarUrl}
                 >
                   {/* most .mov files from R2 are H.264/AAC — hint mp4 first so Chrome/Firefox play them */}
@@ -176,7 +176,7 @@ function VideoCard({ v, onClick, delay = 0 }: { v: Video; onClick: () => void; d
 /* ── Marquee Card ───────────────────────────────────────────────── */
 function MarqueeCard({ v, onClick }: { v: Video; onClick: () => void }) {
   return (
-    <div className="flex-shrink-0 w-[260px] mx-2.5 rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1"
+    <div className="flex-shrink-0 w-[300px] md:w-[280px] mx-2.5 rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1"
       style={{ background: '#0d1020', border: '1px solid rgba(255,255,255,0.07)' }}
       onClick={onClick}>
       <div className="relative aspect-video" style={{ background: v.gradient }}>
