@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
 import { Trophy, Plus, Pencil, Trash2, X, Save, ToggleLeft, ToggleRight, Sparkles, Calendar, Download } from 'lucide-react'
 import { generateAchievementPoster, downloadDataUrl } from '@/lib/posterGenerator'
-import PartnerPickerModal, { PickedPartner } from '@/components/PartnerPickerModal'
+import PartnerPickerModal, { PickedPartner, AchievementFilter } from '@/components/PartnerPickerModal'
 
 const TRIGGER_TYPES = [
   { value: 'join',          label: 'On Join (Welcome)',       hint: 'Unlocked when partner joins' },
@@ -74,6 +74,7 @@ export default function AchievementsPage() {
         earnedAt: new Date(),
         affiliateCode: p.affiliateCode || '',
         themeIndex: posterTarget.posterTheme || 0,
+        packageTier: p.packageTier,
       })
       setPosterUrl(url)
     } finally { setPosterLoading(false) }
@@ -312,12 +313,18 @@ export default function AchievementsPage() {
         </div>
       )}
 
-      {/* Partner picker for poster generation */}
+      {/* Partner picker for poster generation — only eligible partners (server-side filtered) */}
       <PartnerPickerModal
         open={pickerOpen}
         onClose={() => { setPickerOpen(false); setPosterTarget(null) }}
         onPick={onPickPartner}
-        title={posterTarget ? `Pick partner for "${posterTarget.title}"` : 'Select Partner'}
+        title={posterTarget ? `Pick eligible partner for "${posterTarget.title}"` : 'Select Partner'}
+        achievement={posterTarget ? {
+          _id: posterTarget._id,
+          title: posterTarget.title,
+          triggerType: posterTarget.triggerType,
+          triggerValue: posterTarget.triggerValue,
+        } as AchievementFilter : undefined}
       />
 
       {/* Poster preview / download */}

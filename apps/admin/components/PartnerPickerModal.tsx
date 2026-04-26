@@ -9,6 +9,7 @@ export interface PickedPartner {
   email?: string
   affiliateCode?: string
   avatar?: string
+  packageTier?: string
 }
 
 export interface QualificationFilter {
@@ -17,6 +18,13 @@ export interface QualificationFilter {
   metricType: 'l1Paid' | 'totalEarnings' | 'l1Count' | 'tierUpgrade'
   target: number
   unit?: string
+}
+
+export interface AchievementFilter {
+  _id: string
+  title: string
+  triggerType: 'join' | 'first_earn' | 'earn_amount' | 'referrals' | 'paid_referrals' | 'tier'
+  triggerValue: number
 }
 
 const fmtMetric = (qual: QualificationFilter | undefined, value: number) => {
@@ -29,12 +37,24 @@ const fmtMetric = (qual: QualificationFilter | undefined, value: number) => {
   return ''
 }
 
-export default function PartnerPickerModal({ open, onClose, onPick, title = 'Select Partner', qualification }: {
+const fmtAchievementMetric = (ach: AchievementFilter | undefined, value: number) => {
+  if (!ach) return ''
+  switch (ach.triggerType) {
+    case 'first_earn':
+    case 'earn_amount':  return `₹${(value || 0).toLocaleString('en-IN')}`
+    case 'referrals':    return `${value} partners`
+    case 'paid_referrals': return `${value} paid`
+    default: return ''
+  }
+}
+
+export default function PartnerPickerModal({ open, onClose, onPick, title = 'Select Partner', qualification, achievement }: {
   open: boolean
   onClose: () => void
   onPick: (partner: PickedPartner) => void
   title?: string
   qualification?: QualificationFilter
+  achievement?: AchievementFilter
 }) {
   const [search, setSearch] = useState('')
   const [partners, setPartners] = useState<any[]>([])
@@ -44,16 +64,18 @@ export default function PartnerPickerModal({ open, onClose, onPick, title = 'Sel
     if (!open) return
     const t = setTimeout(() => {
       setLoading(true)
-      const fetcher = qualification
-        ? adminAPI.qualifiedPartners(qualification._id, { search, limit: 30 })
-        : adminAPI.partners({ search, limit: 30 })
+      const fetcher = achievement
+        ? adminAPI.eligiblePartnersForAchievement(achievement._id, { search, limit: 30 })
+        : qualification
+          ? adminAPI.qualifiedPartners(qualification._id, { search, limit: 30 })
+          : adminAPI.partners({ search, limit: 30 })
       fetcher
         .then(r => setPartners(r.data?.partners || []))
         .catch(() => setPartners([]))
         .finally(() => setLoading(false))
     }, 250)
     return () => clearTimeout(t)
-  }, [open, search, qualification?._id])
+  }, [open, search, qualification?._id, achievement?._id])
 
   if (!open) return null
 
@@ -101,7 +123,20 @@ export default function PartnerPickerModal({ open, onClose, onPick, title = 'Sel
                   <p className="text-white text-sm font-semibold truncate">{p.name}</p>
                   <p className="text-gray-500 text-[11px] truncate">{p.email}{p.affiliateCode ? ` · ${p.affiliateCode}` : ''}</p>
                 </div>
-                {qualification ? (
+                {achievement ? (
+                  <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                    {fmtAchievementMetric(achievement, p._metric || 0) && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-semibold">
+                        {fmtAchievementMetric(achievement, p._metric || 0)}
+                      </span>
+                    )}
+                    {p.packageTier && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300 capitalize">
+                        {p.packageTier}
+                      </span>
+                    )}
+                  </div>
+                ) : qualification ? (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-semibold flex-shrink-0">
                     {fmtMetric(qualification, p._metric || 0)}
                   </span>

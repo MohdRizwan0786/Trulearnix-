@@ -2458,6 +2458,85 @@ router.delete('/achievements/:id', protect, async (req: any, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// Partners who actually qualify for a given achievement (mirrors partner.ts unlock logic).
+// Used by the admin achievements page so admins can only download posters for eligible partners.
+router.get('/achievements/:id/eligible-partners', protect, async (req: any, res) => {
+  try {
+    const Achievement = (await import('../models/Achievement')).default as any;
+    const ach = await Achievement.findById(req.params.id);
+    if (!ach) return res.status(404).json({ success: false, message: 'Achievement not found' });
+
+    const search = String(req.query.search || '');
+    const limit = Math.min(Number(req.query.limit) || 30, 100);
+    const baseFilter: any = {
+      isAffiliate: true,
+      role: { $nin: ['admin', 'superadmin', 'manager', 'mentor'] },
+    };
+    if (search) {
+      baseFilter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { affiliateCode: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const SELECT = 'name email phone avatar affiliateCode packageTier totalEarnings';
+    let partners: any[] = [];
+
+    switch (ach.triggerType) {
+      case 'join': {
+        const docs = await User.find(baseFilter).select(SELECT).sort('-createdAt').limit(limit).lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: 0, _target: 0 }));
+        break;
+      }
+      case 'first_earn': {
+        const docs = await User.find({ ...baseFilter, totalEarnings: { $gt: 0 } })
+          .select(SELECT).sort('-totalEarnings').limit(limit).lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: p.totalEarnings || 0, _target: 1 }));
+        break;
+      }
+      case 'earn_amount': {
+        const docs = await User.find({ ...baseFilter, totalEarnings: { $gte: ach.triggerValue } })
+          .select(SELECT).sort('-totalEarnings').limit(limit).lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: p.totalEarnings || 0, _target: ach.triggerValue }));
+        break;
+      }
+      case 'referrals':
+      case 'paid_referrals': {
+        const matchExtra: any = ach.triggerType === 'paid_referrals'
+          ? { packageTier: { $exists: true, $ne: 'free' } }
+          : {};
+        const counts = await User.aggregate([
+          { $match: { upline1: { $exists: true, $ne: null }, ...matchExtra } },
+          { $group: { _id: '$upline1', cnt: { $sum: 1 } } },
+          { $match: { cnt: { $gte: ach.triggerValue } } },
+          { $sort: { cnt: -1 } },
+          { $limit: limit * 2 },
+        ]);
+        const ids = counts.map((c: any) => c._id);
+        const users = await User.find({ _id: { $in: ids }, ...baseFilter }).select(SELECT).lean();
+        const map: Record<string, any> = {};
+        users.forEach((u: any) => { map[u._id.toString()] = u; });
+        partners = counts
+          .map((c: any) => map[c._id.toString()] ? { ...map[c._id.toString()], _metric: c.cnt, _target: ach.triggerValue } : null)
+          .filter(Boolean)
+          .slice(0, limit);
+        break;
+      }
+      case 'tier': {
+        const docs = await User.find({ ...baseFilter, packageTier: { $in: ['pro', 'proedge', 'elite', 'supreme'] } })
+          .select(SELECT).sort('-totalEarnings').limit(limit).lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: 0, _target: 0 }));
+        break;
+      }
+      default:
+        partners = [];
+    }
+
+    res.json({ success: true, partners });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // ── Report Cards (Founder approval) ─────────────────────────────────────────
 router.get('/report-cards', async (req: any, res) => {
   try {
