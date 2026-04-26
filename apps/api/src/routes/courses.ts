@@ -208,8 +208,8 @@ router.post('/:id/request-report-card', protect, authorize('student'), async (re
       .populate('course', 'title modules')
       .populate('batch', 'batchNumber label');
     if (!enrollment) return res.status(403).json({ success: false, message: 'Not enrolled' });
-    if (!enrollment.completedAt && (enrollment.progressPercent || 0) < 100)
-      return res.status(400).json({ success: false, message: 'Complete the course first' });
+    if (!enrollment.completedAt)
+      return res.status(400).json({ success: false, message: 'Your mentor has not yet marked this batch as complete.' });
 
     // Check if already requested
     const existing = await ReportCard.findOne({ student: req.user._id, course: req.params.id, status: { $ne: 'rejected' } });

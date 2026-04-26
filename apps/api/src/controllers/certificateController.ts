@@ -12,7 +12,8 @@ export const claimCertificate = async (req: AuthRequest, res: Response) => {
 
     const enrollment = await Enrollment.findOne({ student: req.user._id, course: courseId });
     if (!enrollment) return res.status(403).json({ success: false, message: 'Not enrolled' });
-    if (enrollment.progressPercent < 100) return res.status(400).json({ success: false, message: 'Complete the course first' });
+    if (!enrollment.completedAt)
+      return res.status(400).json({ success: false, message: 'Your mentor has not yet marked this batch as complete.' });
 
     const course = await Course.findById(courseId).populate('mentor', 'name');
     if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
