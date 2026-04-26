@@ -165,6 +165,32 @@ router.patch('/batches/:batchId/mark-day', async (req: any, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// Mark an entire batch as complete — closes the batch and stamps every enrolled
+// student's enrollment.completedAt so they can claim certificates / report cards.
+// Course completion is intentionally mentor-driven, not auto-derived from a
+// student's lesson progress.
+router.patch('/batches/:batchId/complete', async (req: any, res) => {
+  try {
+    const batch = await Batch.findById(req.params.batchId);
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    const mentor = await User.findById(req.user._id).select('assignedCourses');
+    const isAssigned = mentor?.assignedCourses?.some((c: any) => c.courseId.toString() === batch.course.toString());
+    if (!isAssigned) return res.status(403).json({ success: false, message: 'Not assigned' });
+
+    const now = new Date();
+    const result = await Enrollment.updateMany(
+      { batch: batch._id, $or: [{ completedAt: { $exists: false } }, { completedAt: null }] },
+      { $set: { completedAt: now } }
+    );
+
+    if (batch.status !== 'closed') batch.status = 'closed';
+    if (batch.totalDays && (batch.daysCompleted || 0) < batch.totalDays) batch.daysCompleted = batch.totalDays;
+    await batch.save();
+
+    res.json({ success: true, batch, studentsMarked: result.modifiedCount });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // ── Full course detail with modules (for curriculum view + lesson picker) ────
 router.get('/courses/:courseId/detail', async (req: any, res) => {
   try {

@@ -280,6 +280,7 @@ export const mentorAPI = {
   reviewAssignment: (assignmentId: string, studentId: string, data: { score: number; feedback?: string }) => api.post(`/assignments/${assignmentId}/review/${studentId}`, data),
   startBatch: (batchId: string, data?: any) => api.patch(`/mentor/batches/${batchId}/start`, data || {}),
   markBatchDay: (batchId: string) => api.patch(`/mentor/batches/${batchId}/mark-day`),
+  completeBatch: (batchId: string) => api.patch(`/mentor/batches/${batchId}/complete`),
   batchPerformance: (batchId: string) => api.get(`/mentor/batches/${batchId}/performance`),
   courseDetail: (courseId: string) => api.get(`/mentor/courses/${courseId}/detail`),
   profile: () => api.get('/mentor/profile'),

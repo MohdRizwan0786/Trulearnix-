@@ -39,7 +39,7 @@ function ScoreBar({ value, color = 'bg-primary-500' }: { value: number; color?: 
   )
 }
 
-function MentorBatchCard({ batch, isOpen, subTab, onToggle, onSubTab, onStartBatch, onMarkDay, startPending, markPending, mentorAPI }: any) {
+function MentorBatchCard({ batch, isOpen, subTab, onToggle, onSubTab, onStartBatch, onMarkDay, onCompleteBatch, startPending, markPending, completePending, mentorAPI }: any) {
   const { data: perfData, isLoading: perfLoading } = useQuery({
     queryKey: ['mentor-batch-perf', batch._id],
     queryFn: () => mentorAPI.batchPerformance(batch._id).then((r: any) => r.data),
@@ -73,10 +73,20 @@ function MentorBatchCard({ batch, isOpen, subTab, onToggle, onSubTab, onStartBat
               </button>
             )}
             {batch.status === 'active' && (
-              <button onClick={onMarkDay} disabled={markPending}
-                className="btn-outline text-xs flex items-center gap-1">
-                {markPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Mark Day Done
-              </button>
+              <>
+                <button onClick={onMarkDay} disabled={markPending}
+                  className="btn-outline text-xs flex items-center gap-1">
+                  {markPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Mark Day Done
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`Complete Batch ${batch.batchNumber}? This will close the batch and unlock certificates / report cards for all ${batch.enrolledCount || 0} enrolled students.`)) onCompleteBatch()
+                  }}
+                  disabled={completePending}
+                  className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-xl bg-green-500/15 hover:bg-green-500/25 text-green-400 border border-green-500/30 transition-colors disabled:opacity-60">
+                  {completePending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Complete Batch
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -371,6 +381,15 @@ export default function MentorCourseDetail({ params }: { params: { id: string } 
   const markDayMutation = useMutation({
     mutationFn: (batchId: string) => mentorAPI.markBatchDay(batchId),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['mentor-course-batches', id] }); toast.success('Day marked complete!') },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed'),
+  })
+
+  const completeBatchMutation = useMutation({
+    mutationFn: (batchId: string) => mentorAPI.completeBatch(batchId),
+    onSuccess: (r: any) => {
+      qc.invalidateQueries({ queryKey: ['mentor-course-batches', id] })
+      toast.success(`Batch completed — ${r?.data?.studentsMarked || 0} student(s) unlocked`)
+    },
     onError: (e: any) => toast.error(e.response?.data?.message || 'Failed'),
   })
 
@@ -763,8 +782,10 @@ export default function MentorCourseDetail({ params }: { params: { id: string } 
                   onSubTab={(t) => setBatchPerfTab(prev => ({ ...prev, [batch._id]: t }))}
                   onStartBatch={() => startBatchMutation.mutate(batch._id)}
                   onMarkDay={() => markDayMutation.mutate(batch._id)}
+                  onCompleteBatch={() => completeBatchMutation.mutate(batch._id)}
                   startPending={startBatchMutation.isPending}
                   markPending={markDayMutation.isPending}
+                  completePending={completeBatchMutation.isPending}
                   mentorAPI={mentorAPI}
                 />
               )
