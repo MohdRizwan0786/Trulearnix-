@@ -2533,6 +2533,23 @@ router.get('/achievements/:id/eligible-partners', protect, async (req: any, res)
         partners = [];
     }
 
+    // Enrich each partner with their actual Package row (name + price) from /packages
+    // so the picker and poster show admin-managed package data, not just the tier slug.
+    const tierSlugs = Array.from(new Set(partners.map((p: any) => (p.packageTier || '').toLowerCase()).filter(Boolean)));
+    if (tierSlugs.length > 0) {
+      const pkgs = await Package.find({ tier: { $in: tierSlugs } })
+        .select('name tier price badge')
+        .lean();
+      const pkgMap: Record<string, any> = {};
+      pkgs.forEach((pkg: any) => { pkgMap[(pkg.tier || '').toLowerCase()] = pkg; });
+      partners = partners.map((p: any) => {
+        const pkg = pkgMap[(p.packageTier || '').toLowerCase()];
+        return pkg
+          ? { ...p, packageName: pkg.name, packagePrice: pkg.price, packageBadge: pkg.badge }
+          : p;
+      });
+    }
+
     res.json({ success: true, partners });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });

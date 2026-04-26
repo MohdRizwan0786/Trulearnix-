@@ -74,7 +74,7 @@ export default function AchievementsPage() {
         earnedAt: new Date(),
         affiliateCode: p.affiliateCode || '',
         themeIndex: posterTarget.posterTheme || 0,
-        packageTier: p.packageTier,
+        packageTier: p.packageName || p.packageTier,
       })
       setPosterUrl(url)
     } finally { setPosterLoading(false) }
