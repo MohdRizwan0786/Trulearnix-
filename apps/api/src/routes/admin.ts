@@ -2297,41 +2297,121 @@ router.get('/qualifications/:id/qualified-partners', protect, async (req: any, r
     }
 
     let partners: any[] = [];
+    const hasWindow = !!(qual.startDate || qual.endDate);
+    const dateRange: any = {};
+    if (qual.startDate) dateRange.$gte = new Date(qual.startDate);
+    if (qual.endDate)   dateRange.$lte = new Date(qual.endDate);
 
     if (qual.metricType === 'totalEarnings') {
-      const docs = await User.find({ ...baseFilter, totalEarnings: { $gte: qual.target } })
-        .select('name email phone avatar affiliateCode packageTier totalEarnings')
-        .sort('-totalEarnings')
-        .limit(limit)
-        .lean();
-      partners = docs.map((p: any) => ({ ...p, _metric: p.totalEarnings || 0, _target: qual.target }));
+      if (hasWindow) {
+        // Sum commissions earned within the window per partner, then filter by target
+        const Commission = (await import('../models/Commission')).default as any;
+        const sums = await Commission.aggregate([
+          { $match: { status: { $ne: 'rejected' }, createdAt: dateRange } },
+          { $group: { _id: '$earner', total: { $sum: '$commissionAmount' } } },
+          { $match: { total: { $gte: qual.target } } },
+          { $sort: { total: -1 } },
+          { $limit: limit * 2 },
+        ]);
+        const ids = sums.map((s: any) => s._id);
+        const users = await User.find({ _id: { $in: ids }, ...baseFilter })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .lean();
+        const userMap: Record<string, any> = {};
+        users.forEach((u: any) => { userMap[u._id.toString()] = u; });
+        partners = sums
+          .map((s: any) => userMap[s._id.toString()] ? { ...userMap[s._id.toString()], _metric: s.total, _target: qual.target } : null)
+          .filter(Boolean)
+          .slice(0, limit);
+      } else {
+        const docs = await User.find({ ...baseFilter, totalEarnings: { $gte: qual.target } })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .sort('-totalEarnings')
+          .limit(limit)
+          .lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: p.totalEarnings || 0, _target: qual.target }));
+      }
     } else if (qual.metricType === 'l1Count' || qual.metricType === 'l1Paid') {
-      const matchStage: any = { upline1: { $exists: true, $ne: null } };
-      if (qual.metricType === 'l1Paid') matchStage.packageTier = { $ne: 'free' };
-      const counts = await User.aggregate([
-        { $match: matchStage },
-        { $group: { _id: '$upline1', cnt: { $sum: 1 } } },
-        { $match: { cnt: { $gte: qual.target } } },
-        { $sort: { cnt: -1 } },
-        { $limit: limit * 2 },
-      ]);
-      const ids = counts.map((c: any) => c._id);
-      const users = await User.find({ _id: { $in: ids }, ...baseFilter })
-        .select('name email phone avatar affiliateCode packageTier totalEarnings')
-        .lean();
-      const userMap: Record<string, any> = {};
-      users.forEach((u: any) => { userMap[u._id.toString()] = u; });
-      partners = counts
-        .map((c: any) => userMap[c._id.toString()] ? { ...userMap[c._id.toString()], _metric: c.cnt, _target: qual.target } : null)
-        .filter(Boolean)
-        .slice(0, limit);
+      if (hasWindow) {
+        let counts: any[];
+        if (qual.metricType === 'l1Count') {
+          // L1 partners who joined within the window
+          counts = await User.aggregate([
+            { $match: { upline1: { $exists: true, $ne: null }, createdAt: dateRange } },
+            { $group: { _id: '$upline1', cnt: { $sum: 1 } } },
+            { $match: { cnt: { $gte: qual.target } } },
+            { $sort: { cnt: -1 } },
+            { $limit: limit * 2 },
+          ]);
+        } else {
+          // l1Paid: count distinct L1 buyers (paid purchase within window) per upline
+          const PackagePurchase = (await import('../models/PackagePurchase')).default as any;
+          counts = await PackagePurchase.aggregate([
+            { $match: { status: 'paid', createdAt: dateRange } },
+            { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'buyer' } },
+            { $unwind: '$buyer' },
+            { $match: { 'buyer.upline1': { $exists: true, $ne: null } } },
+            { $group: { _id: { upline: '$buyer.upline1', buyer: '$buyer._id' } } },
+            { $group: { _id: '$_id.upline', cnt: { $sum: 1 } } },
+            { $match: { cnt: { $gte: qual.target } } },
+            { $sort: { cnt: -1 } },
+            { $limit: limit * 2 },
+          ]);
+        }
+        const ids = counts.map((c: any) => c._id);
+        const users = await User.find({ _id: { $in: ids }, ...baseFilter })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .lean();
+        const userMap: Record<string, any> = {};
+        users.forEach((u: any) => { userMap[u._id.toString()] = u; });
+        partners = counts
+          .map((c: any) => userMap[c._id.toString()] ? { ...userMap[c._id.toString()], _metric: c.cnt, _target: qual.target } : null)
+          .filter(Boolean)
+          .slice(0, limit);
+      } else {
+        const matchStage: any = { upline1: { $exists: true, $ne: null } };
+        if (qual.metricType === 'l1Paid') matchStage.packageTier = { $ne: 'free' };
+        const counts = await User.aggregate([
+          { $match: matchStage },
+          { $group: { _id: '$upline1', cnt: { $sum: 1 } } },
+          { $match: { cnt: { $gte: qual.target } } },
+          { $sort: { cnt: -1 } },
+          { $limit: limit * 2 },
+        ]);
+        const ids = counts.map((c: any) => c._id);
+        const users = await User.find({ _id: { $in: ids }, ...baseFilter })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .lean();
+        const userMap: Record<string, any> = {};
+        users.forEach((u: any) => { userMap[u._id.toString()] = u; });
+        partners = counts
+          .map((c: any) => userMap[c._id.toString()] ? { ...userMap[c._id.toString()], _metric: c.cnt, _target: qual.target } : null)
+          .filter(Boolean)
+          .slice(0, limit);
+      }
     } else if (qual.metricType === 'tierUpgrade') {
-      const docs = await User.find({ ...baseFilter, packageTier: { $in: ['pro', 'proedge', 'elite', 'supreme'] } })
-        .select('name email phone avatar affiliateCode packageTier totalEarnings')
-        .sort('-totalEarnings')
-        .limit(limit)
-        .lean();
-      partners = docs.map((p: any) => ({ ...p, _metric: 1, _target: qual.target }));
+      if (hasWindow) {
+        // Partners who upgraded to a paid tier within the window
+        const PackagePurchase = (await import('../models/PackagePurchase')).default as any;
+        const buyerIds = await PackagePurchase.distinct('user', {
+          status: 'paid',
+          packageTier: { $in: ['pro', 'proedge', 'elite', 'supreme'] },
+          createdAt: dateRange,
+        });
+        const docs = await User.find({ _id: { $in: buyerIds }, ...baseFilter })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .sort('-totalEarnings')
+          .limit(limit)
+          .lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: 1, _target: qual.target }));
+      } else {
+        const docs = await User.find({ ...baseFilter, packageTier: { $in: ['pro', 'proedge', 'elite', 'supreme'] } })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .sort('-totalEarnings')
+          .limit(limit)
+          .lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: 1, _target: qual.target }));
+      }
     }
 
     res.json({

@@ -690,15 +690,63 @@ router.get('/link', protect, affiliateGuard, async (req: any, res) => {
 router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
   try {
     const Qualification = (await import('../models/Qualification')).default as any;
+    const Commission = (await import('../models/Commission')).default as any;
+    const PackagePurchase = (await import('../models/PackagePurchase')).default as any;
     const user = await User.findById(req.user._id).select('name avatar totalEarnings packageTier affiliateCode');
     const l1Count = await User.countDocuments({ upline1: req.user._id });
     const l1Paid = await User.countDocuments({ upline1: req.user._id, packageTier: { $ne: 'free' } });
 
-    const metricMap: Record<string, number> = {
+    const lifetimeMetricMap: Record<string, number> = {
       l1Paid,
       totalEarnings: user?.totalEarnings || 0,
       l1Count,
       tierUpgrade: ['pro','proedge','elite','supreme'].includes(user?.packageTier || '') ? 999999 : 0,
+    };
+
+    // Compute a milestone's metric scoped to its [startDate, endDate] window.
+    // When a milestone has no window at all → use lifetime totals (legacy behavior).
+    const scopedMetric = async (m: any): Promise<number> => {
+      if (!m.startDate && !m.endDate) return lifetimeMetricMap[m.metricType] ?? 0;
+
+      const dateRange: any = {};
+      if (m.startDate) dateRange.$gte = new Date(m.startDate);
+      if (m.endDate)   dateRange.$lte = new Date(m.endDate);
+
+      switch (m.metricType) {
+        case 'totalEarnings': {
+          const agg = await Commission.aggregate([
+            { $match: { earner: req.user._id, status: { $ne: 'rejected' }, createdAt: dateRange } },
+            { $group: { _id: null, total: { $sum: '$commissionAmount' } } },
+          ]);
+          return agg[0]?.total || 0;
+        }
+        case 'l1Paid': {
+          // Distinct L1 partners who completed a paid package purchase within window
+          const directIds = await User.find({ upline1: req.user._id }).distinct('_id');
+          if (directIds.length === 0) return 0;
+          const buyers = await PackagePurchase.distinct('user', {
+            user: { $in: directIds },
+            status: 'paid',
+            createdAt: dateRange,
+          });
+          return buyers.length;
+        }
+        case 'l1Count': {
+          // L1 partners who joined (signed up) within the window
+          return await User.countDocuments({ upline1: req.user._id, createdAt: dateRange });
+        }
+        case 'tierUpgrade': {
+          // User upgraded to a paid tier within the window
+          const upgraded = await PackagePurchase.exists({
+            user: req.user._id,
+            status: 'paid',
+            packageTier: { $in: ['pro','proedge','elite','supreme'] },
+            createdAt: dateRange,
+          });
+          return upgraded ? 999999 : 0;
+        }
+        default: return 0;
+      }
     };
 
     // Load from DB, then filter by active campaign window (startDate/endDate optional);
@@ -713,8 +761,8 @@ router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
 
     let milestones: any[];
     if (dbMilestones.length > 0) {
-      milestones = dbMilestones.map((m: any) => {
-        const current = metricMap[m.metricType] ?? 0;
+      milestones = await Promise.all(dbMilestones.map(async (m: any) => {
+        const current = await scopedMetric(m);
         return {
           id: m._id, title: m.title, description: m.description,
           icon: m.icon, reward: m.reward, rewardType: m.rewardType,
@@ -724,7 +772,7 @@ router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
           order: m.order,
           startDate: m.startDate || null, endDate: m.endDate || null,
         };
-      });
+      }));
     } else {
       milestones = [
         { id: 'first_sale', title: 'First Sale', description: 'Make your first referral sale', icon: '🎯', reward: '₹500 Bonus', rewardType: 'bonus', target: 1, current: l1Paid, unit: 'paid referrals', achieved: l1Paid >= 1, badgeGradient: 'from-sky-500 to-blue-600', certificateEnabled: true },
