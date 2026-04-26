@@ -143,7 +143,7 @@ router.get('/:id/livekit-token', protect, async (req: any, res) => {
     at.addGrant({
       roomJoin: true,
       room: roomName,
-      canPublish: isMentor,
+      canPublish: true,
       canSubscribe: true,
       canPublishData: true,
     });
