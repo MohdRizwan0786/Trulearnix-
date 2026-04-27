@@ -5,7 +5,7 @@ import EmiInstallment from '../models/EmiInstallment';
 import Lead from '../models/Lead';
 import SalesOrder from '../models/SalesOrder';
 import { sendPurchaseWelcomeEmail } from './emailService';
-import { sendWhatsAppText } from './whatsappMetaService';
+import { sendPurchaseWelcomeTemplate } from './whatsappMetaService';
 
 // ── Activate order: create purchase, commissions, notify customer ─────────────
 export async function activateOrder(order: any, paymentMethod = 'manual', merchantOrderId?: string) {
@@ -130,9 +130,16 @@ export async function activateOrder(order: any, paymentMethod = 'manual', mercha
       try { await sendPurchaseWelcomeEmail((cust as any).email, (cust as any).name, pkgName, loginEmail, tempPass); } catch {}
       if (tempPass) await SalesOrder.findByIdAndUpdate(order._id, { $unset: { customerTempPassword: 1 } });
       try {
-        const passLine = tempPass ? `\nPassword: ${tempPass}` : '';
-        const msg = `Hi ${(cust as any).name}! 🎉 Your ${pkgName} at TruLearnix is now active.\nLogin: trulearnix.com/login\nEmail: ${loginEmail}${passLine}\n- Team TruLearnix`;
-        await sendWhatsAppText((cust as any).phone, msg);
+        if ((cust as any).phone) {
+          await sendPurchaseWelcomeTemplate(
+            (cust as any).phone,
+            (cust as any).name,
+            pkgName,
+            loginEmail,
+            tempPass || '(your registration password)',
+            `${process.env.WEB_URL || 'https://trulearnix.com'}/login`,
+          );
+        }
       } catch {}
     }
   }

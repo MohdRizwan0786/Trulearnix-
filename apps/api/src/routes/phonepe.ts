@@ -12,7 +12,7 @@ import Transaction from '../models/Transaction';
 import Commission from '../models/Commission';
 import EmiInstallment from '../models/EmiInstallment';
 import { sendPurchaseWelcomeEmail, sendSponsorPurchaseAlert } from '../services/emailService';
-import { sendWhatsAppText } from '../services/whatsappMetaService';
+import { sendPurchaseWelcomeTemplate, sendSponsorSaleTemplate } from '../services/whatsappMetaService';
 import redisClient from '../config/redis';
 import { checkEarningMilestones } from '../services/milestoneService';
 
@@ -666,10 +666,10 @@ router.get('/status/:merchantOrderId', protect, async (req: any, res) => {
           const pkgName = (pkgDoc as any)?.name || pkgTier;
           const comm = await Commission.findOne({ buyer: buyerForNotify._id, earner: sponsor._id, packagePurchaseId: purchase._id, level: 1 }).sort({ createdAt: -1 });
           const commAmount = comm?.commissionAmount || 0;
-          const waToSponsor = `💰 *New Sale — Commission Earned!*\n\nHi *${sponsor.name}*! Your referral just purchased a package.\n\n👤 *Member:* ${buyerForNotify.name}\n📦 *Package:* ${pkgName}${commAmount > 0 ? `\n💰 *Commission:* ₹${commAmount}` : ''}\n\n👉 ${process.env.WEB_URL}/partner/earnings`;
+          const earningsUrl = `${process.env.WEB_URL}/partner/earnings`;
           await Promise.all([
             sendSponsorPurchaseAlert(sponsor.email, sponsor.name, buyerForNotify.name, buyerForNotify.email, pkgName, commAmount),
-            sponsor.phone ? sendWhatsAppText(sponsor.phone, waToSponsor) : Promise.resolve(),
+            sponsor.phone ? sendSponsorSaleTemplate(sponsor.phone, sponsor.name || '', buyerForNotify.name, pkgName, commAmount, earningsUrl) : Promise.resolve(),
           ]);
         }
       } catch (notifyErr: any) {
@@ -701,8 +701,8 @@ router.get('/status/:merchantOrderId', protect, async (req: any, res) => {
 
         try { await sendPurchaseWelcomeEmail(user.email, user.name, pkgName, user.email, password); } catch {}
         if (user.phone) {
-          const waMsg = `🎉 Welcome to TruLearnix, ${user.name.split(' ')[0]}!\n\nYour *${pkgName} Package* is now active!\n\n📧 Email: ${user.email}\n🔑 Password: *${password}*\n\n👉 Login: ${process.env.WEB_URL}/login\n\n⚠️ Please change your password after first login.\n\nWelcome to the family! 🚀`;
-          try { await sendWhatsAppText(user.phone, waMsg); } catch {}
+          const loginUrl = `${process.env.WEB_URL}/login`;
+          try { await sendPurchaseWelcomeTemplate(user.phone, user.name, pkgName, user.email, password, loginUrl); } catch {}
         }
       }
 
@@ -787,10 +787,10 @@ router.get('/status/:merchantOrderId', protect, async (req: any, res) => {
             const courseName = (courseDoc as any)?.title || 'a course';
             const comm = await Commission.findOne({ buyer: buyerForNotify._id, earner: affiliate._id, paymentId: payment._id }).sort({ createdAt: -1 });
             const commAmount = comm?.commissionAmount || 0;
-            const waToAffiliate = `💰 *New Sale — Commission Earned!*\n\nHi *${affiliate.name}*! Your referral just enrolled in a course.\n\n👤 *Member:* ${buyerForNotify.name}\n📦 *Course:* ${courseName}${commAmount > 0 ? `\n💰 *Commission:* ₹${commAmount}` : ''}\n\n👉 ${process.env.WEB_URL}/partner/earnings`;
+            const earningsUrl = `${process.env.WEB_URL}/partner/earnings`;
             await Promise.all([
               sendSponsorPurchaseAlert(affiliate.email, affiliate.name, buyerForNotify.name, buyerForNotify.email, courseName, commAmount),
-              affiliate.phone ? sendWhatsAppText(affiliate.phone, waToAffiliate) : Promise.resolve(),
+              affiliate.phone ? sendSponsorSaleTemplate(affiliate.phone, affiliate.name || '', buyerForNotify.name, courseName, commAmount, earningsUrl) : Promise.resolve(),
             ]);
           }
         }
@@ -815,8 +815,8 @@ router.get('/status/:merchantOrderId', protect, async (req: any, res) => {
             const courseName = (courseDoc as any)?.title || 'your course';
             try { await sendPurchaseWelcomeEmail(buyer.email, buyer.name, courseName, buyer.email, password); } catch {}
             if (buyer.phone) {
-              const waMsg = `🎉 Welcome to TruLearnix, ${buyer.name.split(' ')[0]}!\n\nYou are now enrolled in *${courseName}*!\n\n📧 Email: ${buyer.email}\n🔑 Password: *${password}*\n\n👉 Login & start learning: ${process.env.WEB_URL}/login\n\n⚠️ Please change your password after first login.`;
-              try { await sendWhatsAppText(buyer.phone, waMsg); } catch {}
+              const loginUrl = `${process.env.WEB_URL}/login`;
+              try { await sendPurchaseWelcomeTemplate(buyer.phone, buyer.name, courseName, buyer.email, password, loginUrl); } catch {}
             }
           }
         }
