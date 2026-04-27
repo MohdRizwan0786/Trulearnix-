@@ -627,7 +627,7 @@ router.post('/verify', protect, async (req: any, res) => {
           const buyer = await User.findById(req.user._id).select('name email phone');
           if (!buyer) return;
           const { sendInvoiceEmail } = await import('../services/emailService');
-          const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+          const { sendInvoiceTemplate } = await import('../services/whatsappMetaService');
           const pkgName = pkg?.name || tier;
           const invoiceNumber = `TLX-${purchase._id.toString().slice(-8).toUpperCase()}`;
           const invoiceDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -636,7 +636,6 @@ router.post('/verify', protect, async (req: any, res) => {
           if (pType === 'token_emi' || pType === 'token_full') {
             const tokenAmt = (purchase as any).tokenAmount || purchase.totalAmount;
             const fullPrice = (purchase as any).fullPackagePrice || 0;
-            const remaining = fullPrice - tokenAmt;
             await sendInvoiceEmail(buyer.email, {
               invoiceNumber, invoiceDate,
               userName: buyer.name, userEmail: buyer.email,
@@ -646,9 +645,8 @@ router.post('/verify', protect, async (req: any, res) => {
               fullPackagePrice: fullPrice,
             });
             if (buyer.phone) {
-              const modeStr = pType === 'token_emi' ? 'EMI installments' : 'full payment';
-              const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! Advance/Token received.\n\n📦 *Package:* ${pkgName}\n💰 *Token Paid:* ₹${tokenAmt}\n💳 *Balance:* ₹${remaining} (via ${modeStr})\n\n📄 *Invoice No:* ${invoiceNumber}`;
-              await sendWhatsAppText(buyer.phone, waMsg);
+              const desc = `${pkgName} — Token/Advance Payment`;
+              await sendInvoiceTemplate(buyer.phone, buyer.name, desc, tokenAmt, invoiceNumber);
             }
           } else if (pType === 'emi') {
             const nextInst = await EmiInstallment.findOne({ packagePurchase: purchase._id, installmentNumber: 2 });
@@ -663,8 +661,8 @@ router.post('/verify', protect, async (req: any, res) => {
               totalInstallments,
             });
             if (buyer.phone) {
-              const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! EMI Installment 1 of ${totalInstallments} received.\n\n📦 *Package:* ${pkgName}\n💰 *Paid Now:* ₹${installmentAmt}\n\n📄 *Invoice No:* ${invoiceNumber}`;
-              await sendWhatsAppText(buyer.phone, waMsg);
+              const desc = `${pkgName} — EMI Installment 1 of ${totalInstallments}`;
+              await sendInvoiceTemplate(buyer.phone, buyer.name, desc, installmentAmt, invoiceNumber);
             }
           } else {
             const totalPaid = purchase.totalAmount || (purchase.amount + purchase.gstAmount);
@@ -677,8 +675,8 @@ router.post('/verify', protect, async (req: any, res) => {
               gstAmount: purchase.gstAmount,
             });
             if (buyer.phone) {
-              const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! Payment received successfully.\n\n📦 *Package:* ${pkgName}\n💰 *Amount Paid:* ₹${totalPaid}\n\n📄 *Invoice No:* ${invoiceNumber}`;
-              await sendWhatsAppText(buyer.phone, waMsg);
+              const desc = `${pkgName} — Full Payment`;
+              await sendInvoiceTemplate(buyer.phone, buyer.name, desc, totalPaid, invoiceNumber);
             }
           }
         } catch (e: any) {
@@ -911,7 +909,7 @@ router.post('/emi/verify', protect, async (req: any, res) => {
         const buyer = await User.findById(req.user._id).select('name email phone');
         if (!buyer) return;
         const { sendInvoiceEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendInvoiceTemplate } = await import('../services/whatsappMetaService');
 
         const emiPkg = purchaseForComm?.package as any;
         const pkgName = emiPkg?.name || purchaseForComm?.packageTier || 'Package';
@@ -937,8 +935,11 @@ router.post('/emi/verify', protect, async (req: any, res) => {
         });
 
         if (buyer.phone) {
-          const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! EMI Installment ${installment.installmentNumber} of ${(installment as any).totalInstallments || '?'} paid.\n\n📦 *Package:* ${pkgName}\n💰 *Amount:* ₹${installment.amount}${allPaid ? '\n\n✅ *All EMIs paid! Full access restored.*' : nextInst ? `\n📅 *Next Due:* ${new Date((nextInst as any).dueDate).toLocaleDateString('en-IN')} — ₹${(nextInst as any).amount}` : ''}\n\n📄 *Invoice No:* ${invoiceNumber}`;
-          await sendWhatsAppText(buyer.phone, waMsg);
+          const totalInst = (installment as any).totalInstallments || '?';
+          const desc = allPaid
+            ? `${pkgName} — EMI ${installment.installmentNumber}/${totalInst} (Final, fully paid)`
+            : `${pkgName} — EMI Installment ${installment.installmentNumber}/${totalInst}`;
+          await sendInvoiceTemplate(buyer.phone, buyer.name, desc, installment.amount, invoiceNumber);
         }
       } catch (e: any) {
         console.error('[emi-invoice-notify]', e.message);

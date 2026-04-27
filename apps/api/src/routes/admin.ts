@@ -912,7 +912,7 @@ router.patch('/withdrawals/:id/hr-approve', async (req: any, res) => {
       try {
         const { notify } = await import('../services/pushService');
         const { sendWithdrawalSuccessEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendWithdrawalSuccessTemplate } = await import('../services/whatsappMetaService');
         const w = withdrawal as any;
         const partner = w.user as any;
         const amt = w.netAmount || w.amount;
@@ -938,14 +938,14 @@ router.patch('/withdrawals/:id/hr-approve', async (req: any, res) => {
           }
 
           if (partner?.phone) {
-            const msg = `*TruLearnix — Withdrawal Successful* ✅\n\nHi ${partner.name},\n\n` +
-              `Your withdrawal of *₹${w.amount.toLocaleString('en-IN')}* has been processed!\n\n` +
-              `💰 *Net Credited:* ₹${w.netAmount.toLocaleString('en-IN')}\n` +
-              `🔖 *Transaction ID:* ${txId}\n` +
-              `📅 *Date & Time:* ${dateStr}\n` +
-              `📊 TDS (2%): ₹${w.tdsAmount.toLocaleString('en-IN')} | Gateway: ₹${w.gatewayFee.toFixed(2)}\n\n` +
-              `Amount credited to your registered bank account.\n\nFor queries: support@trulearnix.com`;
-            await sendWhatsAppText(partner.phone, msg).catch(() => {});
+            await sendWithdrawalSuccessTemplate(
+              partner.phone,
+              partner.name,
+              w.amount.toLocaleString('en-IN'),
+              w.netAmount.toLocaleString('en-IN'),
+              txId,
+              dateStr,
+            ).catch(() => {});
           }
         }
       } catch {}
@@ -1014,7 +1014,7 @@ router.patch('/withdrawals/:id/complete', async (req: any, res) => {
     setImmediate(async () => {
       try {
         const { sendWithdrawalSuccessEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendWithdrawalSuccessTemplate } = await import('../services/whatsappMetaService');
         const partner = withdrawal.user as any;
         const txId = transactionRef || withdrawal.razorpayPayoutId || 'N/A';
         const dateStr = completedAt.toLocaleString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -1035,14 +1035,14 @@ router.patch('/withdrawals/:id/complete', async (req: any, res) => {
         }
 
         if (partner?.phone) {
-          const msg = `*TruLearnix — Withdrawal Successful* ✅\n\nHi ${partner.name},\n\n` +
-            `Your withdrawal of *₹${withdrawal.amount.toLocaleString('en-IN')}* has been processed!\n\n` +
-            `💰 *Net Credited:* ₹${withdrawal.netAmount.toLocaleString('en-IN')}\n` +
-            `🔖 *Transaction ID:* ${txId}\n` +
-            `📅 *Date & Time:* ${dateStr}\n` +
-            `📊 TDS (2%): ₹${withdrawal.tdsAmount.toLocaleString('en-IN')} | Gateway: ₹${withdrawal.gatewayFee.toFixed(2)}\n\n` +
-            `Amount credited to your registered bank account.\n\nFor queries: support@trulearnix.com`;
-          await sendWhatsAppText(partner.phone, msg).catch(() => {});
+          await sendWithdrawalSuccessTemplate(
+            partner.phone,
+            partner.name,
+            withdrawal.amount.toLocaleString('en-IN'),
+            withdrawal.netAmount.toLocaleString('en-IN'),
+            txId,
+            dateStr,
+          ).catch(() => {});
         }
       } catch {}
     });
@@ -2684,7 +2684,7 @@ router.patch('/mentor-salaries/:id/mark-paid', async (req: any, res) => {
     setImmediate(async () => {
       try {
         const { sendSalaryPaidEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendSalaryPaidTemplate } = await import('../services/whatsappMetaService');
         const mentor = salary.mentor as any;
         const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June',
           'July', 'August', 'September', 'October', 'November', 'December'];
@@ -2706,12 +2706,15 @@ router.patch('/mentor-salaries/:id/mark-paid', async (req: any, res) => {
         }
 
         if (mentor?.phone) {
-          const msg = `*TruLearnix — Salary Credited* ✅\n\nHi ${mentor.name},\n\nYour salary for *${monthName} ${salary.year}* has been credited.\n\n` +
-            `💰 *Net Amount:* ₹${salary.netAmount.toLocaleString('en-IN')}\n` +
-            `📊 Gross: ₹${salary.amount.toLocaleString('en-IN')} | TDS (${salary.tdsRate}%): ₹${salary.tds.toLocaleString('en-IN')}\n` +
-            (salary.workingDays > 0 ? `📅 Attendance: Present ${salary.presentDays} | Absent ${salary.absentDays} | Half-day ${salary.halfDays} | Holiday ${salary.holidayDays}\n` : '') +
-            `🗓️ Slip: ${salary.slipNo}\n\nFor queries: hr@trulearnix.com`;
-          await sendWhatsAppText(mentor.phone, msg).catch(() => {});
+          await sendSalaryPaidTemplate(
+            mentor.phone,
+            mentor.name,
+            monthName,
+            salary.year,
+            salary.netAmount.toLocaleString('en-IN'),
+            salary.amount.toLocaleString('en-IN'),
+            salary.slipNo,
+          ).catch(() => {});
         }
       } catch {}
     });
@@ -2856,7 +2859,7 @@ router.patch('/employee-salaries/:id/mark-paid', async (req: any, res) => {
     setImmediate(async () => {
       try {
         const { sendSalaryPaidEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendSalaryPaidTemplate } = await import('../services/whatsappMetaService');
         const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June',
           'July', 'August', 'September', 'October', 'November', 'December'];
         const monthName = MONTHS[salary.month] || String(salary.month);
@@ -2877,12 +2880,15 @@ router.patch('/employee-salaries/:id/mark-paid', async (req: any, res) => {
         }
 
         if (emp?.phone) {
-          const msg = `*TruLearnix — Salary Credited* ✅\n\nHi ${emp.name},\n\nYour salary for *${monthName} ${salary.year}* has been credited.\n\n` +
-            `💰 *Net Amount:* ₹${salary.netAmount.toLocaleString('en-IN')}\n` +
-            `📊 Gross: ₹${salary.grossAmount.toLocaleString('en-IN')} | TDS (${salary.tdsRate}%): ₹${salary.tds.toLocaleString('en-IN')}\n` +
-            (salary.workingDays > 0 ? `📅 Attendance: Present ${salary.presentDays} | Absent ${salary.absentDays} | Half-day ${salary.halfDays} | Holiday ${salary.holidayDays}\n` : '') +
-            `🗓️ Slip: ${salary.slipNo}\n\nFor queries: hr@trulearnix.com`;
-          await sendWhatsAppText(emp.phone, msg).catch(() => {});
+          await sendSalaryPaidTemplate(
+            emp.phone,
+            emp.name,
+            monthName,
+            salary.year,
+            salary.netAmount.toLocaleString('en-IN'),
+            salary.grossAmount.toLocaleString('en-IN'),
+            salary.slipNo,
+          ).catch(() => {});
         }
       } catch {}
     });
