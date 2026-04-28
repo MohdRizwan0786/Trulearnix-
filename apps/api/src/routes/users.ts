@@ -3,7 +3,7 @@ import User from '../models/User';
 import Enrollment from '../models/Enrollment';
 import Package from '../models/Package';
 import { protect } from '../middleware/auth';
-import { uploadToS3 } from '../services/s3Service';
+import { uploadToS3, processAndSaveUpload } from '../services/s3Service';
 import { getOrCreateActiveBatch, onStudentEnrolled } from '../services/batchService';
 import { getSelfEnrollStatus, SELF_ENROLL_CAP } from '../services/enrollmentService';
 
@@ -44,11 +44,16 @@ router.put('/me', protect, async (req: any, res) => {
 
 router.post('/avatar', protect, uploadToS3.single('avatar'), async (req: any, res) => {
   try {
-    const fileUrl = (req.file as any)?.location;
-    if (!fileUrl) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    const { filename, cdnUrl } = await processAndSaveUpload(req.file);
+    const apiUrl = process.env.API_URL || 'https://api.trulearnix.com';
+    const fileUrl = cdnUrl || `${apiUrl}/uploads/${filename}`;
     await User.findByIdAndUpdate(req.user._id, { avatar: fileUrl });
     res.json({ success: true, avatar: fileUrl });
-  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e: any) {
+    console.error('[avatar-upload]', e?.message);
+    res.status(500).json({ success: false, message: e?.message || 'Avatar upload failed' });
+  }
 });
 
 router.get('/enrolled-courses', protect, async (req: any, res) => {
