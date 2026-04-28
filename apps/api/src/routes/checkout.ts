@@ -13,6 +13,7 @@ import Coupon from '../models/Coupon';
 import Transaction from '../models/Transaction';
 import Commission from '../models/Commission';
 import EmiInstallment from '../models/EmiInstallment';
+import { ensureCompulsoryEnrollments } from '../services/enrollmentService';
 import PlatformSettings from '../models/PlatformSettings';
 import { getOrCreateActiveBatch, onStudentEnrolled } from '../services/batchService';
 import { checkEarningMilestones } from '../services/milestoneService';
@@ -559,6 +560,9 @@ router.post('/verify', protect, async (req: any, res) => {
         packageSuspended: false,
         $inc: { xpPoints: 500 },
       });
+      ensureCompulsoryEnrollments(req.user._id.toString()).catch(err =>
+        console.error('[checkout-compulsory]', err?.message)
+      );
 
       // ── NON-CRITICAL: EMI schedule ────────────────────────────────────────
       if (purchase.isEmi) {

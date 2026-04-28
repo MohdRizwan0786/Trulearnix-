@@ -7,6 +7,7 @@ export interface IEnrollment extends Document {
   paymentId?: string;
   orderId?: string;
   amount: number;
+  source?: 'self' | 'compulsory' | 'admin' | 'paid';
   progress: {
     lessonId: mongoose.Types.ObjectId;
     completedAt: Date;
@@ -31,6 +32,7 @@ const EnrollmentSchema = new Schema<IEnrollment>({
   paymentId: String,
   orderId: String,
   amount: { type: Number, required: true },
+  source: { type: String, enum: ['self', 'compulsory', 'admin', 'paid'], default: 'self' },
   progress: [{
     lessonId: { type: Schema.Types.ObjectId },
     completedAt: { type: Date, default: Date.now }

@@ -14,10 +14,11 @@ import LiveClass from '../models/LiveClass';
 import Batch from '../models/Batch';
 import Enrollment from '../models/Enrollment';
 import PlatformSettings from '../models/PlatformSettings';
-import { getOrCreateActiveBatch, createPendingBatch } from '../services/batchService';
+import { getOrCreateActiveBatch, createPendingBatch, onStudentEnrolled } from '../services/batchService';
 import { protect, authorize } from '../middleware/auth';
 import { initiateWithdrawalPayout, isPayoutConfigured } from '../services/razorpayPayout';
 import { activateOrder } from '../services/orderActivation';
+import { ensureCompulsoryEnrollments, backfillCompulsoryEnrollments } from '../services/enrollmentService';
 
 const router = Router();
 router.use(protect, authorize('superadmin', 'admin', 'manager', 'mentor', 'salesperson', 'employee', 'department_head', 'team_lead'));
@@ -141,6 +142,11 @@ router.patch('/users/:id/package', async (req: any, res) => {
     const rates: Record<string, number> = { free: 0, starter: 10, pro: 15, elite: 22, supreme: 30 };
     const updates: any = { packageTier, commissionRate: rates[packageTier] || 0, isAffiliate: packageTier !== 'free', packagePurchasedAt: new Date() };
     const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true }).select('-password');
+    if (packageTier && packageTier !== 'free') {
+      ensureCompulsoryEnrollments(req.params.id).catch(err =>
+        console.error('[admin-set-package-compulsory]', err?.message)
+      );
+    }
     res.json({ success: true, user });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -375,6 +381,7 @@ router.delete('/courses/:id', async (req, res) => {
 // Admin: update course
 router.put('/courses/:id', async (req: any, res) => {
   try {
+    const before = await Course.findById(req.params.id).select('isCompulsory status');
     const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: false });
     if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
 
@@ -384,7 +391,85 @@ router.put('/courses/:id', async (req: any, res) => {
       if (!existingBatch) await getOrCreateActiveBatch(course._id.toString());
     }
 
+    // If compulsory just got enabled (or course just got published while compulsory), backfill
+    const justBecameCompulsory = course.isCompulsory && course.status === 'published'
+      && (!before?.isCompulsory || before?.status !== 'published');
+    if (justBecameCompulsory) {
+      backfillCompulsoryEnrollments(course._id.toString()).catch(err =>
+        console.error('[course-update-backfill]', err?.message)
+      );
+    }
+
     res.json({ success: true, course });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: toggle a course's "compulsory" flag and backfill enrollments for all paid learners
+router.patch('/courses/:id/compulsory', async (req: any, res) => {
+  try {
+    const { isCompulsory } = req.body;
+    const course = await Course.findByIdAndUpdate(
+      req.params.id,
+      { isCompulsory: !!isCompulsory },
+      { new: true }
+    );
+    if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
+
+    if (course.isCompulsory && course.status === 'published') {
+      const enrolled = await backfillCompulsoryEnrollments(course._id.toString());
+      return res.json({ success: true, course, enrolledCount: enrolled, message: `Course set as compulsory. Auto-enrolled ${enrolled} new learner${enrolled === 1 ? '' : 's'}.` });
+    }
+    res.json({ success: true, course, enrolledCount: 0, message: course.isCompulsory ? 'Marked compulsory (publish the course to auto-enroll learners).' : 'Removed from compulsory list.' });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: list a user's enrollments (for the enrollment manager UI)
+router.get('/users/:id/enrollments', async (req: any, res) => {
+  try {
+    const enrollments = await Enrollment.find({ student: req.params.id })
+      .populate('course', 'title thumbnail category level status isCompulsory')
+      .populate('batch', 'label batchNumber status')
+      .sort('-createdAt');
+    res.json({ success: true, enrollments });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: enroll a user in a course (bypasses the 2-cap, marks source=admin)
+router.post('/users/:id/enrollments', async (req: any, res) => {
+  try {
+    const { courseId } = req.body;
+    if (!courseId) return res.status(400).json({ success: false, message: 'courseId required' });
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
+    const existing = await Enrollment.findOne({ student: req.params.id, course: courseId });
+    if (existing) return res.status(400).json({ success: false, message: 'Already enrolled' });
+
+    const activeBatch = (course as any).batchSettings?.enabled
+      ? await getOrCreateActiveBatch(courseId)
+      : null;
+    const enrollment = await Enrollment.create({
+      student: req.params.id,
+      course: courseId,
+      amount: 0,
+      source: course.isCompulsory ? 'compulsory' : 'admin',
+      paymentId: 'admin_override',
+      ...(activeBatch ? { batch: activeBatch._id } : {}),
+    });
+    if (activeBatch) await onStudentEnrolled(activeBatch._id.toString());
+    await Course.findByIdAndUpdate(courseId, { $inc: { enrolledCount: 1 } });
+    res.status(201).json({ success: true, enrollment });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: remove an enrollment (un-enroll a learner from a course)
+router.delete('/enrollments/:enrollmentId', async (req: any, res) => {
+  try {
+    const enrollment = await Enrollment.findById(req.params.enrollmentId);
+    if (!enrollment) return res.status(404).json({ success: false, message: 'Enrollment not found' });
+    const courseId = enrollment.course;
+    await enrollment.deleteOne();
+    await Course.findByIdAndUpdate(courseId, { $inc: { enrolledCount: -1 } });
+    res.json({ success: true, message: 'Enrollment removed' });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 

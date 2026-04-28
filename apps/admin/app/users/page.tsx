@@ -9,7 +9,8 @@ import {
   Search, UserCheck, UserX, Shield, GraduationCap, BookOpen,
   Users, UserCog, TrendingUp, ArrowUpRight, ArrowDownRight,
   ChevronLeft, ChevronRight, Filter, Banknote, X, Loader2, Building2,
-  UserPlus, IndianRupee, Eye, EyeOff, Star, Award, Link2, HeartHandshake, Pencil
+  UserPlus, IndianRupee, Eye, EyeOff, Star, Award, Link2, HeartHandshake, Pencil,
+  Pin, Plus, Trash2
 } from 'lucide-react'
 import { format, isThisMonth } from 'date-fns'
 
@@ -173,6 +174,50 @@ export default function UsersPage() {
   const [createForm, setCreateForm] = useState({ name: '', email: '', phone: '', password: '', type: 'free', packageId: '', amountReceived: '', grantPartnerAccess: false })
   const [createSaving, setCreateSaving] = useState(false)
   const [showCreatePwd, setShowCreatePwd] = useState(false)
+
+  // Enrollment Manager Modal
+  const [enrollModal, setEnrollModal] = useState<any>(null)
+  const [enrollList, setEnrollList] = useState<any[]>([])
+  const [enrollLoading, setEnrollLoading] = useState(false)
+  const [enrollAddCourseId, setEnrollAddCourseId] = useState('')
+  const [enrollSaving, setEnrollSaving] = useState(false)
+  const { data: allCoursesData } = useQuery({
+    queryKey: ['admin-all-courses-for-enroll'],
+    queryFn: () => adminAPI.allCourses({ status: 'published', limit: 200 }).then(r => r.data?.courses || r.data?.data || []),
+    enabled: !!enrollModal,
+  })
+  const refreshEnrollments = async (userId: string) => {
+    setEnrollLoading(true)
+    try {
+      const r = await adminAPI.userEnrollments(userId)
+      setEnrollList(r.data?.enrollments || [])
+    } catch { toast.error('Failed to load enrollments') }
+    finally { setEnrollLoading(false) }
+  }
+  const openEnrollModal = async (user: any) => {
+    setEnrollModal(user)
+    setEnrollAddCourseId('')
+    await refreshEnrollments(user._id)
+  }
+  const enrollAdd = async () => {
+    if (!enrollModal || !enrollAddCourseId) return
+    setEnrollSaving(true)
+    try {
+      await adminAPI.enrollUser(enrollModal._id, enrollAddCourseId)
+      toast.success('Enrolled')
+      setEnrollAddCourseId('')
+      await refreshEnrollments(enrollModal._id)
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to enroll') }
+    finally { setEnrollSaving(false) }
+  }
+  const enrollRemove = async (enrollmentId: string, title: string) => {
+    if (!confirm(`Remove enrollment from "${title}"?`)) return
+    try {
+      await adminAPI.unenrollUser(enrollmentId)
+      toast.success('Removed')
+      if (enrollModal) await refreshEnrollments(enrollModal._id)
+    } catch (e: any) { toast.error(e.response?.data?.message || 'Failed to remove') }
+  }
 
   const { data: packagesData } = useQuery({ queryKey: ['admin-packages'], queryFn: () => adminAPI.packages().then(r => {
     const d = r.data
@@ -650,6 +695,15 @@ export default function UsersPage() {
                           >
                             <Building2 className="w-3.5 h-3.5" />
                           </button>
+                          {user.role === 'student' && (
+                            <button
+                              onClick={() => openEnrollModal(user)}
+                              title="Manage Course Enrollments"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-xs transition-all border bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1012,6 +1066,119 @@ export default function UsersPage() {
                 className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold hover:opacity-90 transition-all text-sm disabled:opacity-50 flex items-center justify-center gap-2">
                 {createSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Creating...</> : <><UserPlus className="w-4 h-4" />Create User</>}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Enrollment Manager Modal ── */}
+      {enrollModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="fixed inset-0" onClick={() => setEnrollModal(null)} />
+          <div className="relative w-full max-w-2xl bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-white/10 flex-shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-blue-400" />
+                  Manage Course Enrollments
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">{enrollModal.name} · {enrollModal.email}</p>
+              </div>
+              <button onClick={() => setEnrollModal(null)} className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1 space-y-5">
+              {/* Add a course */}
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Enroll in a course (admin override)</label>
+                <div className="flex gap-2">
+                  <select
+                    value={enrollAddCourseId}
+                    onChange={e => setEnrollAddCourseId(e.target.value)}
+                    className="flex-1 input"
+                  >
+                    <option value="">Select a course…</option>
+                    {(allCoursesData || [])
+                      .filter((c: any) => !enrollList.some((e: any) => e.course?._id === c._id))
+                      .map((c: any) => (
+                        <option key={c._id} value={c._id}>
+                          {c.isCompulsory ? '★ ' : ''}{c.title}
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    onClick={enrollAdd}
+                    disabled={!enrollAddCourseId || enrollSaving}
+                    className="px-4 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500 hover:text-white border border-blue-500/30 text-blue-300 text-sm font-bold disabled:opacity-50 flex items-center gap-1.5">
+                    {enrollSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    Add
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1.5">
+                  Admin enrollments bypass the 2-course cap. Use this to give a learner extra courses or replace one of their picks.
+                </p>
+              </div>
+
+              {/* Existing enrollments */}
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">
+                  Current enrollments {enrollList.length > 0 && <span className="text-gray-500 normal-case ml-1">({enrollList.length})</span>}
+                </label>
+                {enrollLoading ? (
+                  <div className="flex items-center justify-center py-8 text-gray-500 text-sm gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+                  </div>
+                ) : enrollList.length === 0 ? (
+                  <div className="text-center py-8 rounded-xl border border-white/10 bg-white/[0.02] text-sm text-gray-500">
+                    No enrollments yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {enrollList.map((en: any) => {
+                      const isCompleted = en.completedAt || en.progressPercent >= 100
+                      const isCompulsory = en.course?.isCompulsory || en.source === 'compulsory'
+                      return (
+                        <div key={en._id} className="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.02]">
+                          {en.course?.thumbnail ? (
+                            <img src={en.course.thumbnail} alt="" className="w-12 h-8 rounded-md object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-12 h-8 rounded-md bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                              <BookOpen className="w-3.5 h-3.5 text-violet-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate flex items-center gap-1.5">
+                              {isCompulsory && <Pin className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                              {en.course?.title || '—'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-500">
+                              <span className="capitalize">{en.source || 'self'}</span>
+                              <span>·</span>
+                              <span>{en.progressPercent || 0}%</span>
+                              {isCompleted && (
+                                <span className="text-emerald-400 font-bold">· Completed</span>
+                              )}
+                              {en.batch?.label && <span>· {en.batch.label}</span>}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => enrollRemove(en._id, en.course?.title || 'this course')}
+                            title="Remove enrollment"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-500/15 border border-red-500/20 hover:border-red-500/40 transition-colors flex-shrink-0">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-5 border-t border-white/10 flex-shrink-0">
+              <button onClick={() => setEnrollModal(null)} className="px-5 py-2 rounded-xl border border-gray-700 text-gray-400 hover:text-white text-sm font-medium">Close</button>
             </div>
           </div>
         </div>
