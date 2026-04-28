@@ -475,61 +475,113 @@ export default function TrainingPage() {
         </div>
       )}
 
-      {/* ══════════ TRAINING MODULES TIMELINE ══════════ */}
-      {modules.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center shadow-md shadow-violet-500/30">
-                <GraduationCap className="w-4 h-4 text-white" />
+      {/* ══════════ TRAINING MODULES — GROUPED BY SERIES ══════════ */}
+      {modules.length > 0 && (() => {
+        // Group modules by seriesTitle, preserving sort order
+        const seriesGroups: { name: string; items: any[] }[] = []
+        const indexByName = new Map<string, number>()
+        for (const m of modules) {
+          const name = (m.seriesTitle || '').trim()
+          const key = name || '__ungrouped__'
+          let idx = indexByName.get(key)
+          if (idx === undefined) {
+            idx = seriesGroups.length
+            indexByName.set(key, idx)
+            seriesGroups.push({ name: name || 'More Training', items: [] })
+          }
+          seriesGroups[idx].items.push(m)
+        }
+
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center shadow-md shadow-violet-500/30">
+                  <GraduationCap className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-white font-bold text-base">Training Modules</h2>
+                  <p className="text-dark-500 text-xs">{totalModules} modules · {seriesGroups.length} series</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-white font-bold text-base">Training Modules</h2>
-                <p className="text-dark-500 text-xs">{totalModules} modules total</p>
-              </div>
+              {pct > 0 && pct < 100 && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
+                  <Flame className="w-3 h-3 text-violet-400" />
+                  <span className="text-violet-300 text-xs font-bold">{pct}% done</span>
+                </div>
+              )}
             </div>
-            {pct > 0 && pct < 100 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
-                <Flame className="w-3 h-3 text-violet-400" />
-                <span className="text-violet-300 text-xs font-bold">{pct}% done</span>
+
+            {seriesGroups.map((group, gi) => {
+              const groupCompleted = group.items.filter(m => m.completed).length
+              const groupTotal = group.items.length
+              const groupPct = groupTotal > 0 ? Math.round((groupCompleted / groupTotal) * 100) : 0
+
+              return (
+                <div key={gi} className="space-y-3">
+                  {/* Series header */}
+                  <div className="relative overflow-hidden rounded-2xl border border-violet-500/25 bg-gradient-to-r from-violet-600/15 via-violet-500/10 to-transparent p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-md shadow-violet-500/30 flex-shrink-0">
+                        <BookOpen className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-violet-300/70">Series</p>
+                        <h3 className="text-white font-black text-base leading-tight truncate">{group.name}</h3>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-dark-400 text-[11px] font-medium">
+                            {groupCompleted} / {groupTotal} done
+                          </span>
+                          <div className="flex-1 h-1.5 max-w-[140px] bg-dark-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-700 ${groupPct === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-violet-500 to-purple-500'}`}
+                              style={{ width: `${groupPct || 1}%` }}
+                            />
+                          </div>
+                          <span className={`text-[11px] font-bold ${groupPct === 100 ? 'text-green-400' : 'text-violet-300'}`}>{groupPct}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modules in this series */}
+                  <div>
+                    {group.items.map((mod, i) => {
+                      // Lock per-series: a module unlocks when the previous one in the SAME series is completed
+                      const prevCompleted = i === 0 || group.items[i - 1]?.completed
+                      const locked = !mod.completed && !prevCompleted && i > 0
+                      return (
+                        <ModuleCard
+                          key={mod._id}
+                          mod={mod}
+                          idx={i}
+                          total={group.items.length}
+                          onComplete={(id) => completeMut.mutate(id)}
+                          locked={locked}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Completion celebration */}
+            {pct === 100 && (
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/15 via-emerald-500/10 to-transparent border border-green-500/25 p-5 text-center mt-2">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5" />
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mx-auto mb-3 shadow-xl shadow-green-500/30">
+                    <Trophy className="w-7 h-7 text-white" />
+                  </div>
+                  <p className="text-green-300 font-black text-lg">Training Complete!</p>
+                  <p className="text-dark-400 text-sm mt-1">You are now a certified TruLearnix partner</p>
+                </div>
               </div>
             )}
           </div>
-
-          <div>
-            {modules.map((mod, i) => {
-              // A module is locked if it's not the first, not completed, and the previous one isn't completed
-              const prevCompleted = i === 0 || modules[i - 1]?.completed
-              const locked = !mod.completed && !prevCompleted && i > 0
-
-              return (
-                <ModuleCard
-                  key={mod._id}
-                  mod={mod}
-                  idx={i}
-                  total={modules.length}
-                  onComplete={(id) => completeMut.mutate(id)}
-                  locked={locked}
-                />
-              )
-            })}
-          </div>
-
-          {/* Completion celebration */}
-          {pct === 100 && (
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/15 via-emerald-500/10 to-transparent border border-green-500/25 p-5 text-center mt-2">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5" />
-              <div className="relative">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mx-auto mb-3 shadow-xl shadow-green-500/30">
-                  <Trophy className="w-7 h-7 text-white" />
-                </div>
-                <p className="text-green-300 font-black text-lg">Training Complete!</p>
-                <p className="text-dark-400 text-sm mt-1">You are now a certified TruLearnix partner</p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        )
+      })()}
 
       {/* ══════════ WEBINARS ══════════ */}
       {webinars.length > 0 && (
