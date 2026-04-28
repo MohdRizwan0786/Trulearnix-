@@ -15,6 +15,7 @@ import { sendPurchaseWelcomeEmail, sendSponsorPurchaseAlert } from '../services/
 import { sendPurchaseWelcomeTemplate, sendSponsorSaleTemplate } from '../services/whatsappMetaService';
 import redisClient from '../config/redis';
 import { checkEarningMilestones } from '../services/milestoneService';
+import { getUpgradeCredit } from '../utils/upgradeCredit';
 
 const router = Router();
 
@@ -332,6 +333,23 @@ router.post('/guest-package', async (req: any, res) => {
     let paymentType: 'full' | 'emi' | 'token_emi' | 'token_full' = 'full';
     let tokenAmountVal = 0;
 
+    // 10-day upgrade credit (existing users on full payment only)
+    let upgradeCreditAmt = 0;
+    let upgradeFromPurchaseId: any = null;
+    let upgradeDeltaBase = afterDiscount;
+    let upgradeDeltaGst = gst;
+    if (!isNewUser && !isEmiOrder && !isToken) {
+      const info = await getUpgradeCredit(user._id, fullPackagePrice, pkg._id);
+      if (info.eligible) {
+        upgradeCreditAmt = info.upgradeCredit;
+        upgradeFromPurchaseId = info.prevPurchaseId;
+        const deltaTotal = Math.max(0, fullPackagePrice - upgradeCreditAmt);
+        upgradeDeltaBase = Math.round(deltaTotal / 1.18);
+        upgradeDeltaGst = Math.max(0, deltaTotal - upgradeDeltaBase);
+        payNow = deltaTotal;
+      }
+    }
+
     if (isToken && (pkg as any).tokenAvailable && (pkg as any).tokenAmount > 0) {
       tokenAmountVal = (pkg as any).tokenAmount;
       payNow = tokenAmountVal;
@@ -356,11 +374,18 @@ router.post('/guest-package', async (req: any, res) => {
 
     const ppResponse = await client.pay(request);
 
+    const isUpgradeOrder = upgradeCreditAmt > 0;
     await PackagePurchase.create({
       user: user._id, package: pkg._id, packageTier: pkgTier,
-      amount: paymentType.startsWith('token') ? tokenAmountVal : afterDiscount,
-      gstAmount: paymentType.startsWith('token') ? 0 : gst,
-      totalAmount: paymentType.startsWith('token') ? tokenAmountVal : fullPackagePrice,
+      amount: paymentType.startsWith('token')
+        ? tokenAmountVal
+        : (isUpgradeOrder ? upgradeDeltaBase : afterDiscount),
+      gstAmount: paymentType.startsWith('token')
+        ? 0
+        : (isUpgradeOrder ? upgradeDeltaGst : gst),
+      totalAmount: paymentType.startsWith('token')
+        ? tokenAmountVal
+        : (isUpgradeOrder ? (upgradeDeltaBase + upgradeDeltaGst) : fullPackagePrice),
       razorpayOrderId: merchantOrderId, status: 'created',
       affiliateCode: promoCode || '', affiliatePartnerCode: promoCode || '',
       isEmi: isEmiOrder || paymentType === 'token_emi',
@@ -368,7 +393,8 @@ router.post('/guest-package', async (req: any, res) => {
       emiTotal: (isEmiOrder || paymentType === 'token_emi') ? EMI_MONTHS : undefined,
       paymentType,
       tokenAmount: paymentType.startsWith('token') ? tokenAmountVal : undefined,
-      fullPackagePrice: paymentType.startsWith('token') ? fullPackagePrice : undefined,
+      fullPackagePrice: (paymentType.startsWith('token') || isUpgradeOrder) ? fullPackagePrice : undefined,
+      ...(isUpgradeOrder ? { upgradeCredit: upgradeCreditAmt, upgradeFromPurchase: upgradeFromPurchaseId } : {}),
       ...(affiliateUser ? { affiliateUser: affiliateUser._id } : {}),
     });
 
@@ -456,6 +482,23 @@ router.post('/create-order', protect, async (req: any, res) => {
     let tokenAmtVal = 0;
     let isEmiOrder2 = type === 'package' && !!isEmi;
 
+    // 10-day upgrade credit (applies only to authenticated full payments)
+    let upgradeCreditAmt = 0;
+    let upgradeFromPurchaseId: any = null;
+    let upgradeDeltaBase = afterDiscount;
+    let upgradeDeltaGst = gst;
+    if (type === 'package' && !isEmi && !isTokenReq && packageId) {
+      const info = await getUpgradeCredit(req.user._id, fullPkgPrice, packageId);
+      if (info.eligible) {
+        upgradeCreditAmt = info.upgradeCredit;
+        upgradeFromPurchaseId = info.prevPurchaseId;
+        const deltaTotal = Math.max(0, fullPkgPrice - upgradeCreditAmt);
+        upgradeDeltaBase = Math.round(deltaTotal / 1.18);
+        upgradeDeltaGst = Math.max(0, deltaTotal - upgradeDeltaBase);
+        payNow = deltaTotal;
+      }
+    }
+
     if (type === 'package' && isTokenReq && resolvedPkg?.tokenAvailable && resolvedPkg?.tokenAmount > 0) {
       tokenAmtVal = resolvedPkg.tokenAmount;
       payNow = tokenAmtVal;
@@ -483,18 +526,26 @@ router.post('/create-order', protect, async (req: any, res) => {
     const ppResponse = await client.pay(request);
 
     if (type === 'package') {
+      const isUpgradeOrder = upgradeCreditAmt > 0;
       await PackagePurchase.create({
         user: req.user._id, package: packageId, packageTier: (req as any)._resolvedTier || tier,
-        amount: paymentType2.startsWith('token') ? tokenAmtVal : afterDiscount,
-        gstAmount: paymentType2.startsWith('token') ? 0 : gst,
-        totalAmount: paymentType2.startsWith('token') ? tokenAmtVal : fullPkgPrice,
+        amount: paymentType2.startsWith('token')
+          ? tokenAmtVal
+          : (isUpgradeOrder ? upgradeDeltaBase : afterDiscount),
+        gstAmount: paymentType2.startsWith('token')
+          ? 0
+          : (isUpgradeOrder ? upgradeDeltaGst : gst),
+        totalAmount: paymentType2.startsWith('token')
+          ? tokenAmtVal
+          : (isUpgradeOrder ? (upgradeDeltaBase + upgradeDeltaGst) : fullPkgPrice),
         razorpayOrderId: merchantOrderId,
         status: 'created', affiliateCode: promoCode || '',
         isEmi: isEmiOrder2, emiMonth: isEmiOrder2 ? 1 : undefined, emiTotal: isEmiOrder2 ? EMI_MONTHS : undefined,
         affiliatePartnerCode: promoCode || '',
         paymentType: paymentType2,
         tokenAmount: paymentType2.startsWith('token') ? tokenAmtVal : undefined,
-        fullPackagePrice: paymentType2.startsWith('token') ? fullPkgPrice : undefined,
+        fullPackagePrice: (paymentType2.startsWith('token') || isUpgradeOrder) ? fullPkgPrice : undefined,
+        ...(isUpgradeOrder ? { upgradeCredit: upgradeCreditAmt, upgradeFromPurchase: upgradeFromPurchaseId } : {}),
       });
     } else {
       const payment = await Payment.create({
@@ -520,6 +571,8 @@ router.post('/create-order', protect, async (req: any, res) => {
       emiInstallmentAmount: isEmiOrder2 ? Math.ceil(fullPkgPrice / EMI_MONTHS) : undefined,
       paymentType: paymentType2,
       tokenAmount: tokenAmtVal || undefined,
+      upgradeCredit: upgradeCreditAmt || undefined,
+      fullPackagePrice: upgradeCreditAmt > 0 ? fullPkgPrice : undefined,
     });
   } catch (e: any) {
     console.error('[PhonePe create-order]', e?.message || e);

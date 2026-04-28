@@ -2,7 +2,8 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
-import { protect } from '../middleware/auth';
+import { protect, optionalAuth } from '../middleware/auth';
+import { getUpgradeCredit, UPGRADE_WINDOW_DAYS } from '../utils/upgradeCredit';
 import User, { COMMISSION_RATES } from '../models/User';
 import Package from '../models/Package';
 import PackagePurchase from '../models/PackagePurchase';
@@ -195,7 +196,7 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
 }
 
 // ── GET /api/checkout/item ─────────────────────────────────────────────────
-router.get('/item', async (req: any, res) => {
+router.get('/item', optionalAuth, async (req: any, res) => {
   try {
     const { type, tier, packageId, courseId } = req.query;
 
@@ -206,14 +207,34 @@ router.get('/item', async (req: any, res) => {
       if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
       const gstRate = await getGstRate();
       const gst = Math.round(pkg.price * gstRate / 100);
+      const total = pkg.price + gst;
+
+      let upgrade: any = null;
+      if (req.user?._id) {
+        const info = await getUpgradeCredit(req.user._id, total, pkg._id);
+        if (info.eligible) {
+          upgrade = {
+            eligible: true,
+            upgradeCredit: info.upgradeCredit,
+            payNow: Math.max(0, total - info.upgradeCredit),
+            daysRemaining: info.daysRemaining,
+            windowDays: info.windowDays,
+            prevPurchaseId: info.prevPurchaseId,
+          };
+        } else {
+          upgrade = { eligible: false, reason: info.reason, windowDays: UPGRADE_WINDOW_DAYS };
+        }
+      }
+
       return res.json({
         success: true, item: {
           type: 'package', id: pkg._id, tier: pkg.tier, name: pkg.name,
-          price: pkg.price, gst, total: pkg.price + gst,
+          price: pkg.price, gst, total,
           features: pkg.features, emiAvailable: pkg.emiAvailable,
           emiDays: (pkg.emiDays && pkg.emiDays.length ? pkg.emiDays : [0, 15, 30, 45]),
           emiMonthlyAmount: pkg.emiMonthlyAmount || Math.ceil(pkg.price / 4),
           badge: pkg.badge,
+          upgrade,
         }
       });
     }
@@ -390,7 +411,7 @@ router.post('/create-order', protect, async (req: any, res) => {
     const gstRateForOrder = type === 'package' ? await getGstRate() : 0;
     gst = type === 'package' ? Math.round(afterDiscount * gstRateForOrder / 100) : 0;
     let totalAmount = afterDiscount + gst;
-    const fullPackagePrice = totalAmount; // full price before any EMI/token reduction
+    const fullPackagePrice = totalAmount; // full price before any EMI/token/upgrade reduction
 
     // Determine payment type and amount to pay now
     let isEmiOrder = false;
@@ -398,6 +419,24 @@ router.post('/create-order', protect, async (req: any, res) => {
     let emiMonths = 4;
     let paymentType: 'full' | 'emi' | 'token_emi' | 'token_full' = 'full';
     let tokenAmountToPay = 0;
+
+    // 10-day upgrade credit (full-payment upgrades only — not allowed with EMI/token)
+    let upgradeCreditAmt = 0;
+    let upgradeFromPurchaseId: any = null;
+    let upgradeDeltaBase = afterDiscount;
+    let upgradeDeltaGst = gst;
+    if (type === 'package' && !isEmi && !isToken && packageId) {
+      const info = await getUpgradeCredit(req.user._id, totalAmount, packageId);
+      if (info.eligible) {
+        upgradeCreditAmt = info.upgradeCredit;
+        upgradeFromPurchaseId = info.prevPurchaseId;
+        const deltaTotal = Math.max(0, totalAmount - upgradeCreditAmt);
+        // Split delta proportionally so commissions only apply to delta base
+        upgradeDeltaBase = Math.round(deltaTotal / (1 + (gstRateForOrder / 100)));
+        upgradeDeltaGst = Math.max(0, deltaTotal - upgradeDeltaBase);
+        totalAmount = deltaTotal;
+      }
+    }
 
     if (type === 'package') {
       if (isToken && pkgDoc?.tokenAvailable && pkgDoc?.tokenAmount > 0) {
@@ -429,17 +468,25 @@ router.post('/create-order', protect, async (req: any, res) => {
 
     // Create purchase record
     if (type === 'package') {
+      const isUpgradeOrder = upgradeCreditAmt > 0;
       const purchaseData: any = {
         user: req.user._id, package: packageId, packageTier: tier,
-        amount: paymentType.startsWith('token') ? tokenAmountToPay : afterDiscount,
-        gstAmount: paymentType.startsWith('token') ? 0 : gst,
-        totalAmount: paymentType.startsWith('token') ? tokenAmountToPay : (afterDiscount + gst),
+        amount: paymentType.startsWith('token')
+          ? tokenAmountToPay
+          : (isUpgradeOrder ? upgradeDeltaBase : afterDiscount),
+        gstAmount: paymentType.startsWith('token')
+          ? 0
+          : (isUpgradeOrder ? upgradeDeltaGst : gst),
+        totalAmount: paymentType.startsWith('token')
+          ? tokenAmountToPay
+          : (isUpgradeOrder ? (upgradeDeltaBase + upgradeDeltaGst) : (afterDiscount + gst)),
         razorpayOrderId: order.id, status: 'created',
         affiliateCode: promoCode || '', isEmi: isEmiOrder,
         emiMonth: isEmiOrder ? 1 : undefined, emiTotal: isEmiOrder ? emiMonths : undefined,
         paymentType,
         tokenAmount: paymentType.startsWith('token') ? tokenAmountToPay : undefined,
-        fullPackagePrice: paymentType.startsWith('token') ? fullPackagePrice : undefined,
+        fullPackagePrice: paymentType.startsWith('token') || isUpgradeOrder ? fullPackagePrice : undefined,
+        ...(isUpgradeOrder ? { upgradeCredit: upgradeCreditAmt, upgradeFromPurchase: upgradeFromPurchaseId } : {}),
       };
       const purchase = await PackagePurchase.create(purchaseData);
       return res.json({
@@ -447,6 +494,8 @@ router.post('/create-order', protect, async (req: any, res) => {
         currency: 'INR', keyId: process.env.RAZORPAY_KEY_ID, purchaseId: purchase._id,
         itemName, isEmi: isEmiOrder, emiInstallmentAmount, emiMonths, paymentType,
         tokenAmount: tokenAmountToPay || undefined,
+        upgradeCredit: upgradeCreditAmt || undefined,
+        fullPackagePrice: isUpgradeOrder ? fullPackagePrice : undefined,
       });
     } else {
       // Course
