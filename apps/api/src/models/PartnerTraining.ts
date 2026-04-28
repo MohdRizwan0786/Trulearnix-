@@ -9,6 +9,7 @@ export interface IPartnerTraining extends Document {
   duration?: string;
   order: number;
   day?: number;
+  seriesTitle?: string;
   isPublished: boolean;
   tags: string[];
   resources: { label: string; url: string }[];
@@ -31,6 +32,7 @@ const PartnerTrainingSchema = new Schema<IPartnerTraining>({
   duration:     { type: String },
   order:        { type: Number, default: 0 },
   day:          { type: Number },
+  seriesTitle:  { type: String, trim: true, default: '' },
   isPublished:  { type: Boolean, default: false },
   tags:         [String],
   resources:    [{ label: String, url: String }],
