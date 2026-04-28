@@ -11,6 +11,7 @@ import Notification from '../models/Notification';
 import redisClient from '../config/redis';
 import { sendPurchaseWelcomeEmail, sendSponsorPurchaseAlert } from '../services/emailService';
 import { sendPurchaseWelcomeTemplate, sendSponsorSaleTemplate } from '../services/whatsappMetaService';
+import { ensureCompulsoryEnrollments } from '../services/enrollmentService';
 
 const razorpay = process.env.RAZORPAY_KEY_ID && !process.env.RAZORPAY_KEY_ID.includes('your_')
   ? new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID!, key_secret: process.env.RAZORPAY_KEY_SECRET! })
@@ -138,6 +139,11 @@ export const verifyPackagePayment = async (req: AuthRequest, res: Response) => {
         $inc: { xpPoints: 500 },
       },
       { new: true }
+    );
+
+    // Auto-enroll into compulsory courses (fire-and-forget)
+    ensureCompulsoryEnrollments(purchase.user.toString()).catch(err =>
+      console.error('[package-verify-compulsory]', err?.message)
     );
 
     // Credit 3-level MLM commissions

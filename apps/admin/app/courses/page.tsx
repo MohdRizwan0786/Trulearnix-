@@ -7,7 +7,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import {
   BookOpen, Clock, CheckCircle, XCircle, Users,
-  Plus, Layers, Search, Pencil, Trash2
+  Plus, Layers, Search, Pencil, Trash2, Pin
 } from 'lucide-react'
 
 type Tab = 'all' | 'pending'
@@ -88,6 +88,17 @@ export default function CoursesPage() {
       toast.success(`"${title}" deleted`)
       qc.invalidateQueries({ queryKey: ['admin-courses'] })
     } catch { toast.error('Failed to delete') } finally { setProcessing('') }
+  }
+
+  const toggleCompulsory = async (id: string, title: string, current: boolean) => {
+    const turningOn = !current
+    if (turningOn && !confirm(`Mark "${title}" as compulsory? All paid learners will be auto-enrolled.`)) return
+    setProcessing(id)
+    try {
+      const res = await adminAPI.setCourseCompulsory(id, turningOn)
+      toast.success(res.data?.message || (turningOn ? 'Marked compulsory' : 'Removed compulsory'))
+      qc.invalidateQueries({ queryKey: ['admin-courses'] })
+    } catch { toast.error('Failed to update') } finally { setProcessing('') }
   }
 
   const publishedCount = rawCourses.filter((c: any) => c.status === 'published').length
@@ -233,7 +244,15 @@ export default function CoursesPage() {
                           <BookOpen className="w-4 h-4 text-violet-400" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-white font-medium line-clamp-1 max-w-[220px]">{course.title}</p>
+                          <p className="text-white font-medium line-clamp-1 max-w-[220px] flex items-center gap-1.5">
+                            {course.isCompulsory && (
+                              <span title="Compulsory — auto-enrolled for all paid learners"
+                                className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-bold uppercase tracking-wider flex-shrink-0">
+                                <Pin className="w-2.5 h-2.5" /> Required
+                              </span>
+                            )}
+                            <span className="truncate">{course.title}</span>
+                          </p>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className="text-[11px] text-gray-500 capitalize">{course.category}</span>
                             {course.level && (
@@ -292,6 +311,16 @@ export default function CoursesPage() {
                               className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Edit">
                               <Pencil className="w-3.5 h-3.5" />
                             </Link>
+                            <button onClick={() => toggleCompulsory(course._id, course.title, !!course.isCompulsory)}
+                              disabled={processing === course._id}
+                              title={course.isCompulsory ? 'Remove compulsory' : 'Mark compulsory (auto-enroll all paid learners)'}
+                              className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+                                course.isCompulsory
+                                  ? 'text-amber-300 bg-amber-500/15 hover:bg-amber-500/25'
+                                  : 'text-gray-500 hover:text-amber-300 hover:bg-amber-500/10'
+                              }`}>
+                              <Pin className="w-3.5 h-3.5" />
+                            </button>
                             {course.batchSettings?.enabled && (
                               <Link href={`/courses/${course._id}/batches`}
                                 className="flex items-center gap-1 text-xs bg-violet-500/20 text-violet-400 hover:bg-violet-500 hover:text-white px-2.5 py-1.5 rounded-lg transition-colors">

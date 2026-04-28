@@ -103,6 +103,7 @@ export const userAPI = {
   enrolledCourses: () => api.get('/users/enrolled-courses'),
   availableCourses: () => api.get('/users/available-courses'),
   enrollFree: (courseId: string) => api.post(`/users/enroll-free/${courseId}`),
+  enrollStatus: () => api.get('/users/enroll-status'),
   favorites: () => api.get('/users/favorites'),
   toggleFavorite: (courseId: string) => api.post(`/users/favorites/${courseId}`),
   announcements: () => api.get('/users/announcements'),

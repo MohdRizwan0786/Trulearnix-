@@ -13,6 +13,7 @@ import Commission from '../models/Commission';
 import EmiInstallment from '../models/EmiInstallment';
 import { sendPurchaseWelcomeEmail, sendSponsorPurchaseAlert } from '../services/emailService';
 import { sendPurchaseWelcomeTemplate, sendSponsorSaleTemplate } from '../services/whatsappMetaService';
+import { ensureCompulsoryEnrollments } from '../services/enrollmentService';
 import redisClient from '../config/redis';
 import { checkEarningMilestones } from '../services/milestoneService';
 import { getUpgradeCredit } from '../utils/upgradeCredit';
@@ -616,6 +617,9 @@ router.get('/status/:merchantOrderId', protect, async (req: any, res) => {
         packagePurchasedAt: new Date(), packageSuspended: false,
         $inc: { xpPoints: 500 },
       });
+      ensureCompulsoryEnrollments(req.user._id.toString()).catch(err =>
+        console.error('[phonepe-compulsory]', err?.message)
+      );
 
       // Resolve EMI partner + commission before creating installments
       let emiPartnerUserId: any = null;

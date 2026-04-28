@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { sendOTPTemplate, sendPasswordResetOTPTemplate, sendReferralWelcomeTemplate, sendSponsorJoinTemplate } from '../services/whatsappMetaService';
 import { sendReferralWelcomeEmail, sendSponsorJoinAlert, sendPasswordResetEmail, sendOTPEmail } from '../services/emailService';
+import { ensureCompulsoryEnrollments } from '../services/enrollmentService';
 
 function generateAutoPassword(): string {
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -236,6 +237,14 @@ export const login = async (req: Request, res: Response) => {
       refreshToken,
       $inc: { loginCount: 1 },
     });
+
+    // Catch-up auto-enroll into any compulsory courses (for learners only).
+    // Fire-and-forget — login response should not block on enrollment writes.
+    if (user.role === 'student' && packageTier !== 'free') {
+      ensureCompulsoryEnrollments(user._id.toString()).catch(err =>
+        console.error('[login-compulsory-enroll]', err?.message)
+      );
+    }
 
     res.json({
       success: true,

@@ -6,6 +6,7 @@ import Lead from '../models/Lead';
 import SalesOrder from '../models/SalesOrder';
 import { sendPurchaseWelcomeEmail } from './emailService';
 import { sendPurchaseWelcomeTemplate } from './whatsappMetaService';
+import { ensureCompulsoryEnrollments } from './enrollmentService';
 
 // ── Activate order: create purchase, commissions, notify customer ─────────────
 export async function activateOrder(order: any, paymentMethod = 'manual', merchantOrderId?: string) {
@@ -27,6 +28,9 @@ export async function activateOrder(order: any, paymentMethod = 'manual', mercha
       packagePurchasedAt: new Date(), packageExpiresAt,
       packageSuspended: false,
     });
+    ensureCompulsoryEnrollments(order.userId.toString()).catch(err =>
+      console.error('[order-activate-compulsory]', err?.message)
+    );
   }
 
   if (!order.userId) throw new Error('Customer user account not found for this order');

@@ -60,6 +60,11 @@ export const adminAPI = {
   approveCourse: (id: string) => api.patch(`/admin/courses/${id}/approve`),
   rejectCourse: (id: string, reason: string) => api.patch(`/admin/courses/${id}/reject`, { reason }),
   deleteCourse: (id: string) => api.delete(`/admin/courses/${id}`),
+  setCourseCompulsory: (id: string, isCompulsory: boolean) => api.patch(`/admin/courses/${id}/compulsory`, { isCompulsory }),
+  // Enrollment management
+  userEnrollments: (userId: string) => api.get(`/admin/users/${userId}/enrollments`),
+  enrollUser: (userId: string, courseId: string) => api.post(`/admin/users/${userId}/enrollments`, { courseId }),
+  unenrollUser: (enrollmentId: string) => api.delete(`/admin/enrollments/${enrollmentId}`),
   updateUserProfile: (id: string, data: any) => api.patch(`/admin/users/${id}/profile`, data),
   // Batches
   batches: (courseId: string) => api.get('/admin/batches', { params: { courseId } }),
