@@ -20,7 +20,10 @@ export interface IPackagePurchase extends Document {
   emiTotal?: number;
   paymentType: 'full' | 'emi' | 'token_emi' | 'token_full';
   tokenAmount?: number;      // advance/token paid (for token_* types)
-  fullPackagePrice?: number; // full package price (for token_* types, for reference)
+  fullPackagePrice?: number; // full package price (for token_* types and upgrades, for reference)
+  // Upgrade-within-10-days fields
+  upgradeFromPurchase?: mongoose.Types.ObjectId;
+  upgradeCredit?: number;    // notional credit applied from a prior purchase
   invoiceNumber?: string;
   invoiceUrl?: string;
   createdAt: Date;
@@ -48,6 +51,8 @@ const PackagePurchaseSchema = new Schema<IPackagePurchase>({
   paymentType: { type: String, enum: ['full', 'emi', 'token_emi', 'token_full'], default: 'full' },
   tokenAmount: Number,
   fullPackagePrice: Number,
+  upgradeFromPurchase: { type: Schema.Types.ObjectId, ref: 'PackagePurchase' },
+  upgradeCredit: Number,
   invoiceNumber: String,
   invoiceUrl: String,
 }, { timestamps: true });
