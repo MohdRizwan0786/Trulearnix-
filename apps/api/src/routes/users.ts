@@ -132,10 +132,24 @@ router.get('/available-courses', protect, async (req: any, res) => {
     if (!user || user.packageTier === 'free') {
       return res.json({ success: true, courses: [], packageTier: 'free', enrollStatus: { cap: SELF_ENROLL_CAP, activeCount: 0, remainingSlots: 0, canEnroll: false } });
     }
+    const pkg = await Package.findOne({ tier: user.packageTier, isActive: true }).select('courses coursesAccess');
+    if (!pkg) {
+      return res.json({ success: true, courses: [], packageTier: user.packageTier, enrollStatus: { cap: SELF_ENROLL_CAP, activeCount: 0, remainingSlots: 0, canEnroll: false } });
+    }
     const Course = (await import('../models/Course')).default;
     const enrolledCourses = await Enrollment.find({ student: req.user._id }).select('course');
     const enrolledIds = enrolledCourses.map(e => e.course.toString());
-    const courses = await Course.find({ status: 'published' })
+
+    const pkgCourseIds = (pkg.courses || []).map((id: any) => id.toString());
+    const baseQuery: any = { status: 'published' };
+    if (pkg.coursesAccess !== 'full') {
+      // Limited access: only courses in the package, plus any compulsory courses
+      baseQuery.$or = [
+        { _id: { $in: pkgCourseIds } },
+        { isCompulsory: true },
+      ];
+    }
+    const courses = await Course.find(baseQuery)
       .select('title thumbnail category level price lessonsCount enrolledCount mentor slug isCompulsory')
       .populate('mentor', 'name avatar');
     const available = courses.filter(c => !enrolledIds.includes(c._id.toString()));
@@ -156,6 +170,18 @@ router.post('/enroll-free/:courseId', protect, async (req: any, res) => {
     if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
     const existing = await Enrollment.findOne({ student: req.user._id, course: req.params.courseId });
     if (existing) return res.status(400).json({ success: false, message: 'Already enrolled' });
+
+    // Enforce package access: only courses in the user's package (or compulsory) can be free-enrolled.
+    if (!(course as any).isCompulsory) {
+      const pkg = await Package.findOne({ tier: user.packageTier, isActive: true }).select('courses coursesAccess');
+      if (!pkg) return res.status(403).json({ success: false, message: 'Your package does not include this course' });
+      if (pkg.coursesAccess !== 'full') {
+        const allowed = (pkg.courses || []).some((id: any) => id.toString() === req.params.courseId);
+        if (!allowed) {
+          return res.status(403).json({ success: false, message: 'Yeh course aapke package mein include nahi hai' });
+        }
+      }
+    }
 
     // Cap: 2 active non-compulsory courses at a time. Compulsory courses bypass the cap.
     if (!(course as any).isCompulsory) {
