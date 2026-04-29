@@ -5,8 +5,8 @@ import PlatformStatsCards from '@/components/shared/PlatformStatsCards'
 import { Zap, Users, TrendingUp, Gift, Share2, Award } from 'lucide-react'
 
 export const metadata = {
-  title: 'Earn Money — Affiliate Program | TruLearnix',
-  description: 'Join TruLearnix Affiliate Program. Share, refer, and earn commissions on every enrolled student.',
+  title: 'Earn Money — Partnership Program | TruLearnix',
+  description: 'Join TruLearnix Partnership Program. Share, refer, and earn Partnership earnings on every enrolled student.',
 }
 
 export default function AffiliatePage() {
@@ -33,7 +33,7 @@ export default function AffiliatePage() {
               Refer. Share. <span className="text-violet-400">Earn.</span>
             </h1>
             <p className="text-lg text-white/70 mb-8">
-              Join our affiliate program and earn commissions on every student who enrolls through your referral link.
+              Join our Partnership program and earn Partnership earnings on every student who enrolls through your referral link.
             </p>
 
             <div className="flex flex-wrap justify-center gap-3">
@@ -55,7 +55,7 @@ export default function AffiliatePage() {
             {[
               { icon: Share2, title: 'Share Your Link', desc: 'Get a unique referral link from your dashboard.' },
               { icon: Users, title: 'Refer Students', desc: 'Share with friends, on social media, or your network.' },
-              { icon: Gift, title: 'Earn Commission', desc: 'Get paid for every student who enrolls via your link.' },
+              { icon: Gift, title: 'Earn Partnership earning', desc: 'Get paid for every student who enrolls via your link.' },
             ].map((s, i) => (
               <div key={i} className="p-6 rounded-2xl"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>

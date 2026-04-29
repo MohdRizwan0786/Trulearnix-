@@ -202,7 +202,9 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
   const batch = data?.batch
   const totalLessons = modules.reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0)
   const progressPercent = totalLessons > 0 ? Math.round((completedIds.length / totalLessons) * 100) : 0
-  const allDone = totalLessons > 0 && completedIds.length >= totalLessons
+  // Course is "done" only when the mentor has marked the batch complete (enrollment.completedAt set).
+  // A student finishing every lesson on their own no longer unlocks certificate / report card.
+  const allDone = !!data?.enrollment?.completedAt
 
   const getRecordingUrl = (url: string) => {
     const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '')
@@ -592,11 +594,11 @@ export default function CoursePlayer({ params }: { params: { id: string } }) {
                     <button onClick={() => markMutation.mutate(activeLesson._id)} disabled={markMutation.isPending}
                       className="btn-primary flex items-center gap-1.5 text-xs sm:text-sm px-3 py-2">
                       {markMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                      Mark Complete
+                      Mark Lesson Done
                     </button>
                   ) : (
                     <span className="flex items-center gap-1.5 text-sm text-green-400">
-                      <CheckCircle className="w-4 h-4" /> Completed
+                      <CheckCircle className="w-4 h-4" /> Lesson Done
                     </span>
                   )}
                   {allDone && (

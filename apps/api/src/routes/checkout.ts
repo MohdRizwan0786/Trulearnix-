@@ -2,7 +2,8 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
-import { protect } from '../middleware/auth';
+import { protect, optionalAuth } from '../middleware/auth';
+import { getUpgradeCredit, UPGRADE_WINDOW_DAYS } from '../utils/upgradeCredit';
 import User, { COMMISSION_RATES } from '../models/User';
 import Package from '../models/Package';
 import PackagePurchase from '../models/PackagePurchase';
@@ -12,6 +13,7 @@ import Coupon from '../models/Coupon';
 import Transaction from '../models/Transaction';
 import Commission from '../models/Commission';
 import EmiInstallment from '../models/EmiInstallment';
+import { ensureCompulsoryEnrollments } from '../services/enrollmentService';
 import PlatformSettings from '../models/PlatformSettings';
 import { getOrCreateActiveBatch, onStudentEnrolled } from '../services/batchService';
 import { checkEarningMilestones } from '../services/milestoneService';
@@ -126,16 +128,16 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
         }
         await Transaction.create({
           user: earner._id, type: 'credit', category: 'affiliate_commission',
-          amount: commAmt, description: `L${mlmLevel} commission — ${tier} package sold`,
+          amount: commAmt, description: `L${mlmLevel} Partnership earning — ${tier} package sold`,
           referenceId: purchaseId, status: 'completed',
         });
         await User.findByIdAndUpdate(earner._id, {
-          $push: { notifications: { type: 'commission', message: `🎉 ₹${commAmt} earned! L${mlmLevel} commission from ${tier} package sale.`, read: false, createdAt: new Date() } }
+          $push: { notifications: { type: 'commission', message: `🎉 ₹${commAmt} earned! L${mlmLevel} Partnership earning from ${tier} package sale.`, read: false, createdAt: new Date() } }
         });
         // Push notification to earner
         try {
           const { notify } = await import('../services/pushService');
-          await notify(earner._id, `💰 ₹${commAmt} Commission Earned!`, `You earned a Level ${mlmLevel} commission from a ${tier} package sale.`, { type: 'commission', url: '/partner/earnings', tag: 'commission' });
+          await notify(earner._id, `💰 ₹${commAmt} Partnership earning Earned!`, `You earned a Level ${mlmLevel} Partnership earning from a ${tier} package sale.`, { type: 'commission', url: '/partner/earnings', tag: 'commission' });
         } catch {}
       } catch (levelErr: any) {
         console.error(`[MLM Commission Error] L${mlmLevel} for purchase ${purchaseId}:`, levelErr.message);
@@ -163,11 +165,11 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
               await User.findByIdAndUpdate(manager._id, { $inc: { wallet: mgAmt, totalEarnings: mgAmt } });
               await Transaction.create({
                 user: manager._id, type: 'credit', category: 'affiliate_commission',
-                amount: mgAmt, description: `Manager commission — ${tier} package sold by partner`,
+                amount: mgAmt, description: `Manager Partnership earning — ${tier} package sold by partner`,
                 referenceId: purchaseId, status: 'completed',
               });
               await User.findByIdAndUpdate(manager._id, {
-                $push: { notifications: { type: 'commission', message: `💼 ₹${mgAmt} manager commission from ${tier} package sale!`, read: false, createdAt: new Date() } }
+                $push: { notifications: { type: 'commission', message: `💼 ₹${mgAmt} manager Partnership earning from ${tier} package sale!`, read: false, createdAt: new Date() } }
               });
             }
           }
@@ -195,7 +197,7 @@ async function creditMLM(purchasedUserId: string, saleAmount: number, purchaseId
 }
 
 // ── GET /api/checkout/item ─────────────────────────────────────────────────
-router.get('/item', async (req: any, res) => {
+router.get('/item', optionalAuth, async (req: any, res) => {
   try {
     const { type, tier, packageId, courseId } = req.query;
 
@@ -206,14 +208,34 @@ router.get('/item', async (req: any, res) => {
       if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
       const gstRate = await getGstRate();
       const gst = Math.round(pkg.price * gstRate / 100);
+      const total = pkg.price + gst;
+
+      let upgrade: any = null;
+      if (req.user?._id) {
+        const info = await getUpgradeCredit(req.user._id, total, pkg._id);
+        if (info.eligible) {
+          upgrade = {
+            eligible: true,
+            upgradeCredit: info.upgradeCredit,
+            payNow: Math.max(0, total - info.upgradeCredit),
+            daysRemaining: info.daysRemaining,
+            windowDays: info.windowDays,
+            prevPurchaseId: info.prevPurchaseId,
+          };
+        } else {
+          upgrade = { eligible: false, reason: info.reason, windowDays: UPGRADE_WINDOW_DAYS };
+        }
+      }
+
       return res.json({
         success: true, item: {
           type: 'package', id: pkg._id, tier: pkg.tier, name: pkg.name,
-          price: pkg.price, gst, total: pkg.price + gst,
+          price: pkg.price, gst, total,
           features: pkg.features, emiAvailable: pkg.emiAvailable,
           emiDays: (pkg.emiDays && pkg.emiDays.length ? pkg.emiDays : [0, 15, 30, 45]),
           emiMonthlyAmount: pkg.emiMonthlyAmount || Math.ceil(pkg.price / 4),
           badge: pkg.badge,
+          upgrade,
         }
       });
     }
@@ -390,7 +412,7 @@ router.post('/create-order', protect, async (req: any, res) => {
     const gstRateForOrder = type === 'package' ? await getGstRate() : 0;
     gst = type === 'package' ? Math.round(afterDiscount * gstRateForOrder / 100) : 0;
     let totalAmount = afterDiscount + gst;
-    const fullPackagePrice = totalAmount; // full price before any EMI/token reduction
+    const fullPackagePrice = totalAmount; // full price before any EMI/token/upgrade reduction
 
     // Determine payment type and amount to pay now
     let isEmiOrder = false;
@@ -398,6 +420,24 @@ router.post('/create-order', protect, async (req: any, res) => {
     let emiMonths = 4;
     let paymentType: 'full' | 'emi' | 'token_emi' | 'token_full' = 'full';
     let tokenAmountToPay = 0;
+
+    // 10-day upgrade credit (full-payment upgrades only — not allowed with EMI/token)
+    let upgradeCreditAmt = 0;
+    let upgradeFromPurchaseId: any = null;
+    let upgradeDeltaBase = afterDiscount;
+    let upgradeDeltaGst = gst;
+    if (type === 'package' && !isEmi && !isToken && packageId) {
+      const info = await getUpgradeCredit(req.user._id, totalAmount, packageId);
+      if (info.eligible) {
+        upgradeCreditAmt = info.upgradeCredit;
+        upgradeFromPurchaseId = info.prevPurchaseId;
+        const deltaTotal = Math.max(0, totalAmount - upgradeCreditAmt);
+        // Split delta proportionally so commissions only apply to delta base
+        upgradeDeltaBase = Math.round(deltaTotal / (1 + (gstRateForOrder / 100)));
+        upgradeDeltaGst = Math.max(0, deltaTotal - upgradeDeltaBase);
+        totalAmount = deltaTotal;
+      }
+    }
 
     if (type === 'package') {
       if (isToken && pkgDoc?.tokenAvailable && pkgDoc?.tokenAmount > 0) {
@@ -429,17 +469,25 @@ router.post('/create-order', protect, async (req: any, res) => {
 
     // Create purchase record
     if (type === 'package') {
+      const isUpgradeOrder = upgradeCreditAmt > 0;
       const purchaseData: any = {
         user: req.user._id, package: packageId, packageTier: tier,
-        amount: paymentType.startsWith('token') ? tokenAmountToPay : afterDiscount,
-        gstAmount: paymentType.startsWith('token') ? 0 : gst,
-        totalAmount: paymentType.startsWith('token') ? tokenAmountToPay : (afterDiscount + gst),
+        amount: paymentType.startsWith('token')
+          ? tokenAmountToPay
+          : (isUpgradeOrder ? upgradeDeltaBase : afterDiscount),
+        gstAmount: paymentType.startsWith('token')
+          ? 0
+          : (isUpgradeOrder ? upgradeDeltaGst : gst),
+        totalAmount: paymentType.startsWith('token')
+          ? tokenAmountToPay
+          : (isUpgradeOrder ? (upgradeDeltaBase + upgradeDeltaGst) : (afterDiscount + gst)),
         razorpayOrderId: order.id, status: 'created',
         affiliateCode: promoCode || '', isEmi: isEmiOrder,
         emiMonth: isEmiOrder ? 1 : undefined, emiTotal: isEmiOrder ? emiMonths : undefined,
         paymentType,
         tokenAmount: paymentType.startsWith('token') ? tokenAmountToPay : undefined,
-        fullPackagePrice: paymentType.startsWith('token') ? fullPackagePrice : undefined,
+        fullPackagePrice: paymentType.startsWith('token') || isUpgradeOrder ? fullPackagePrice : undefined,
+        ...(isUpgradeOrder ? { upgradeCredit: upgradeCreditAmt, upgradeFromPurchase: upgradeFromPurchaseId } : {}),
       };
       const purchase = await PackagePurchase.create(purchaseData);
       return res.json({
@@ -447,6 +495,8 @@ router.post('/create-order', protect, async (req: any, res) => {
         currency: 'INR', keyId: process.env.RAZORPAY_KEY_ID, purchaseId: purchase._id,
         itemName, isEmi: isEmiOrder, emiInstallmentAmount, emiMonths, paymentType,
         tokenAmount: tokenAmountToPay || undefined,
+        upgradeCredit: upgradeCreditAmt || undefined,
+        fullPackagePrice: isUpgradeOrder ? fullPackagePrice : undefined,
       });
     } else {
       // Course
@@ -510,6 +560,9 @@ router.post('/verify', protect, async (req: any, res) => {
         packageSuspended: false,
         $inc: { xpPoints: 500 },
       });
+      ensureCompulsoryEnrollments(req.user._id.toString()).catch(err =>
+        console.error('[checkout-compulsory]', err?.message)
+      );
 
       // ── NON-CRITICAL: EMI schedule ────────────────────────────────────────
       if (purchase.isEmi) {
@@ -627,7 +680,7 @@ router.post('/verify', protect, async (req: any, res) => {
           const buyer = await User.findById(req.user._id).select('name email phone');
           if (!buyer) return;
           const { sendInvoiceEmail } = await import('../services/emailService');
-          const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+          const { sendInvoiceTemplate } = await import('../services/whatsappMetaService');
           const pkgName = pkg?.name || tier;
           const invoiceNumber = `TLX-${purchase._id.toString().slice(-8).toUpperCase()}`;
           const invoiceDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -636,7 +689,6 @@ router.post('/verify', protect, async (req: any, res) => {
           if (pType === 'token_emi' || pType === 'token_full') {
             const tokenAmt = (purchase as any).tokenAmount || purchase.totalAmount;
             const fullPrice = (purchase as any).fullPackagePrice || 0;
-            const remaining = fullPrice - tokenAmt;
             await sendInvoiceEmail(buyer.email, {
               invoiceNumber, invoiceDate,
               userName: buyer.name, userEmail: buyer.email,
@@ -646,9 +698,8 @@ router.post('/verify', protect, async (req: any, res) => {
               fullPackagePrice: fullPrice,
             });
             if (buyer.phone) {
-              const modeStr = pType === 'token_emi' ? 'EMI installments' : 'full payment';
-              const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! Advance/Token received.\n\n📦 *Package:* ${pkgName}\n💰 *Token Paid:* ₹${tokenAmt}\n💳 *Balance:* ₹${remaining} (via ${modeStr})\n\n📄 *Invoice No:* ${invoiceNumber}`;
-              await sendWhatsAppText(buyer.phone, waMsg);
+              const desc = `${pkgName} — Token/Advance Payment`;
+              await sendInvoiceTemplate(buyer.phone, buyer.name, desc, tokenAmt, invoiceNumber);
             }
           } else if (pType === 'emi') {
             const nextInst = await EmiInstallment.findOne({ packagePurchase: purchase._id, installmentNumber: 2 });
@@ -663,8 +714,8 @@ router.post('/verify', protect, async (req: any, res) => {
               totalInstallments,
             });
             if (buyer.phone) {
-              const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! EMI Installment 1 of ${totalInstallments} received.\n\n📦 *Package:* ${pkgName}\n💰 *Paid Now:* ₹${installmentAmt}\n\n📄 *Invoice No:* ${invoiceNumber}`;
-              await sendWhatsAppText(buyer.phone, waMsg);
+              const desc = `${pkgName} — EMI Installment 1 of ${totalInstallments}`;
+              await sendInvoiceTemplate(buyer.phone, buyer.name, desc, installmentAmt, invoiceNumber);
             }
           } else {
             const totalPaid = purchase.totalAmount || (purchase.amount + purchase.gstAmount);
@@ -677,8 +728,8 @@ router.post('/verify', protect, async (req: any, res) => {
               gstAmount: purchase.gstAmount,
             });
             if (buyer.phone) {
-              const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! Payment received successfully.\n\n📦 *Package:* ${pkgName}\n💰 *Amount Paid:* ₹${totalPaid}\n\n📄 *Invoice No:* ${invoiceNumber}`;
-              await sendWhatsAppText(buyer.phone, waMsg);
+              const desc = `${pkgName} — Full Payment`;
+              await sendInvoiceTemplate(buyer.phone, buyer.name, desc, totalPaid, invoiceNumber);
             }
           }
         } catch (e: any) {
@@ -763,7 +814,7 @@ router.post('/verify', protect, async (req: any, res) => {
                 paymentId: payment._id, saleType: 'course', status: 'approved',
               });
               await User.findByIdAndUpdate(affiliate._id, {
-                $push: { notifications: { type: 'commission', message: `🎉 ₹${commAmt} earned! Commission from a course sale.`, read: false, createdAt: new Date() } }
+                $push: { notifications: { type: 'commission', message: `🎉 ₹${commAmt} earned! Partnership earning from a course sale.`, read: false, createdAt: new Date() } }
               });
             }
           }
@@ -879,7 +930,7 @@ router.post('/emi/verify', protect, async (req: any, res) => {
       await Transaction.create({
         user: (installment as any).partnerUser, type: 'credit', category: 'affiliate_commission',
         amount: (installment as any).partnerCommissionAmount,
-        description: `EMI installment ${installment.installmentNumber} commission`,
+        description: `EMI installment ${installment.installmentNumber} Partnership earning`,
         referenceId: installment._id, status: 'completed',
       });
       await EmiInstallment.findByIdAndUpdate(installment._id, { partnerCommissionPaid: true });
@@ -893,7 +944,7 @@ router.post('/emi/verify', protect, async (req: any, res) => {
       await Transaction.create({
         user: (installment as any).managerUser, type: 'credit', category: 'affiliate_commission',
         amount: (installment as any).managerCommissionAmount,
-        description: `Manager EMI installment ${installment.installmentNumber} commission`,
+        description: `Manager EMI installment ${installment.installmentNumber} Partnership earning`,
         referenceId: installment._id, status: 'completed',
       });
       await EmiInstallment.findByIdAndUpdate(installment._id, { managerCommissionPaid: true });
@@ -911,7 +962,7 @@ router.post('/emi/verify', protect, async (req: any, res) => {
         const buyer = await User.findById(req.user._id).select('name email phone');
         if (!buyer) return;
         const { sendInvoiceEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendInvoiceTemplate } = await import('../services/whatsappMetaService');
 
         const emiPkg = purchaseForComm?.package as any;
         const pkgName = emiPkg?.name || purchaseForComm?.packageTier || 'Package';
@@ -937,8 +988,11 @@ router.post('/emi/verify', protect, async (req: any, res) => {
         });
 
         if (buyer.phone) {
-          const waMsg = `🧾 *Invoice — TruLearnix*\n\nHi *${buyer.name}*! EMI Installment ${installment.installmentNumber} of ${(installment as any).totalInstallments || '?'} paid.\n\n📦 *Package:* ${pkgName}\n💰 *Amount:* ₹${installment.amount}${allPaid ? '\n\n✅ *All EMIs paid! Full access restored.*' : nextInst ? `\n📅 *Next Due:* ${new Date((nextInst as any).dueDate).toLocaleDateString('en-IN')} — ₹${(nextInst as any).amount}` : ''}\n\n📄 *Invoice No:* ${invoiceNumber}`;
-          await sendWhatsAppText(buyer.phone, waMsg);
+          const totalInst = (installment as any).totalInstallments || '?';
+          const desc = allPaid
+            ? `${pkgName} — EMI ${installment.installmentNumber}/${totalInst} (Final, fully paid)`
+            : `${pkgName} — EMI Installment ${installment.installmentNumber}/${totalInst}`;
+          await sendInvoiceTemplate(buyer.phone, buyer.name, desc, installment.amount, invoiceNumber);
         }
       } catch (e: any) {
         console.error('[emi-invoice-notify]', e.message);

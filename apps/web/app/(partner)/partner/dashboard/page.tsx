@@ -24,7 +24,7 @@ const TIER_CFG: Record<Tier, {
 }> = {
   free:    { color:'#6b7280', glow:'rgba(107,114,128,0.4)',  bg:'linear-gradient(135deg,#374151,#1f2937)', bgCard:'rgba(107,114,128,0.08)', label:'Free',    icon:'🆓', order:0, price:'₹0',      tagline:'Basic Access' },
   starter: { color:'#3b82f6', glow:'rgba(59,130,246,0.45)', bg:'linear-gradient(135deg,#1d4ed8,#1e40af)', bgCard:'rgba(59,130,246,0.08)',  label:'Starter', icon:'🚀', order:1, price:'₹4,999',  tagline:'Start Earning' },
-  pro:     { color:'#8b5cf6', glow:'rgba(139,92,246,0.45)', bg:'linear-gradient(135deg,#7c3aed,#5b21b6)', bgCard:'rgba(139,92,246,0.08)',  label:'Pro',      icon:'⚡', order:2, price:'₹9,999',  tagline:'Higher Commissions' },
+  pro:     { color:'#8b5cf6', glow:'rgba(139,92,246,0.45)', bg:'linear-gradient(135deg,#7c3aed,#5b21b6)', bgCard:'rgba(139,92,246,0.08)',  label:'Pro',      icon:'⚡', order:2, price:'₹9,999',  tagline:'Higher Partnership earnings' },
   proedge: { color:'#d946ef', glow:'rgba(217,70,239,0.45)', bg:'linear-gradient(135deg,#a21caf,#6b21a8)', bgCard:'rgba(217,70,239,0.08)',  label:'Pro-Edge', icon:'🔥', order:3, price:'₹14,999', tagline:'Pro Plus Edge' },
   elite:   { color:'#f59e0b', glow:'rgba(245,158,11,0.45)', bg:'linear-gradient(135deg,#d97706,#b45309)', bgCard:'rgba(245,158,11,0.08)',  label:'Elite',    icon:'💎', order:4, price:'₹19,999', tagline:'VIP Benefits' },
   supreme: { color:'#ec4899', glow:'rgba(236,72,153,0.45)', bg:'linear-gradient(135deg,#e11d48,#be185d)', bgCard:'rgba(236,72,153,0.08)',  label:'Supreme',  icon:'👑', order:5, price:'₹29,999', tagline:'Maximum Power' },
@@ -32,11 +32,11 @@ const TIER_CFG: Record<Tier, {
 
 const TIER_BENEFITS: Record<Tier, { text: string; highlight?: boolean }[]> = {
   free:    [{ text:'Browse free courses' }, { text:'Basic dashboard' }, { text:'Community access' }],
-  starter: [{ text:'3-level commission system', highlight:true }, { text:'Partner link generator', highlight:true }, { text:'CRM & lead tracking' }, { text:'Full course library' }, { text:'Wallet & withdrawals' }],
-  pro:     [{ text:'Higher commission rates', highlight:true }, { text:'Advanced analytics', highlight:true }, { text:'Priority support' }, { text:'All Starter benefits' }, { text:'Pro training modules' }],
-  proedge: [{ text:'Pro-Edge commission rates', highlight:true }, { text:'Edge analytics & toolkit', highlight:true }, { text:'Priority mentor support' }, { text:'All Pro benefits' }, { text:'Pro-Edge exclusive modules' }],
-  elite:   [{ text:'Top commission rates', highlight:true }, { text:'VIP partner events', highlight:true }, { text:'Dedicated support line' }, { text:'All Pro benefits' }, { text:'Elite resources & tools' }],
-  supreme: [{ text:'Maximum commissions', highlight:true }, { text:'Personal manager', highlight:true }, { text:'Hall of Fame feature' }, { text:'All Elite benefits' }, { text:'Exclusive webinars & bonuses' }],
+  starter: [{ text:'3-level Partnership earning system', highlight:true }, { text:'Partner link generator', highlight:true }, { text:'CRM & lead tracking' }, { text:'Full course library' }, { text:'Wallet & withdrawals' }],
+  pro:     [{ text:'Higher Partnership earning rates', highlight:true }, { text:'Advanced analytics', highlight:true }, { text:'Priority support' }, { text:'All Starter benefits' }, { text:'Pro training modules' }],
+  proedge: [{ text:'Pro-Edge Partnership earning rates', highlight:true }, { text:'Edge analytics & toolkit', highlight:true }, { text:'Priority mentor support' }, { text:'All Pro benefits' }, { text:'Pro-Edge exclusive modules' }],
+  elite:   [{ text:'Top Partnership earning rates', highlight:true }, { text:'VIP partner events', highlight:true }, { text:'Dedicated support line' }, { text:'All Pro benefits' }, { text:'Elite resources & tools' }],
+  supreme: [{ text:'Maximum Partnership earnings', highlight:true }, { text:'Personal manager', highlight:true }, { text:'Hall of Fame feature' }, { text:'All Elite benefits' }, { text:'Exclusive webinars & bonuses' }],
 }
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -179,17 +179,15 @@ function EarningsChart({ trend }: { trend: any[] }) {
 }
 
 // ─── Network Rings ────────────────────────────────────────────────────────────
-function NetworkRings({ l1, l2, l3 }: { l1: number; l2: number; l3: number }) {
-  const total = l1 + l2 + l3
+function NetworkRings({ l1 }: { l1: number }) {
+  const total = l1
   const ring = (r: number, count: number, color: string, trackColor: string) => {
     const circ = 2 * Math.PI * r
     const pct = total > 0 ? Math.min(count / total, 1) : 0
     return { circ, dash: circ * pct, trackColor, color }
   }
   const rings = [
-    { ...ring(36, l1, '#8b5cf6', 'rgba(139,92,246,0.12)'), label:'L1 Direct', count:l1, accent:'#a78bfa' },
-    { ...ring(25, l2, '#06b6d4', 'rgba(6,182,212,0.12)'),  label:'L2 Network', count:l2, accent:'#67e8f9' },
-    { ...ring(14, l3, '#f59e0b', 'rgba(245,158,11,0.12)'),  label:'L3 Extended', count:l3, accent:'#fcd34d' },
+    { ...ring(36, l1, '#8b5cf6', 'rgba(139,92,246,0.12)'), label:'Direct Referrals', count:l1, accent:'#a78bfa' },
   ]
   return (
     <div style={{ display:'flex', alignItems:'center', gap:20 }}>
@@ -525,9 +523,7 @@ function PlanSection({ currentTier, packageComm }: { currentTier: Tier; packageC
           <div style={{ background:'rgba(10,10,18,0.95)', padding:'18px 20px' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {[
-                { label:'L1 Commission', value: selectedPkg.l1Earn, color:'#a78bfa', bg:'rgba(139,92,246,0.1)' },
-                { label:'L2 Commission', value: selectedPkg.l2Earn, color:'#67e8f9', bg:'rgba(6,182,212,0.1)' },
-                { label:'L3 Commission', value: selectedPkg.l3Earn, color:'#fcd34d', bg:'rgba(245,158,11,0.1)' },
+                { label:'Partnership earning', value: selectedPkg.l1Earn, color:'#a78bfa', bg:'rgba(139,92,246,0.1)' },
               ].map(row => (
                 <div key={row.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderRadius:12, background:row.bg, border:`1px solid ${row.color}20` }}>
                   <span style={{ color:'rgba(255,255,255,0.6)', fontSize:12, fontWeight:600 }}>{row.label}</span>
@@ -671,8 +667,6 @@ export default function PartnerDashboard() {
   packageComm.forEach((p: any) => { if (p.tier) tierNameMap[p.tier.toLowerCase()] = p.name })
   const getTierName = (t?: string) => t ? (tierNameMap[t.toLowerCase()] || t) : '—'
   const l1 = stats?.l1Count || 0
-  const l2 = stats?.l2Count || 0
-  const l3 = stats?.l3Count || 0
 
   const copyCode = () => {
     navigator.clipboard.writeText(user?.affiliateCode || '')
@@ -956,7 +950,7 @@ export default function PartnerDashboard() {
                 <div style={{ background:'rgba(139,92,246,0.1)', borderRadius:10, padding:'8px 14px', border:'1px solid rgba(139,92,246,0.2)' }}>
                   <p style={{ color:'rgba(167,139,250,0.7)', fontSize:9, textTransform:'uppercase', letterSpacing:1, margin:0 }}>TruLearnix</p>
                   <p style={{ color:'#a78bfa', fontWeight:900, fontSize:15, margin:0, marginTop:2 }}>₹{(stats.totalEarnings || 0).toLocaleString()}</p>
-                  <p style={{ color:'rgba(255,255,255,0.25)', fontSize:9, margin:0 }}>commissions</p>
+                  <p style={{ color:'rgba(255,255,255,0.25)', fontSize:9, margin:0 }}>Partnership earnings</p>
                 </div>
                 <div style={{ background:'rgba(0,0,0,0.25)', borderRadius:10, padding:'8px 14px', border:'1px solid rgba(255,255,255,0.08)' }}>
                   <p style={{ color:'rgba(255,255,255,0.35)', fontSize:9, textTransform:'uppercase', letterSpacing:1, margin:0 }}>Wallet</p>
@@ -988,7 +982,7 @@ export default function PartnerDashboard() {
                 <p style={{ color:'#a78bfa', fontWeight:900, fontSize:22, margin:0, marginTop:4 }}>₹{(stats.periodEarnings || 0).toLocaleString()}</p>
               </div>
               <div style={{ textAlign:'right' }}>
-                <p style={{ color:'#4b5563', fontSize:10, margin:0 }}>Commissions</p>
+                <p style={{ color:'#4b5563', fontSize:10, margin:0 }}>Partnership earnings</p>
                 <p style={{ color:'white', fontWeight:800, fontSize:18, margin:0, marginTop:4 }}>{stats.periodCount || 0}</p>
               </div>
             </div>
@@ -1008,9 +1002,9 @@ export default function PartnerDashboard() {
             sub="Awaiting release"
           />
           <GlassStatCard
-            label="Team Size" value={(l1 + l2 + l3).toLocaleString()}
+            label="Team Size" value={l1.toLocaleString()}
             icon={Users} color="#10b981" glow="rgba(16,185,129,0.2)"
-            sub={`L1:${l1}  L2:${l2}  L3:${l3}`}
+            sub="Direct referrals"
           />
           <GlassStatCard
             label="This Week" value={`₹${(stats?.weekly || 0).toLocaleString()}`}
@@ -1062,10 +1056,10 @@ export default function PartnerDashboard() {
             title="Network Overview" sub="Your referral tree structure"
             href="/partner/m-type" linkLabel="View Tree"
           />
-          <NetworkRings l1={l1} l2={l2} l3={l3} />
+          <NetworkRings l1={l1} />
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginTop:18 }}>
             {[
-              { v:l1 + l2 + l3, label:'Total Team', color:'#8b5cf6' },
+              { v:l1, label:'Total Team', color:'#8b5cf6' },
               { v: rank ? `#${rank}` : '—', label:'Your Rank', color:'#f59e0b' },
               { v:`₹${((stats?.totalEarnings || 0) + (stats?.industrialEarning || 0)).toLocaleString()}`, label:'Total Earned', color:'#10b981' },
             ].map(({ v, label, color }) => (
@@ -1136,21 +1130,15 @@ export default function PartnerDashboard() {
           }}>
             <SectionHeader
               icon={Zap} color="#f59e0b"
-              title="Commission Rates" sub="Your earnings per referral sale"
+              title="Partnership earning Rates" sub="Your earnings per referral sale"
             />
             <div style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', minWidth:340 }}>
                 <thead>
                   <tr>
                     <th style={{ textAlign:'left', color:'#4b5563', fontSize:10, fontWeight:700, paddingBottom:12, paddingRight:12, textTransform:'uppercase', letterSpacing:0.8, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>Package</th>
-                    <th style={{ textAlign:'right', paddingBottom:12, paddingRight:12, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-                      <span style={{ background:'rgba(139,92,246,0.15)', color:'#a78bfa', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:8 }}>L1</span>
-                    </th>
-                    <th style={{ textAlign:'right', paddingBottom:12, paddingRight:12, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-                      <span style={{ background:'rgba(6,182,212,0.15)', color:'#67e8f9', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:8 }}>L2</span>
-                    </th>
                     <th style={{ textAlign:'right', paddingBottom:12, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-                      <span style={{ background:'rgba(245,158,11,0.15)', color:'#fcd34d', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:8 }}>L3</span>
+                      <span style={{ background:'rgba(139,92,246,0.15)', color:'#a78bfa', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:8 }}>Earning</span>
                     </th>
                   </tr>
                 </thead>
@@ -1171,19 +1159,9 @@ export default function PartnerDashboard() {
                           </div>
                         </div>
                       </td>
-                      <td style={{ textAlign:'right', paddingRight:12 }}>
+                      <td style={{ textAlign:'right' }}>
                         <span style={{ color:'#c4b5fd', fontWeight:700, fontSize:12, background:'rgba(139,92,246,0.1)', padding:'4px 9px', borderRadius:9, display:'inline-block' }}>
                           {pkg.l1Earn > 0 ? `₹${pkg.l1Earn.toLocaleString()}` : '—'}
-                        </span>
-                      </td>
-                      <td style={{ textAlign:'right', paddingRight:12 }}>
-                        <span style={{ color:'#67e8f9', fontWeight:700, fontSize:12, background:'rgba(6,182,212,0.1)', padding:'4px 9px', borderRadius:9, display:'inline-block' }}>
-                          {pkg.l2Earn > 0 ? `₹${pkg.l2Earn.toLocaleString()}` : '—'}
-                        </span>
-                      </td>
-                      <td style={{ textAlign:'right' }}>
-                        <span style={{ color:'#fcd34d', fontWeight:700, fontSize:12, background:'rgba(245,158,11,0.1)', padding:'4px 9px', borderRadius:9, display:'inline-block' }}>
-                          {pkg.l3Earn > 0 ? `₹${pkg.l3Earn.toLocaleString()}` : '—'}
                         </span>
                       </td>
                     </tr>
@@ -1223,7 +1201,7 @@ export default function PartnerDashboard() {
           }}>
             <SectionHeader
               icon={Star} color="#f59e0b"
-              title="Recent Activity" sub="Latest commissions & referrals"
+              title="Recent Activity" sub="Latest Partnership earnings & referrals"
               href="/partner/referrals" linkLabel="See All"
             />
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
@@ -1256,7 +1234,7 @@ export default function PartnerDashboard() {
                     </div>
                     <div style={{ textAlign:'right', flexShrink:0 }}>
                       <p style={{ color:'#4ade80', fontSize:14, fontWeight:900, margin:0 }}>+₹{(r.contribution || 0).toLocaleString()}</p>
-                      <p style={{ color:'#374151', fontSize:10, margin:0 }}>commission</p>
+                      <p style={{ color:'#374151', fontSize:10, margin:0 }}>Partnership earning</p>
                     </div>
                   </div>
                 )

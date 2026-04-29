@@ -55,7 +55,7 @@ export default function NewCourse() {
             <label className="block text-sm text-gray-400 mb-1">Category</label>
             <select value={form.category} onChange={e => set('category', e.target.value)} className="input">
               <option value="digital_marketing">Digital Marketing</option>
-              <option value="affiliate">Affiliate Marketing</option>
+              <option value="affiliate">Partnership Marketing</option>
               <option value="trading">Trading</option>
               <option value="others">Others</option>
             </select>

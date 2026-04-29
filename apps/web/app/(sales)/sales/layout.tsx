@@ -15,7 +15,7 @@ const navItems = [
   { href: '/sales/dashboard',      icon: LayoutDashboard,  label: 'Dashboard',       group: 'main' },
   { href: '/sales/leads',          icon: Users,            label: 'My Leads',         group: 'main' },
   { href: '/sales/orders',         icon: ShoppingBag,      label: 'Orders',           group: 'main' },
-  { href: '/sales/emi',            icon: CalendarCheck,    label: 'EMI Commissions',  group: 'main' },
+  { href: '/sales/emi',            icon: CalendarCheck,    label: 'EMI Partnership earnings',  group: 'main' },
   { href: '/sales/kanban',         icon: Kanban,           label: 'Kanban',           group: 'tools' },
   { href: '/sales/calendar',       icon: CalendarDays,     label: 'Calendar',         group: 'tools' },
   { href: '/sales/link-generator', icon: Link2,            label: 'Link Generator',   group: 'tools' },

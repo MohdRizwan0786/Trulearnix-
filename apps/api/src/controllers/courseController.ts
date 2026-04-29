@@ -146,7 +146,7 @@ export const getEnrolledCourseContent = async (req: AuthRequest, res: Response) 
     res.json({
       success: true,
       course: courseObj,
-      enrollment: { progressPercent: enrollment.progressPercent },
+      enrollment: { progressPercent: enrollment.progressPercent, completedAt: enrollment.completedAt || null },
       batch: enrollment.batch || null,
       completedLessons,
       sessions: enrichedSessions,
@@ -173,9 +173,8 @@ export const markLessonComplete = async (req: AuthRequest, res: Response) => {
       if (course) {
         const totalLessons = course.modules.reduce((sum, m) => sum + m.lessons.length, 0);
         enrollment.progressPercent = Math.round((enrollment.progress.length / totalLessons) * 100);
-        if (enrollment.progressPercent === 100 && !enrollment.completedAt) {
-          enrollment.completedAt = new Date();
-        }
+        // Course completion is now mentor-driven (batch-wise via PATCH /mentor/batches/:id/complete).
+        // We no longer auto-set enrollment.completedAt when a student finishes all lessons.
       }
       await enrollment.save();
     }

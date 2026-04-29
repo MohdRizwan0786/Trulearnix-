@@ -8,7 +8,7 @@ import Logo from '@/components/ui/Logo'
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, MessageSquare, Users,
   ThumbsUp, Heart, Star, Smile, Send, Square, Copy, FileQuestion,
-  Trophy, Play, X, CheckCircle2, BarChart2, Plus, Trash2, BarChart
+  Trophy, Play, X, CheckCircle2, BarChart2, Plus, Trash2, BarChart, Pencil
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
@@ -190,12 +190,12 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
           noiseSuppression: true,
           autoGainControl: true,
           sampleRate: 48000,
-          channelCount: 2,
+          channelCount: 1, // mono — voice mics are mono, RED + opus works reliably in mono
         },
         publishDefaults: {
           videoCodec: 'vp9',
           videoEncoding: { maxBitrate: 8_000_000, maxFramerate: 30 },
-          audioPreset: { maxBitrate: 320_000 }, // 320kbps — best audio
+          audioPreset: { maxBitrate: 64_000 }, // 64kbps mono opus — clear voice, robust on poor links
           dtx: false,   // disable discontinuous transmission for constant audio quality
           red: true,    // redundant audio encoding — reduces packet loss artifacts
           simulcast: true,
@@ -203,23 +203,23 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
       })
       roomRef.current = room
 
-      room.on(RoomEvent.ParticipantConnected, (participant) => {
+      const wireParticipant = (participant: any) => {
         const identity = participant.identity
         const name = participant.name || identity
         setRemoteUsers(prev => prev.find(u => u.identity === identity) ? prev : [...prev, { identity, name, hasVideo: false, hasAudio: false }])
-        addSysMsg(`👋 ${name} joined`)
 
-        participant.on(ParticipantEvent.TrackSubscribed, (track, pub) => {
+        participant.on(ParticipantEvent.TrackSubscribed, (track: any, pub: any) => {
           const isVideo = track.kind === Track.Kind.Video
           const isAudio = track.kind === Track.Kind.Audio
+          const muted = !!pub?.isMuted
           setRemoteUsers(prev => prev.map(u => u.identity === identity
-            ? { ...u, hasVideo: isVideo ? true : u.hasVideo, hasAudio: isAudio ? true : u.hasAudio, videoTrack: isVideo ? track : u.videoTrack, audioTrack: isAudio ? track : u.audioTrack }
+            ? { ...u, hasVideo: isVideo ? !muted : u.hasVideo, hasAudio: isAudio ? !muted : u.hasAudio, videoTrack: isVideo ? track : u.videoTrack, audioTrack: isAudio ? track : u.audioTrack }
             : u))
           if (isVideo) setTimeout(() => { const el = document.getElementById(`rv-${identity}`) as HTMLVideoElement | null; if (el) track.attach(el) }, 200)
           if (isAudio && !mutedStudents.has(identity)) { const el = track.attach(); el.style.display = 'none'; document.body.appendChild(el) }
         })
 
-        participant.on(ParticipantEvent.TrackUnsubscribed, (track) => {
+        participant.on(ParticipantEvent.TrackUnsubscribed, (track: any) => {
           track.detach()
           const isVideo = track.kind === Track.Kind.Video
           const isAudio = track.kind === Track.Kind.Audio
@@ -227,6 +227,41 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
             ? { ...u, hasVideo: isVideo ? false : u.hasVideo, hasAudio: isAudio ? false : u.hasAudio, videoTrack: isVideo ? undefined : u.videoTrack, audioTrack: isAudio ? undefined : u.audioTrack }
             : u))
         })
+
+        // mute/unmute does NOT fire subscribe/unsubscribe — track these separately
+        participant.on(ParticipantEvent.TrackMuted, (pub: any) => {
+          const isVideo = pub?.kind === Track.Kind.Video
+          const isAudio = pub?.kind === Track.Kind.Audio
+          setRemoteUsers(prev => prev.map(u => u.identity === identity
+            ? { ...u, hasVideo: isVideo ? false : u.hasVideo, hasAudio: isAudio ? false : u.hasAudio }
+            : u))
+        })
+        participant.on(ParticipantEvent.TrackUnmuted, (pub: any) => {
+          const isVideo = pub?.kind === Track.Kind.Video
+          const isAudio = pub?.kind === Track.Kind.Audio
+          setRemoteUsers(prev => prev.map(u => u.identity === identity
+            ? { ...u, hasVideo: isVideo ? true : u.hasVideo, hasAudio: isAudio ? true : u.hasAudio }
+            : u))
+        })
+
+        // attach any tracks already published before mentor joined
+        participant.trackPublications.forEach((pub: any) => {
+          const track = pub.track
+          if (!track) return
+          const isVideo = track.kind === Track.Kind.Video
+          const isAudio = track.kind === Track.Kind.Audio
+          const live = !pub.isMuted
+          setRemoteUsers(prev => prev.map(u => u.identity === identity
+            ? { ...u, hasVideo: isVideo ? live : u.hasVideo, hasAudio: isAudio ? live : u.hasAudio, videoTrack: isVideo ? track : u.videoTrack, audioTrack: isAudio ? track : u.audioTrack }
+            : u))
+          if (isVideo) setTimeout(() => { const el = document.getElementById(`rv-${identity}`) as HTMLVideoElement | null; if (el) track.attach(el) }, 300)
+          if (isAudio && !mutedStudents.has(identity)) { const el = track.attach(); el.style.display = 'none'; document.body.appendChild(el) }
+        })
+      }
+
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        wireParticipant(participant)
+        addSysMsg(`👋 ${participant.name || participant.identity} joined`)
       })
 
       room.on(RoomEvent.ParticipantDisconnected, (participant) => {
@@ -242,6 +277,9 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
       })
 
       await room.connect(data.livekitUrl, data.token)
+
+      // wire any participants who joined before us (e.g. students who arrived first)
+      room.remoteParticipants.forEach(p => wireParticipant(p))
 
       try {
         await room.localParticipant.setMicrophoneEnabled(true)
@@ -262,7 +300,11 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
       addSysMsg('✅ You are live!')
 
       // Start server-side egress recording
-      classAPI.startEgress(params.id).catch(e => console.warn('Egress start failed:', e?.response?.data?.message || e?.message))
+      classAPI.startEgress(params.id).catch(e => {
+        const msg = e?.response?.data?.message || e?.message || 'Unknown error'
+        console.warn('Egress start failed:', msg)
+        toast.error(`⚠️ Recording start nahi hui: ${msg}. Class continue hogi but recording save nahi hogi.`, { duration: 8000 })
+      })
     } catch (err: any) { toast.error('Connection error: ' + (err?.message || 'Unknown')) }
   }
 
@@ -1087,6 +1129,13 @@ export default function MentorClassRoom({ params }: { params: { id: string } }) 
           <TBtn active={micOn} onClick={toggleMic} icon={micOn ? Mic : MicOff} label="Mic" offCls="bg-red-500/20 text-red-400" />
           <TBtn active={camOn} onClick={toggleCam} icon={camOn ? Video : VideoOff} label="Cam" offCls="bg-red-500/20 text-red-400" />
           <TBtn active={!screenSharing} onClick={toggleScreenShare} icon={screenSharing ? MonitorOff : Monitor} label="Share" offCls="bg-blue-500/20 text-blue-400" />
+          {/* AirDrawer (gesture whiteboard) — opens in a new tab; mentor screen-shares that tab */}
+          <button onClick={() => window.open('/air-drawer', '_blank', 'noopener,noreferrer')}
+            className="flex flex-col items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl transition-colors bg-gradient-to-br from-cyan-500/20 to-violet-600/20 text-violet-300 hover:from-cyan-500/30 hover:to-violet-600/30"
+            title="Open Air Drawer whiteboard in a new tab — share its tab to show students">
+            <Pencil className="w-5 h-5" />
+            <span className="hidden sm:block text-[10px]">Draw</span>
+          </button>
           {/* Mute All / Unmute All */}
           <button onClick={toggleMuteAll}
             className={`flex flex-col items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl transition-colors ${

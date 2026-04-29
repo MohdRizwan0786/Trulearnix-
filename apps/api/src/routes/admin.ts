@@ -14,10 +14,11 @@ import LiveClass from '../models/LiveClass';
 import Batch from '../models/Batch';
 import Enrollment from '../models/Enrollment';
 import PlatformSettings from '../models/PlatformSettings';
-import { getOrCreateActiveBatch, createPendingBatch } from '../services/batchService';
+import { getOrCreateActiveBatch, createPendingBatch, onStudentEnrolled } from '../services/batchService';
 import { protect, authorize } from '../middleware/auth';
 import { initiateWithdrawalPayout, isPayoutConfigured } from '../services/razorpayPayout';
 import { activateOrder } from '../services/orderActivation';
+import { ensureCompulsoryEnrollments, backfillCompulsoryEnrollments } from '../services/enrollmentService';
 
 const router = Router();
 router.use(protect, authorize('superadmin', 'admin', 'manager', 'mentor', 'salesperson', 'employee', 'department_head', 'team_lead'));
@@ -141,6 +142,11 @@ router.patch('/users/:id/package', async (req: any, res) => {
     const rates: Record<string, number> = { free: 0, starter: 10, pro: 15, elite: 22, supreme: 30 };
     const updates: any = { packageTier, commissionRate: rates[packageTier] || 0, isAffiliate: packageTier !== 'free', packagePurchasedAt: new Date() };
     const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true }).select('-password');
+    if (packageTier && packageTier !== 'free') {
+      ensureCompulsoryEnrollments(req.params.id).catch(err =>
+        console.error('[admin-set-package-compulsory]', err?.message)
+      );
+    }
     res.json({ success: true, user });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
@@ -375,6 +381,7 @@ router.delete('/courses/:id', async (req, res) => {
 // Admin: update course
 router.put('/courses/:id', async (req: any, res) => {
   try {
+    const before = await Course.findById(req.params.id).select('isCompulsory status');
     const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: false });
     if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
 
@@ -384,7 +391,85 @@ router.put('/courses/:id', async (req: any, res) => {
       if (!existingBatch) await getOrCreateActiveBatch(course._id.toString());
     }
 
+    // If compulsory just got enabled (or course just got published while compulsory), backfill
+    const justBecameCompulsory = course.isCompulsory && course.status === 'published'
+      && (!before?.isCompulsory || before?.status !== 'published');
+    if (justBecameCompulsory) {
+      backfillCompulsoryEnrollments(course._id.toString()).catch(err =>
+        console.error('[course-update-backfill]', err?.message)
+      );
+    }
+
     res.json({ success: true, course });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: toggle a course's "compulsory" flag and backfill enrollments for all paid learners
+router.patch('/courses/:id/compulsory', async (req: any, res) => {
+  try {
+    const { isCompulsory } = req.body;
+    const course = await Course.findByIdAndUpdate(
+      req.params.id,
+      { isCompulsory: !!isCompulsory },
+      { new: true }
+    );
+    if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
+
+    if (course.isCompulsory && course.status === 'published') {
+      const enrolled = await backfillCompulsoryEnrollments(course._id.toString());
+      return res.json({ success: true, course, enrolledCount: enrolled, message: `Course set as compulsory. Auto-enrolled ${enrolled} new learner${enrolled === 1 ? '' : 's'}.` });
+    }
+    res.json({ success: true, course, enrolledCount: 0, message: course.isCompulsory ? 'Marked compulsory (publish the course to auto-enroll learners).' : 'Removed from compulsory list.' });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: list a user's enrollments (for the enrollment manager UI)
+router.get('/users/:id/enrollments', async (req: any, res) => {
+  try {
+    const enrollments = await Enrollment.find({ student: req.params.id })
+      .populate('course', 'title thumbnail category level status isCompulsory')
+      .populate('batch', 'label batchNumber status')
+      .sort('-createdAt');
+    res.json({ success: true, enrollments });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: enroll a user in a course (bypasses the 2-cap, marks source=admin)
+router.post('/users/:id/enrollments', async (req: any, res) => {
+  try {
+    const { courseId } = req.body;
+    if (!courseId) return res.status(400).json({ success: false, message: 'courseId required' });
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
+    const existing = await Enrollment.findOne({ student: req.params.id, course: courseId });
+    if (existing) return res.status(400).json({ success: false, message: 'Already enrolled' });
+
+    const activeBatch = (course as any).batchSettings?.enabled
+      ? await getOrCreateActiveBatch(courseId)
+      : null;
+    const enrollment = await Enrollment.create({
+      student: req.params.id,
+      course: courseId,
+      amount: 0,
+      source: course.isCompulsory ? 'compulsory' : 'admin',
+      paymentId: 'admin_override',
+      ...(activeBatch ? { batch: activeBatch._id } : {}),
+    });
+    if (activeBatch) await onStudentEnrolled(activeBatch._id.toString());
+    await Course.findByIdAndUpdate(courseId, { $inc: { enrolledCount: 1 } });
+    res.status(201).json({ success: true, enrollment });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Admin: remove an enrollment (un-enroll a learner from a course)
+router.delete('/enrollments/:enrollmentId', async (req: any, res) => {
+  try {
+    const enrollment = await Enrollment.findById(req.params.enrollmentId);
+    if (!enrollment) return res.status(404).json({ success: false, message: 'Enrollment not found' });
+    const courseId = enrollment.course;
+    await enrollment.deleteOne();
+    await Course.findByIdAndUpdate(courseId, { $inc: { enrolledCount: -1 } });
+    res.json({ success: true, message: 'Enrollment removed' });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -815,6 +900,17 @@ router.get('/commissions', async (req, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// Manually trigger the auto-withdrawal job — scans all eligible partners /
+// salespersons / managers and creates pending withdrawal requests for their full
+// wallet balance. Same logic the daily 9:30 AM IST cron runs.
+router.post('/withdrawals/auto-run', async (_req: any, res) => {
+  try {
+    const { runAutoWithdrawals } = await import('./nova');
+    const result = await runAutoWithdrawals();
+    res.json({ success: true, ...result });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // Withdrawals
 router.get('/withdrawals', async (req, res) => {
   try {
@@ -835,6 +931,20 @@ router.patch('/withdrawals/:id/hr-approve', async (req: any, res) => {
     const withdrawal = await Withdrawal.findById(req.params.id).populate('user', 'name email phone kyc');
     if (!withdrawal) return res.status(404).json({ success: false, message: 'Withdrawal not found' });
     if (withdrawal.hrStatus !== 'pending') return res.status(400).json({ success: false, message: 'Already processed by HR' });
+
+    // Backfill TDS / gateway fee / net amount for legacy withdrawals stored as zero
+    if (withdrawal.amount > 0 && (!withdrawal.tdsAmount || !withdrawal.netAmount)) {
+      const tdsRate = withdrawal.tdsRate || 2;
+      const tdsAmount = Math.round(withdrawal.amount * tdsRate / 100);
+      const gatewayFeeBase = 4.40;
+      const gatewayFeeGst = Math.round(gatewayFeeBase * 0.18 * 100) / 100;
+      const totalGatewayFee = Math.round((gatewayFeeBase + gatewayFeeGst) * 100) / 100;
+      withdrawal.tdsRate = tdsRate;
+      withdrawal.tdsAmount = tdsAmount;
+      withdrawal.gatewayFee = totalGatewayFee;
+      withdrawal.gatewayFeeGst = gatewayFeeGst;
+      withdrawal.netAmount = withdrawal.amount - tdsAmount - totalGatewayFee;
+    }
 
     withdrawal.hrStatus = 'approved';
     withdrawal.hrApprovedBy = req.user._id;
@@ -887,7 +997,7 @@ router.patch('/withdrawals/:id/hr-approve', async (req: any, res) => {
       try {
         const { notify } = await import('../services/pushService');
         const { sendWithdrawalSuccessEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendWithdrawalSuccessTemplate } = await import('../services/whatsappMetaService');
         const w = withdrawal as any;
         const partner = w.user as any;
         const amt = w.netAmount || w.amount;
@@ -913,14 +1023,14 @@ router.patch('/withdrawals/:id/hr-approve', async (req: any, res) => {
           }
 
           if (partner?.phone) {
-            const msg = `*TruLearnix — Withdrawal Successful* ✅\n\nHi ${partner.name},\n\n` +
-              `Your withdrawal of *₹${w.amount.toLocaleString('en-IN')}* has been processed!\n\n` +
-              `💰 *Net Credited:* ₹${w.netAmount.toLocaleString('en-IN')}\n` +
-              `🔖 *Transaction ID:* ${txId}\n` +
-              `📅 *Date & Time:* ${dateStr}\n` +
-              `📊 TDS (2%): ₹${w.tdsAmount.toLocaleString('en-IN')} | Gateway: ₹${w.gatewayFee.toFixed(2)}\n\n` +
-              `Amount credited to your registered bank account.\n\nFor queries: support@trulearnix.com`;
-            await sendWhatsAppText(partner.phone, msg).catch(() => {});
+            await sendWithdrawalSuccessTemplate(
+              partner.phone,
+              partner.name,
+              w.amount.toLocaleString('en-IN'),
+              w.netAmount.toLocaleString('en-IN'),
+              txId,
+              dateStr,
+            ).catch(() => {});
           }
         }
       } catch {}
@@ -963,6 +1073,20 @@ router.patch('/withdrawals/:id/complete', async (req: any, res) => {
     if (!withdrawal) return res.status(404).json({ success: false, message: 'Withdrawal not found' });
     if (withdrawal.hrStatus !== 'approved') return res.status(400).json({ success: false, message: 'HR approval required first' });
 
+    // Backfill TDS / gateway fee / net amount for legacy withdrawals stored as zero
+    if (withdrawal.amount > 0 && (!withdrawal.tdsAmount || !withdrawal.netAmount)) {
+      const tdsRate = withdrawal.tdsRate || 2;
+      const tdsAmount = Math.round(withdrawal.amount * tdsRate / 100);
+      const gatewayFeeBase = 4.40;
+      const gatewayFeeGst = Math.round(gatewayFeeBase * 0.18 * 100) / 100;
+      const totalGatewayFee = Math.round((gatewayFeeBase + gatewayFeeGst) * 100) / 100;
+      withdrawal.tdsRate = tdsRate;
+      withdrawal.tdsAmount = tdsAmount;
+      withdrawal.gatewayFee = totalGatewayFee;
+      withdrawal.gatewayFeeGst = gatewayFeeGst;
+      withdrawal.netAmount = withdrawal.amount - tdsAmount - totalGatewayFee;
+    }
+
     const completedAt = new Date();
     withdrawal.status = 'completed';
     if (transactionRef) withdrawal.razorpayPayoutId = transactionRef;
@@ -975,7 +1099,7 @@ router.patch('/withdrawals/:id/complete', async (req: any, res) => {
     setImmediate(async () => {
       try {
         const { sendWithdrawalSuccessEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendWithdrawalSuccessTemplate } = await import('../services/whatsappMetaService');
         const partner = withdrawal.user as any;
         const txId = transactionRef || withdrawal.razorpayPayoutId || 'N/A';
         const dateStr = completedAt.toLocaleString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -996,14 +1120,14 @@ router.patch('/withdrawals/:id/complete', async (req: any, res) => {
         }
 
         if (partner?.phone) {
-          const msg = `*TruLearnix — Withdrawal Successful* ✅\n\nHi ${partner.name},\n\n` +
-            `Your withdrawal of *₹${withdrawal.amount.toLocaleString('en-IN')}* has been processed!\n\n` +
-            `💰 *Net Credited:* ₹${withdrawal.netAmount.toLocaleString('en-IN')}\n` +
-            `🔖 *Transaction ID:* ${txId}\n` +
-            `📅 *Date & Time:* ${dateStr}\n` +
-            `📊 TDS (2%): ₹${withdrawal.tdsAmount.toLocaleString('en-IN')} | Gateway: ₹${withdrawal.gatewayFee.toFixed(2)}\n\n` +
-            `Amount credited to your registered bank account.\n\nFor queries: support@trulearnix.com`;
-          await sendWhatsAppText(partner.phone, msg).catch(() => {});
+          await sendWithdrawalSuccessTemplate(
+            partner.phone,
+            partner.name,
+            withdrawal.amount.toLocaleString('en-IN'),
+            withdrawal.netAmount.toLocaleString('en-IN'),
+            txId,
+            dateStr,
+          ).catch(() => {});
         }
       } catch {}
     });
@@ -1792,7 +1916,7 @@ router.post('/emi/:installmentId/collect-wallet', async (req, res) => {
         await Transaction.create({
           user: (inst as any).partnerUser, type: 'credit', category: 'affiliate_commission',
           amount: commAmt,
-          description: `EMI installment ${inst.installmentNumber} commission`,
+          description: `EMI installment ${inst.installmentNumber} Partnership earning`,
           referenceId: String(inst._id), status: 'completed',
           balanceAfter: updatedPartner?.wallet || 0,
         });
@@ -1806,7 +1930,7 @@ router.post('/emi/:installmentId/collect-wallet', async (req, res) => {
         });
         await EmiInstallment.findByIdAndUpdate(inst._id, { partnerCommissionPaid: true });
         await User.findByIdAndUpdate((inst as any).partnerUser, {
-          $push: { notifications: { type: 'commission', message: `₹${commAmt} EMI commission received (Inst ${inst.installmentNumber}/${inst.totalInstallments})`, read: false, createdAt: new Date() } }
+          $push: { notifications: { type: 'commission', message: `₹${commAmt} EMI Partnership earning received (Inst ${inst.installmentNumber}/${inst.totalInstallments})`, read: false, createdAt: new Date() } }
         });
       }
 
@@ -1816,7 +1940,7 @@ router.post('/emi/:installmentId/collect-wallet', async (req, res) => {
         await User.findByIdAndUpdate((inst as any).managerUser, { $inc: { wallet: mgrAmt, totalEarnings: mgrAmt } });
         await Transaction.create({
           user: (inst as any).managerUser, type: 'credit', category: 'affiliate_commission',
-          amount: mgrAmt, description: `Manager EMI commission (Inst ${inst.installmentNumber}/${inst.totalInstallments})`,
+          amount: mgrAmt, description: `Manager EMI Partnership earning (Inst ${inst.installmentNumber}/${inst.totalInstallments})`,
           referenceId: String(inst._id), status: 'completed',
         });
         await EmiInstallment.findByIdAndUpdate(inst._id, { managerCommissionPaid: true });
@@ -1868,7 +1992,7 @@ router.patch('/emi/:installmentId/mark-paid', async (req, res) => {
       );
       await Transaction.create({
         user: (inst as any).partnerUser, type: 'credit', category: 'affiliate_commission',
-        amount: commAmt, description: `EMI commission — installment ${inst.installmentNumber}/${inst.totalInstallments}`,
+        amount: commAmt, description: `EMI Partnership earning — installment ${inst.installmentNumber}/${inst.totalInstallments}`,
         referenceId: inst._id, status: 'completed',
         balanceAfter: updatedPartner?.wallet || 0,
       });
@@ -2234,6 +2358,158 @@ router.delete('/qualifications/:id', protect, async (req: any, res) => {
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// ── Qualified partners for a milestone (used by poster picker) ───────────────
+// Returns only partners who have actually achieved the milestone target,
+// with their actual metric value (TruLearnix earnings only — never industrial).
+router.get('/qualifications/:id/qualified-partners', protect, async (req: any, res) => {
+  try {
+    const Qualification = (await import('../models/Qualification')).default as any;
+    const qual = await Qualification.findById(req.params.id);
+    if (!qual) return res.status(404).json({ success: false, message: 'Qualification not found' });
+
+    const search = String(req.query.search || '');
+    const limit = Math.min(Number(req.query.limit) || 30, 100);
+    const baseFilter: any = {
+      isAffiliate: true,
+      role: { $nin: ['admin', 'superadmin', 'manager', 'mentor'] },
+    };
+    if (search) {
+      baseFilter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { affiliateCode: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    let partners: any[] = [];
+    const hasWindow = !!(qual.startDate || qual.endDate);
+    const dateRange: any = {};
+    if (qual.startDate) dateRange.$gte = new Date(qual.startDate);
+    if (qual.endDate)   dateRange.$lte = new Date(qual.endDate);
+
+    if (qual.metricType === 'totalEarnings') {
+      if (hasWindow) {
+        // Sum commissions earned within the window per partner, then filter by target
+        const Commission = (await import('../models/Commission')).default as any;
+        const sums = await Commission.aggregate([
+          { $match: { status: { $ne: 'rejected' }, createdAt: dateRange } },
+          { $group: { _id: '$earner', total: { $sum: '$commissionAmount' } } },
+          { $match: { total: { $gte: qual.target } } },
+          { $sort: { total: -1 } },
+          { $limit: limit * 2 },
+        ]);
+        const ids = sums.map((s: any) => s._id);
+        const users = await User.find({ _id: { $in: ids }, ...baseFilter })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .lean();
+        const userMap: Record<string, any> = {};
+        users.forEach((u: any) => { userMap[u._id.toString()] = u; });
+        partners = sums
+          .map((s: any) => userMap[s._id.toString()] ? { ...userMap[s._id.toString()], _metric: s.total, _target: qual.target } : null)
+          .filter(Boolean)
+          .slice(0, limit);
+      } else {
+        const docs = await User.find({ ...baseFilter, totalEarnings: { $gte: qual.target } })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .sort('-totalEarnings')
+          .limit(limit)
+          .lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: p.totalEarnings || 0, _target: qual.target }));
+      }
+    } else if (qual.metricType === 'l1Count' || qual.metricType === 'l1Paid') {
+      if (hasWindow) {
+        let counts: any[];
+        if (qual.metricType === 'l1Count') {
+          // L1 partners who joined within the window
+          counts = await User.aggregate([
+            { $match: { upline1: { $exists: true, $ne: null }, createdAt: dateRange } },
+            { $group: { _id: '$upline1', cnt: { $sum: 1 } } },
+            { $match: { cnt: { $gte: qual.target } } },
+            { $sort: { cnt: -1 } },
+            { $limit: limit * 2 },
+          ]);
+        } else {
+          // l1Paid: count distinct L1 buyers (paid purchase within window) per upline
+          const PackagePurchase = (await import('../models/PackagePurchase')).default as any;
+          counts = await PackagePurchase.aggregate([
+            { $match: { status: 'paid', createdAt: dateRange } },
+            { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'buyer' } },
+            { $unwind: '$buyer' },
+            { $match: { 'buyer.upline1': { $exists: true, $ne: null } } },
+            { $group: { _id: { upline: '$buyer.upline1', buyer: '$buyer._id' } } },
+            { $group: { _id: '$_id.upline', cnt: { $sum: 1 } } },
+            { $match: { cnt: { $gte: qual.target } } },
+            { $sort: { cnt: -1 } },
+            { $limit: limit * 2 },
+          ]);
+        }
+        const ids = counts.map((c: any) => c._id);
+        const users = await User.find({ _id: { $in: ids }, ...baseFilter })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .lean();
+        const userMap: Record<string, any> = {};
+        users.forEach((u: any) => { userMap[u._id.toString()] = u; });
+        partners = counts
+          .map((c: any) => userMap[c._id.toString()] ? { ...userMap[c._id.toString()], _metric: c.cnt, _target: qual.target } : null)
+          .filter(Boolean)
+          .slice(0, limit);
+      } else {
+        const matchStage: any = { upline1: { $exists: true, $ne: null } };
+        if (qual.metricType === 'l1Paid') matchStage.packageTier = { $ne: 'free' };
+        const counts = await User.aggregate([
+          { $match: matchStage },
+          { $group: { _id: '$upline1', cnt: { $sum: 1 } } },
+          { $match: { cnt: { $gte: qual.target } } },
+          { $sort: { cnt: -1 } },
+          { $limit: limit * 2 },
+        ]);
+        const ids = counts.map((c: any) => c._id);
+        const users = await User.find({ _id: { $in: ids }, ...baseFilter })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .lean();
+        const userMap: Record<string, any> = {};
+        users.forEach((u: any) => { userMap[u._id.toString()] = u; });
+        partners = counts
+          .map((c: any) => userMap[c._id.toString()] ? { ...userMap[c._id.toString()], _metric: c.cnt, _target: qual.target } : null)
+          .filter(Boolean)
+          .slice(0, limit);
+      }
+    } else if (qual.metricType === 'tierUpgrade') {
+      if (hasWindow) {
+        // Partners who upgraded to a paid tier within the window
+        const PackagePurchase = (await import('../models/PackagePurchase')).default as any;
+        const buyerIds = await PackagePurchase.distinct('user', {
+          status: 'paid',
+          packageTier: { $in: ['pro', 'proedge', 'elite', 'supreme'] },
+          createdAt: dateRange,
+        });
+        const docs = await User.find({ _id: { $in: buyerIds }, ...baseFilter })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .sort('-totalEarnings')
+          .limit(limit)
+          .lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: 1, _target: qual.target }));
+      } else {
+        const docs = await User.find({ ...baseFilter, packageTier: { $in: ['pro', 'proedge', 'elite', 'supreme'] } })
+          .select('name email phone avatar affiliateCode packageTier totalEarnings')
+          .sort('-totalEarnings')
+          .limit(limit)
+          .lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: 1, _target: qual.target }));
+      }
+    }
+
+    res.json({
+      success: true,
+      partners,
+      qualification: {
+        _id: qual._id, title: qual.title, target: qual.target,
+        metricType: qual.metricType, unit: qual.unit,
+      },
+    });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // ── Achievements (admin CRUD) ─────────────────────────────────────────────────
 router.get('/achievements', protect, async (_req, res) => {
   try {
@@ -2264,6 +2540,102 @@ router.delete('/achievements/:id', protect, async (req: any, res) => {
     const Achievement = (await import('../models/Achievement')).default as any;
     await Achievement.findByIdAndDelete(req.params.id);
     res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// Partners who actually qualify for a given achievement (mirrors partner.ts unlock logic).
+// Used by the admin achievements page so admins can only download posters for eligible partners.
+router.get('/achievements/:id/eligible-partners', protect, async (req: any, res) => {
+  try {
+    const Achievement = (await import('../models/Achievement')).default as any;
+    const ach = await Achievement.findById(req.params.id);
+    if (!ach) return res.status(404).json({ success: false, message: 'Achievement not found' });
+
+    const search = String(req.query.search || '');
+    const limit = Math.min(Number(req.query.limit) || 30, 100);
+    const baseFilter: any = {
+      isAffiliate: true,
+      role: { $nin: ['admin', 'superadmin', 'manager', 'mentor'] },
+    };
+    if (search) {
+      baseFilter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { affiliateCode: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const SELECT = 'name email phone avatar affiliateCode packageTier totalEarnings';
+    let partners: any[] = [];
+
+    switch (ach.triggerType) {
+      case 'join': {
+        const docs = await User.find(baseFilter).select(SELECT).sort('-createdAt').limit(limit).lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: 0, _target: 0 }));
+        break;
+      }
+      case 'first_earn': {
+        const docs = await User.find({ ...baseFilter, totalEarnings: { $gt: 0 } })
+          .select(SELECT).sort('-totalEarnings').limit(limit).lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: p.totalEarnings || 0, _target: 1 }));
+        break;
+      }
+      case 'earn_amount': {
+        const docs = await User.find({ ...baseFilter, totalEarnings: { $gte: ach.triggerValue } })
+          .select(SELECT).sort('-totalEarnings').limit(limit).lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: p.totalEarnings || 0, _target: ach.triggerValue }));
+        break;
+      }
+      case 'referrals':
+      case 'paid_referrals': {
+        const matchExtra: any = ach.triggerType === 'paid_referrals'
+          ? { packageTier: { $exists: true, $ne: 'free' } }
+          : {};
+        const counts = await User.aggregate([
+          { $match: { upline1: { $exists: true, $ne: null }, ...matchExtra } },
+          { $group: { _id: '$upline1', cnt: { $sum: 1 } } },
+          { $match: { cnt: { $gte: ach.triggerValue } } },
+          { $sort: { cnt: -1 } },
+          { $limit: limit * 2 },
+        ]);
+        const ids = counts.map((c: any) => c._id);
+        const users = await User.find({ _id: { $in: ids }, ...baseFilter }).select(SELECT).lean();
+        const map: Record<string, any> = {};
+        users.forEach((u: any) => { map[u._id.toString()] = u; });
+        partners = counts
+          .map((c: any) => map[c._id.toString()] ? { ...map[c._id.toString()], _metric: c.cnt, _target: ach.triggerValue } : null)
+          .filter(Boolean)
+          .slice(0, limit);
+        break;
+      }
+      case 'tier': {
+        const docs = await User.find({ ...baseFilter, packageTier: { $in: ['pro', 'proedge', 'elite', 'supreme'] } })
+          .select(SELECT).sort('-totalEarnings').limit(limit).lean();
+        partners = docs.map((p: any) => ({ ...p, _metric: 0, _target: 0 }));
+        break;
+      }
+      default:
+        partners = [];
+    }
+
+    // Enrich each partner with their actual Package row (name + price) from /packages
+    // so the picker and poster show admin-managed package data, not just the tier slug.
+    const tierSlugs = Array.from(new Set(partners.map((p: any) => (p.packageTier || '').toLowerCase()).filter(Boolean)));
+    if (tierSlugs.length > 0) {
+      const pkgs = await Package.find({ tier: { $in: tierSlugs } })
+        .select('name tier price badge')
+        .lean();
+      const pkgMap: Record<string, any> = {};
+      pkgs.forEach((pkg: any) => { pkgMap[(pkg.tier || '').toLowerCase()] = pkg; });
+      partners = partners.map((p: any) => {
+        const pkg = pkgMap[(p.packageTier || '').toLowerCase()];
+        return pkg
+          ? { ...p, packageName: pkg.name, packagePrice: pkg.price, packageBadge: pkg.badge }
+          : p;
+      });
+    }
+
+    res.json({ success: true, partners });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -2397,7 +2769,7 @@ router.patch('/mentor-salaries/:id/mark-paid', async (req: any, res) => {
     setImmediate(async () => {
       try {
         const { sendSalaryPaidEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendSalaryPaidTemplate } = await import('../services/whatsappMetaService');
         const mentor = salary.mentor as any;
         const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June',
           'July', 'August', 'September', 'October', 'November', 'December'];
@@ -2419,12 +2791,15 @@ router.patch('/mentor-salaries/:id/mark-paid', async (req: any, res) => {
         }
 
         if (mentor?.phone) {
-          const msg = `*TruLearnix — Salary Credited* ✅\n\nHi ${mentor.name},\n\nYour salary for *${monthName} ${salary.year}* has been credited.\n\n` +
-            `💰 *Net Amount:* ₹${salary.netAmount.toLocaleString('en-IN')}\n` +
-            `📊 Gross: ₹${salary.amount.toLocaleString('en-IN')} | TDS (${salary.tdsRate}%): ₹${salary.tds.toLocaleString('en-IN')}\n` +
-            (salary.workingDays > 0 ? `📅 Attendance: Present ${salary.presentDays} | Absent ${salary.absentDays} | Half-day ${salary.halfDays} | Holiday ${salary.holidayDays}\n` : '') +
-            `🗓️ Slip: ${salary.slipNo}\n\nFor queries: hr@trulearnix.com`;
-          await sendWhatsAppText(mentor.phone, msg).catch(() => {});
+          await sendSalaryPaidTemplate(
+            mentor.phone,
+            mentor.name,
+            monthName,
+            salary.year,
+            salary.netAmount.toLocaleString('en-IN'),
+            salary.amount.toLocaleString('en-IN'),
+            salary.slipNo,
+          ).catch(() => {});
         }
       } catch {}
     });
@@ -2569,7 +2944,7 @@ router.patch('/employee-salaries/:id/mark-paid', async (req: any, res) => {
     setImmediate(async () => {
       try {
         const { sendSalaryPaidEmail } = await import('../services/emailService');
-        const { sendWhatsAppText } = await import('../services/whatsappMetaService');
+        const { sendSalaryPaidTemplate } = await import('../services/whatsappMetaService');
         const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June',
           'July', 'August', 'September', 'October', 'November', 'December'];
         const monthName = MONTHS[salary.month] || String(salary.month);
@@ -2590,12 +2965,15 @@ router.patch('/employee-salaries/:id/mark-paid', async (req: any, res) => {
         }
 
         if (emp?.phone) {
-          const msg = `*TruLearnix — Salary Credited* ✅\n\nHi ${emp.name},\n\nYour salary for *${monthName} ${salary.year}* has been credited.\n\n` +
-            `💰 *Net Amount:* ₹${salary.netAmount.toLocaleString('en-IN')}\n` +
-            `📊 Gross: ₹${salary.grossAmount.toLocaleString('en-IN')} | TDS (${salary.tdsRate}%): ₹${salary.tds.toLocaleString('en-IN')}\n` +
-            (salary.workingDays > 0 ? `📅 Attendance: Present ${salary.presentDays} | Absent ${salary.absentDays} | Half-day ${salary.halfDays} | Holiday ${salary.holidayDays}\n` : '') +
-            `🗓️ Slip: ${salary.slipNo}\n\nFor queries: hr@trulearnix.com`;
-          await sendWhatsAppText(emp.phone, msg).catch(() => {});
+          await sendSalaryPaidTemplate(
+            emp.phone,
+            emp.name,
+            monthName,
+            salary.year,
+            salary.netAmount.toLocaleString('en-IN'),
+            salary.grossAmount.toLocaleString('en-IN'),
+            salary.slipNo,
+          ).catch(() => {});
         }
       } catch {}
     });

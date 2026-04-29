@@ -2,7 +2,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminAPI } from '@/lib/api'
-import { Plus, Pencil, Trash2, Trophy, ToggleLeft, ToggleRight, GripVertical, ChevronUp, ChevronDown, X, Save, Target } from 'lucide-react'
+import { Plus, Pencil, Trash2, Trophy, ToggleLeft, ToggleRight, GripVertical, ChevronUp, ChevronDown, X, Save, Target, Calendar, Download, Image as ImageIcon, Share2 } from 'lucide-react'
+import { generateQualificationPoster, downloadDataUrl } from '@/lib/posterGenerator'
+import PartnerPickerModal, { PickedPartner } from '@/components/PartnerPickerModal'
 
 const METRIC_TYPES = [
   { value: 'l1Paid',        label: 'Paid Referrals (L1)' },
@@ -33,6 +35,16 @@ const BLANK = {
   title: '', description: '', icon: '🏆', reward: '',
   rewardType: 'badge', target: 1, metricType: 'l1Paid', unit: 'paid referrals',
   order: 0, isActive: true, badgeGradient: 'from-violet-500 to-purple-600', certificateEnabled: true,
+  startDate: '', endDate: '',
+}
+
+const dateInput = (v: any) => v ? new Date(v).toISOString().slice(0, 10) : ''
+const fmtRange = (s: any, e: any) => {
+  if (!s && !e) return null
+  const f = (d: any) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  if (s && e) return `${f(s)} → ${f(e)}`
+  if (s) return `From ${f(s)}`
+  return `Until ${f(e)}`
 }
 
 export default function QualificationsPage() {
@@ -50,11 +62,45 @@ export default function QualificationsPage() {
 
   const items: any[] = data?.qualifications || []
 
+  // Poster download flow
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [posterTarget, setPosterTarget] = useState<any>(null)
+  const [posterUrl, setPosterUrl] = useState<string | null>(null)
+  const [posterPartner, setPosterPartner] = useState<PickedPartner | null>(null)
+  const [posterLoading, setPosterLoading] = useState(false)
+
+  const openPoster = (item: any) => { setPosterTarget(item); setPickerOpen(true) }
+  const onPickPartner = async (p: PickedPartner) => {
+    if (!posterTarget) return
+    setPickerOpen(false)
+    setPosterLoading(true)
+    setPosterPartner(p)
+    try {
+      const idx = items.findIndex(i => i._id === posterTarget._id)
+      const url = await generateQualificationPoster({
+        userName: p.name || 'Partner',
+        avatar: p.avatar,
+        milestoneTitle: posterTarget.title,
+        milestoneIcon: posterTarget.icon,
+        reward: posterTarget.reward || '',
+        affiliateCode: p.affiliateCode || '',
+        themeIndex: idx >= 0 ? idx : 0,
+      })
+      setPosterUrl(url)
+    } finally { setPosterLoading(false) }
+  }
+
   const openAdd = () => { setForm({ ...BLANK, order: items.length }); setModal('add') }
-  const openEdit = (item: any) => { setForm({ ...item }); setEditId(item._id); setModal('edit') }
+  const openEdit = (item: any) => {
+    setForm({ ...item, startDate: dateInput(item.startDate), endDate: dateInput(item.endDate) })
+    setEditId(item._id); setModal('edit')
+  }
   const submit = () => {
-    if (modal === 'add') create.mutate(form)
-    else update.mutate({ id: editId, d: form })
+    const payload: any = { ...form }
+    payload.startDate = form.startDate ? new Date(form.startDate) : null
+    payload.endDate = form.endDate ? new Date(form.endDate) : null
+    if (modal === 'add') create.mutate(payload)
+    else update.mutate({ id: editId, d: payload })
   }
   const moveOrder = (item: any, dir: -1 | 1) => {
     reorder.mutate({ id: item._id, order: item.order + dir })
@@ -117,11 +163,20 @@ export default function QualificationsPage() {
                       <Target className="w-3 h-3 inline mr-1" />{item.target.toLocaleString()} {item.unit}
                     </span>
                     <span className="text-xs text-violet-400">🎁 {item.reward}</span>
+                    {fmtRange(item.startDate, item.endDate) && (
+                      <span className="text-[11px] text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-md">
+                        <Calendar className="w-3 h-3 inline mr-1" />{fmtRange(item.startDate, item.endDate)}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => openPoster(item)} title="Download poster for partner"
+                    className="p-2 rounded-lg text-gray-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors">
+                    <Download className="w-4 h-4" />
+                  </button>
                   <button onClick={() => toggle.mutate({ id: item._id, v: !item.isActive })}
                     className={`transition-colors ${item.isActive ? 'text-green-400 hover:text-green-300' : 'text-gray-600 hover:text-gray-400'}`}>
                     {item.isActive ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
@@ -137,6 +192,51 @@ export default function QualificationsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Partner picker for poster generation — filters to only QUALIFIED partners */}
+      <PartnerPickerModal
+        open={pickerOpen}
+        onClose={() => { setPickerOpen(false); setPosterTarget(null) }}
+        onPick={onPickPartner}
+        title={posterTarget ? `Pick partner for "${posterTarget.title}"` : 'Select Partner'}
+        qualification={posterTarget ? {
+          _id: posterTarget._id,
+          title: posterTarget.title,
+          metricType: posterTarget.metricType,
+          target: posterTarget.target,
+          unit: posterTarget.unit,
+        } : undefined}
+      />
+
+      {/* Poster preview / download */}
+      {(posterLoading || posterUrl) && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => { setPosterUrl(null); setPosterPartner(null); setPosterTarget(null) }}>
+          <div className="relative w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <button onClick={() => { setPosterUrl(null); setPosterPartner(null); setPosterTarget(null) }}
+              className="absolute -top-4 -right-4 z-10 w-9 h-9 rounded-full bg-slate-800 border border-white/15 flex items-center justify-center text-gray-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+            {posterLoading ? (
+              <div className="bg-slate-900 border border-violet-500/30 rounded-2xl p-8 text-center">
+                <div className="w-12 h-12 rounded-full border-2 border-violet-500/30 border-t-violet-400 animate-spin mx-auto mb-3" />
+                <p className="text-white font-semibold">Generating poster…</p>
+                <p className="text-gray-500 text-xs mt-1">{posterPartner?.name}</p>
+              </div>
+            ) : posterUrl ? (
+              <>
+                <p className="text-white font-bold text-center mb-2 text-sm">{posterTarget?.title} · {posterPartner?.name}</p>
+                <div className="rounded-2xl overflow-hidden border border-violet-500/30 shadow-2xl">
+                  <img src={posterUrl} alt="Poster preview" className="w-full" />
+                </div>
+                <button onClick={() => downloadDataUrl(posterUrl, `trulearnix-${(posterTarget?.title || 'poster').replace(/\s+/g, '-').toLowerCase()}-${(posterPartner?.affiliateCode || posterPartner?.name || '').replace(/\s+/g, '-').toLowerCase()}.png`)}
+                  className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-bold transition-all">
+                  <Download className="w-4 h-4" /> Download PNG
+                </button>
+              </>
+            ) : null}
+          </div>
         </div>
       )}
 
@@ -201,6 +301,21 @@ export default function QualificationsPage() {
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Display Order</label>
                   <input type="number" value={form.order} onChange={e => setForm((f: any) => ({ ...f, order: Number(e.target.value) }))} className={inp} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" /> Active Window <span className="text-gray-600">(optional — leave blank for always-active)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] text-gray-500 mb-1">Start date</p>
+                    <input type="date" value={form.startDate || ''} onChange={e => setForm((f: any) => ({ ...f, startDate: e.target.value }))} className={inp + ' [color-scheme:dark]'} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 mb-1">End date</p>
+                    <input type="date" value={form.endDate || ''} onChange={e => setForm((f: any) => ({ ...f, endDate: e.target.value }))} className={inp + ' [color-scheme:dark]'} />
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-4">

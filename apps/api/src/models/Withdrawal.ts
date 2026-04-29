@@ -29,7 +29,7 @@ export interface IWithdrawal extends Document {
 
 const WithdrawalSchema = new Schema<IWithdrawal>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  amount: { type: Number, required: true, min: 500 },
+  amount: { type: Number, required: true, min: 0 },
   method: { type: String, enum: ['bank', 'upi', 'razorpay_payout'], default: 'upi' },
   accountName: String,
   accountNumber: String,

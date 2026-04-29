@@ -57,11 +57,13 @@ import partnerRoutes from './routes/partner';
 import mentorRouter from './routes/mentor';
 import financeRouter from './routes/finance';
 import marketingRouter from './routes/marketing';
+import whatsappWebhookRouter from './routes/whatsappWebhook';
 import novaRouter, { bootstrapNovaCrons } from './routes/nova';
 import managerRouter from './routes/manager';
 import salesRouter from './routes/sales';
 import jobsRouter from './routes/jobs';
 import announcementsRouter from './routes/announcements';
+import chatbotRouter from './routes/chatbot';
 import securityMonitor, { loadBlockedIpCache } from './middleware/securityMonitor';
 
 const app = express();
@@ -220,11 +222,13 @@ app.use('/api/partner', partnerRoutes);
 app.use('/api/mentor', mentorRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/marketing', marketingRouter);
+app.use('/api/webhooks/whatsapp', whatsappWebhookRouter);
 app.use('/api/nova', novaRouter);
 app.use('/api/manager', managerRouter);
 app.use('/api/sales', salesRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/announcements', announcementsRouter);
+app.use('/api/chatbot', chatbotRouter);
 
 // Public maintenance status — no auth required (used by web + trulancer middleware)
 app.get('/api/public/maintenance', async (_req, res) => {

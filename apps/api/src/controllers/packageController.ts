@@ -10,7 +10,8 @@ import Transaction from '../models/Transaction';
 import Notification from '../models/Notification';
 import redisClient from '../config/redis';
 import { sendPurchaseWelcomeEmail, sendSponsorPurchaseAlert } from '../services/emailService';
-import { sendWhatsAppText } from '../services/whatsappMetaService';
+import { sendPurchaseWelcomeTemplate, sendSponsorSaleTemplate } from '../services/whatsappMetaService';
+import { ensureCompulsoryEnrollments } from '../services/enrollmentService';
 
 const razorpay = process.env.RAZORPAY_KEY_ID && !process.env.RAZORPAY_KEY_ID.includes('your_')
   ? new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID!, key_secret: process.env.RAZORPAY_KEY_SECRET! })
@@ -140,6 +141,11 @@ export const verifyPackagePayment = async (req: AuthRequest, res: Response) => {
       { new: true }
     );
 
+    // Auto-enroll into compulsory courses (fire-and-forget)
+    ensureCompulsoryEnrollments(purchase.user.toString()).catch(err =>
+      console.error('[package-verify-compulsory]', err?.message)
+    );
+
     // Credit 3-level MLM commissions
     await creditMLMCommissions(purchase, updatedUser);
 
@@ -168,11 +174,12 @@ export const verifyPackagePayment = async (req: AuthRequest, res: Response) => {
         const sponsorId = buyer.upline1 || buyer.referredBy;
         const sponsor = sponsorId ? await User.findById(sponsorId).select('name email phone') : null;
 
-        const waToUser = `🎉 *Package Activated — TruLearnix!*\n\nHi *${buyer.name}*! Your *${pkgName}* package is now active.\n\n📧 *Email:* ${buyer.email}\n🔑 *Password:* ${password}\n\n${sponsor ? `👤 *Your Mentor:* ${sponsor.name}\n` : ''}⚠️ Change your password after first login.\n👉 ${process.env.WEB_URL}/login`;
+        const loginUrl = `${process.env.WEB_URL}/login`;
+        const earningsUrl = `${process.env.WEB_URL}/partner/earnings`;
 
         const tasks: Promise<any>[] = [
           sendPurchaseWelcomeEmail(buyer.email, buyer.name, pkgName, buyer.email, password),
-          buyer.phone ? sendWhatsAppText(buyer.phone, waToUser) : Promise.resolve(),
+          buyer.phone ? sendPurchaseWelcomeTemplate(buyer.phone, buyer.name, pkgName, buyer.email, password, loginUrl) : Promise.resolve(),
         ];
 
         if (sponsor) {
@@ -180,11 +187,9 @@ export const verifyPackagePayment = async (req: AuthRequest, res: Response) => {
           const comm = await Commission.findOne({ buyer: buyer._id, earner: sponsor._id, level: 1 }).sort({ createdAt: -1 });
           const commAmount = comm?.commissionAmount || 0;
 
-          const waToSponsor = `💰 *New Sale — Commission Earned!*\n\nHi *${sponsor.name}*! Your referral just purchased a package.\n\n👤 *Member:* ${buyer.name}\n📦 *Package:* ${pkgName}${commAmount > 0 ? `\n💰 *Commission:* ₹${commAmount}` : ''}\n\n👉 ${process.env.WEB_URL}/partner/earnings`;
-
           tasks.push(
             sendSponsorPurchaseAlert(sponsor.email, sponsor.name, buyer.name, buyer.email, pkgName, commAmount),
-            sponsor.phone ? sendWhatsAppText(sponsor.phone, waToSponsor) : Promise.resolve(),
+            sponsor.phone ? sendSponsorSaleTemplate(sponsor.phone, sponsor.name || '', buyer.name, pkgName, commAmount, earningsUrl) : Promise.resolve(),
           );
         }
 

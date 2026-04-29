@@ -10,6 +10,8 @@ export interface IAchievement extends Document {
   posterTheme: number
   order: number
   enabled: boolean
+  startDate?: Date | null
+  endDate?: Date | null
   createdAt: Date
 }
 
@@ -23,6 +25,8 @@ const AchievementSchema = new Schema<IAchievement>({
   posterTheme:   { type: Number, default: 0, min: 0, max: 5 },
   order:         { type: Number, default: 0 },
   enabled:       { type: Boolean, default: true },
+  startDate:     { type: Date, default: null },
+  endDate:       { type: Date, default: null },
 }, { timestamps: true })
 
 AchievementSchema.index({ order: 1, enabled: 1 })

@@ -34,9 +34,9 @@ export const adminAPI = {
   // Auth
   login: (data: any) => api.post('/auth/login', data),
   // Dashboard
-  dashboard: () => api.get('/admin/dashboard'),
+  dashboard: (period?: string, from?: string, to?: string) => api.get('/admin/dashboard', { params: { period, from, to } }),
   // Analytics
-  analyticsDashboard: () => api.get('/analytics/dashboard'),
+  analyticsDashboard: (period?: string, from?: string, to?: string) => api.get('/analytics/dashboard', { params: { period, from, to } }),
   analyticsFunnel: () => api.get('/analytics/funnel'),
   analyticsOverview: (params: any) => api.get('/analytics/overview', { params }),
   analyticsRevenue: (period?: string, from?: string, to?: string) => api.get('/analytics/revenue', { params: { period, from, to } }),
@@ -60,6 +60,11 @@ export const adminAPI = {
   approveCourse: (id: string) => api.patch(`/admin/courses/${id}/approve`),
   rejectCourse: (id: string, reason: string) => api.patch(`/admin/courses/${id}/reject`, { reason }),
   deleteCourse: (id: string) => api.delete(`/admin/courses/${id}`),
+  setCourseCompulsory: (id: string, isCompulsory: boolean) => api.patch(`/admin/courses/${id}/compulsory`, { isCompulsory }),
+  // Enrollment management
+  userEnrollments: (userId: string) => api.get(`/admin/users/${userId}/enrollments`),
+  enrollUser: (userId: string, courseId: string) => api.post(`/admin/users/${userId}/enrollments`, { courseId }),
+  unenrollUser: (enrollmentId: string) => api.delete(`/admin/enrollments/${enrollmentId}`),
   updateUserProfile: (id: string, data: any) => api.patch(`/admin/users/${id}/profile`, data),
   // Batches
   batches: (courseId: string) => api.get('/admin/batches', { params: { courseId } }),
@@ -156,11 +161,15 @@ export const adminAPI = {
   createQualification: (data: any) => api.post('/admin/qualifications', data),
   updateQualification: (id: string, data: any) => api.patch(`/admin/qualifications/${id}`, data),
   deleteQualification: (id: string) => api.delete(`/admin/qualifications/${id}`),
+  qualifiedPartners: (id: string, params?: { search?: string; limit?: number }) =>
+    api.get(`/admin/qualifications/${id}/qualified-partners`, { params }),
   // Achievements
   achievements: () => api.get('/admin/achievements'),
   createAchievement: (data: any) => api.post('/admin/achievements', data),
   updateAchievement: (id: string, data: any) => api.patch(`/admin/achievements/${id}`, data),
   deleteAchievement: (id: string) => api.delete(`/admin/achievements/${id}`),
+  eligiblePartnersForAchievement: (id: string, params?: { search?: string; limit?: number }) =>
+    api.get(`/admin/achievements/${id}/eligible-partners`, { params }),
   // Coupons
   coupons: () => api.get('/coupons'),
   createCoupon: (data: any) => api.post('/coupons', data),

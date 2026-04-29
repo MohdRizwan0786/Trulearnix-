@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { adminAPI } from '@/lib/api'
-import { usePackages, tierStyle } from '@/lib/usePackages'
+import { usePackages, tierStyle, tierName } from '@/lib/usePackages'
 import AdminLayout from '@/components/AdminLayout'
 import {
   TrendingUp, Users, IndianRupee, ShoppingCart, Target,
@@ -324,7 +324,7 @@ export default function AnalyticsPage() {
                       return (
                         <div key={t._id}>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-white capitalize">{t._id || 'Unknown'}</span>
+                            <span className="text-xs font-semibold text-white">{tierName(t._id, packages)}</span>
                             <div className="flex items-center gap-2">
                               <span className="text-gray-400 text-[10px]">{t.count} sales</span>
                               <span className="text-amber-400 text-xs font-bold">{fmtRupee(t.revenue)}</span>
@@ -355,7 +355,7 @@ export default function AnalyticsPage() {
                         return (
                           <div key={t._id}>
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-semibold text-white capitalize">{t._id || 'Unknown'}</span>
+                              <span className="text-xs font-semibold text-white">{tierName(t._id, packages)}</span>
                               <span className="text-blue-400 text-xs font-bold">{t.count} users</span>
                             </div>
                             <div className="h-2 bg-slate-700 rounded-full overflow-hidden">

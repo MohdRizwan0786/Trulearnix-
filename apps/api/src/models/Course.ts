@@ -63,6 +63,7 @@ export interface ICourse extends Document {
   passingScore: number;
   batchSettings: IBatchSettings;
   isPackage: boolean;
+  isCompulsory: boolean;
   youtubePlaylistUrl?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -115,6 +116,7 @@ const CourseSchema = new Schema<ICourse>({
     answer: { type: String, required: true },
   }],
   isPackage: { type: Boolean, default: false },
+  isCompulsory: { type: Boolean, default: false },
   status: { type: String, enum: ['draft', 'pending', 'published', 'rejected'], default: 'draft' },
   rejectionReason: String,
   enrolledCount: { type: Number, default: 0 },
@@ -143,6 +145,7 @@ const CourseSchema = new Schema<ICourse>({
 CourseSchema.index({ status: 1, createdAt: -1 });
 CourseSchema.index({ instructor: 1 });
 CourseSchema.index({ category: 1, status: 1 });
+CourseSchema.index({ isCompulsory: 1, status: 1 });
 
 CourseSchema.pre('save', function (next) {
   if (this.isModified('title')) {

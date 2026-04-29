@@ -3,8 +3,9 @@ import User from '../models/User';
 import Enrollment from '../models/Enrollment';
 import Package from '../models/Package';
 import { protect } from '../middleware/auth';
-import { uploadToS3 } from '../services/s3Service';
+import { uploadToS3, processAndSaveUpload } from '../services/s3Service';
 import { getOrCreateActiveBatch, onStudentEnrolled } from '../services/batchService';
+import { getSelfEnrollStatus, SELF_ENROLL_CAP } from '../services/enrollmentService';
 
 const router = Router();
 
@@ -43,17 +44,22 @@ router.put('/me', protect, async (req: any, res) => {
 
 router.post('/avatar', protect, uploadToS3.single('avatar'), async (req: any, res) => {
   try {
-    const fileUrl = (req.file as any)?.location;
-    if (!fileUrl) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    const { filename, cdnUrl } = await processAndSaveUpload(req.file);
+    const apiUrl = process.env.API_URL || 'https://api.trulearnix.com';
+    const fileUrl = cdnUrl || `${apiUrl}/uploads/${filename}`;
     await User.findByIdAndUpdate(req.user._id, { avatar: fileUrl });
     res.json({ success: true, avatar: fileUrl });
-  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e: any) {
+    console.error('[avatar-upload]', e?.message);
+    res.status(500).json({ success: false, message: e?.message || 'Avatar upload failed' });
+  }
 });
 
 router.get('/enrolled-courses', protect, async (req: any, res) => {
   try {
     const enrollments = await Enrollment.find({ student: req.user._id })
-      .populate('course', 'title thumbnail slug category level')
+      .populate('course', 'title thumbnail slug category level isCompulsory')
       .populate('batch', 'label batchNumber status')
       .sort('-createdAt');
     res.json({ success: true, enrollments });
@@ -124,16 +130,31 @@ router.get('/available-courses', protect, async (req: any, res) => {
   try {
     const user = await User.findById(req.user._id).select('packageTier');
     if (!user || user.packageTier === 'free') {
-      return res.json({ success: true, courses: [], packageTier: 'free' });
+      return res.json({ success: true, courses: [], packageTier: 'free', enrollStatus: { cap: SELF_ENROLL_CAP, activeCount: 0, remainingSlots: 0, canEnroll: false } });
+    }
+    const pkg = await Package.findOne({ tier: user.packageTier, isActive: true }).select('courses coursesAccess');
+    if (!pkg) {
+      return res.json({ success: true, courses: [], packageTier: user.packageTier, enrollStatus: { cap: SELF_ENROLL_CAP, activeCount: 0, remainingSlots: 0, canEnroll: false } });
     }
     const Course = (await import('../models/Course')).default;
     const enrolledCourses = await Enrollment.find({ student: req.user._id }).select('course');
     const enrolledIds = enrolledCourses.map(e => e.course.toString());
-    const courses = await Course.find({ status: 'published' })
-      .select('title thumbnail category level price lessonsCount enrolledCount mentor slug')
+
+    const pkgCourseIds = (pkg.courses || []).map((id: any) => id.toString());
+    const baseQuery: any = { status: 'published' };
+    if (pkg.coursesAccess !== 'full') {
+      // Limited access: only courses in the package, plus any compulsory courses
+      baseQuery.$or = [
+        { _id: { $in: pkgCourseIds } },
+        { isCompulsory: true },
+      ];
+    }
+    const courses = await Course.find(baseQuery)
+      .select('title thumbnail category level price lessonsCount enrolledCount mentor slug isCompulsory')
       .populate('mentor', 'name avatar');
     const available = courses.filter(c => !enrolledIds.includes(c._id.toString()));
-    res.json({ success: true, courses: available, packageTier: user.packageTier });
+    const enrollStatus = await getSelfEnrollStatus(req.user._id.toString());
+    res.json({ success: true, courses: available, packageTier: user.packageTier, enrollStatus });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 
@@ -149,15 +170,49 @@ router.post('/enroll-free/:courseId', protect, async (req: any, res) => {
     if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
     const existing = await Enrollment.findOne({ student: req.user._id, course: req.params.courseId });
     if (existing) return res.status(400).json({ success: false, message: 'Already enrolled' });
+
+    // Enforce package access: only courses in the user's package (or compulsory) can be free-enrolled.
+    if (!(course as any).isCompulsory) {
+      const pkg = await Package.findOne({ tier: user.packageTier, isActive: true }).select('courses coursesAccess');
+      if (!pkg) return res.status(403).json({ success: false, message: 'Your package does not include this course' });
+      if (pkg.coursesAccess !== 'full') {
+        const allowed = (pkg.courses || []).some((id: any) => id.toString() === req.params.courseId);
+        if (!allowed) {
+          return res.status(403).json({ success: false, message: 'Yeh course aapke package mein include nahi hai' });
+        }
+      }
+    }
+
+    // Cap: 2 active non-compulsory courses at a time. Compulsory courses bypass the cap.
+    if (!(course as any).isCompulsory) {
+      const status = await getSelfEnrollStatus(req.user._id.toString());
+      if (!status.canEnroll) {
+        return res.status(403).json({
+          success: false,
+          message: `Aap ek saath sirf ${status.cap} courses mein enroll ho sakte hain. Pehle koi ek course poora karein, fir agla course unlock hoga.`,
+          enrollStatus: status,
+        });
+      }
+    }
+
     const activeBatch = await getOrCreateActiveBatch(req.params.courseId);
     await Enrollment.create({
       student: req.user._id, course: req.params.courseId, amount: 0,
+      source: (course as any).isCompulsory ? 'compulsory' : 'self',
       paymentId: `pkg_${user.packageTier}`,
       ...(activeBatch ? { batch: activeBatch._id } : {}),
     });
     if (activeBatch) await onStudentEnrolled(activeBatch._id.toString());
     await Course.findByIdAndUpdate(req.params.courseId, { $inc: { enrolledCount: 1 } });
     res.json({ success: true, message: 'Enrolled successfully!' });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// GET /api/users/enroll-status — current self-enroll cap status (for student UI)
+router.get('/enroll-status', protect, async (req: any, res) => {
+  try {
+    const status = await getSelfEnrollStatus(req.user._id.toString());
+    res.json({ success: true, ...status });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 });
 

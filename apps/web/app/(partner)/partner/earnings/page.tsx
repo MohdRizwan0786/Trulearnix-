@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { partnerAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import {
-  TrendingUp, Coins, Users, Clock, Package, CreditCard,
+  TrendingUp, Coins, Clock, Package, CreditCard,
   CheckCircle, AlertCircle, Zap, ArrowUpRight, Award, Calendar, Building2
 } from 'lucide-react'
 
-type Period = 'today' | '7' | '30' | 'custom'
+type Period = 'today' | '7' | '30' | 'all' | 'custom'
 
 function DateFilter({ period, setPeriod, from, setFrom, to, setTo }: {
   period: Period; setPeriod: (p: Period) => void
@@ -19,6 +19,7 @@ function DateFilter({ period, setPeriod, from, setFrom, to, setTo }: {
     { key: 'today', label: 'Today' },
     { key: '7', label: '7 Days' },
     { key: '30', label: '30 Days' },
+    { key: 'all', label: 'All Time' },
     { key: 'custom', label: 'Custom' },
   ]
   return (
@@ -51,13 +52,14 @@ function DateFilter({ period, setPeriod, from, setFrom, to, setTo }: {
 
 export default function EarningsPage() {
   const { user } = useAuthStore()
-  const [period, setPeriod] = useState<Period>('30')
+  const [period, setPeriod] = useState<Period>('all')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
 
   const queryParams = period === 'custom'
     ? (from && to ? { period, from, to } : null)
     : { period }
+  const isAllTime = period === 'all'
 
   const { data, isLoading } = useQuery({
     queryKey: ['partner-earnings', period, from, to],
@@ -83,7 +85,6 @@ export default function EarningsPage() {
   const byTier  = data?.byTier  || {}
   const recent  = data?.recent  || data?.recentCommissions || []
   const monthly = data?.monthly || []
-  const avgPerReferral = data?.avgPerReferral || 0
   const bestTier       = data?.bestTier || null
 
   const totalEarnings = (byLevel.l1 || 0) + (byLevel.l2 || 0) + (byLevel.l3 || 0)
@@ -91,7 +92,6 @@ export default function EarningsPage() {
   const prevMonth = monthly[monthly.length - 2]?.total || 0
   const growth = prevMonth > 0 ? Math.round(((thisMonth - prevMonth) / prevMonth) * 100) : null
 
-  const levelMax = Math.max(byLevel.l1 || 0, byLevel.l2 || 0, byLevel.l3 || 0, 1)
   const monthlyMax = Math.max(...monthly.map((m: any) => m.total || 0), 1)
   const activeTierKeys = Object.keys(byTier).filter(t => (byTier as any)[t] > 0)
   const tierMax = Math.max(...(activeTierKeys.length ? activeTierKeys.map(t => (byTier as any)[t]) : [0]), 1)
@@ -136,11 +136,11 @@ export default function EarningsPage() {
         <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full bg-violet-400/10 pointer-events-none" />
         <div className="relative">
           <p className="text-violet-200 text-xs uppercase tracking-widest font-medium mb-1">Total Earnings</p>
-          <p className="text-white text-4xl font-black tracking-tight">₹{(totalEarnings + industrialEarning).toLocaleString()}</p>
-          {isIndustrialPartner && industrialEarning > 0 && (
+          <p className="text-white text-4xl font-black tracking-tight">₹{(totalEarnings + (isAllTime ? industrialEarning : 0)).toLocaleString()}</p>
+          {isAllTime && isIndustrialPartner && industrialEarning > 0 && (
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <span className="text-violet-200 text-[11px]">
-                Commissions: <span className="font-bold text-white">₹{totalEarnings.toLocaleString()}</span>
+                Partnership earnings: <span className="font-bold text-white">₹{totalEarnings.toLocaleString()}</span>
               </span>
               <span className="text-amber-300 text-[11px] flex items-center gap-1">
                 🏭 Industrial: <span className="font-bold text-amber-200">₹{industrialEarning.toLocaleString()}</span>
@@ -154,8 +154,8 @@ export default function EarningsPage() {
         <Coins className="absolute bottom-4 right-4 w-12 h-12 text-white/10" />
       </div>
 
-      {/* ── Industrial + TruLearnix Earning ── */}
-      {isIndustrialPartner && industrialEarning > 0 && (
+      {/* ── Industrial + TruLearnix Earning (lifetime — only in All Time view) ── */}
+      {isAllTime && isIndustrialPartner && industrialEarning > 0 && (
         <div className="relative overflow-hidden rounded-2xl p-5 border border-amber-500/40 bg-gradient-to-br from-amber-500/12 to-violet-500/8">
           <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-amber-400/5 pointer-events-none" />
           <div className="relative">
@@ -185,7 +185,7 @@ export default function EarningsPage() {
               <div className="rounded-xl px-3 py-2 border border-violet-500/20 bg-violet-500/8">
                 <p className="text-violet-400/60 text-[9px] uppercase tracking-wide">TruLearnix</p>
                 <p className="text-violet-300 font-black text-sm">₹{totalEarnings.toLocaleString()}</p>
-                <p className="text-white/20 text-[9px]">commissions</p>
+                <p className="text-white/20 text-[9px]">Partnership earnings</p>
               </div>
             </div>
           </div>
@@ -193,8 +193,8 @@ export default function EarningsPage() {
         </div>
       )}
 
-      {/* ── 3 Mini Stats ── */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* ── Mini Stats ── */}
+      <div className="grid grid-cols-2 gap-3">
         {/* This Month */}
         <div className="rounded-2xl p-3 bg-gradient-to-br from-emerald-600 to-teal-700 border border-emerald-500/20 relative overflow-hidden">
           <p className="text-emerald-100 text-[10px] uppercase tracking-wide font-medium">This Month</p>
@@ -205,52 +205,11 @@ export default function EarningsPage() {
             </span>
           )}
         </div>
-        {/* Avg/Referral */}
-        <div className="rounded-2xl p-3 bg-gradient-to-br from-amber-500 to-orange-600 border border-amber-500/20 relative overflow-hidden">
-          <p className="text-amber-100 text-[10px] uppercase tracking-wide font-medium">Avg/Ref</p>
-          <p className="text-white text-base font-bold mt-1">₹{avgPerReferral >= 1000 ? `${(avgPerReferral/1000).toFixed(1)}k` : avgPerReferral}</p>
-          <p className="text-amber-200 text-[10px]">per sale</p>
-        </div>
         {/* Best Tier */}
         <div className="rounded-2xl p-3 bg-gradient-to-br from-rose-600 to-pink-700 border border-rose-500/20 relative overflow-hidden">
           <p className="text-rose-100 text-[10px] uppercase tracking-wide font-medium">Best Tier</p>
           <p className="text-white text-base font-bold mt-1 capitalize">{bestTier || '—'}</p>
           <p className="text-rose-200 text-[10px]">top source</p>
-        </div>
-      </div>
-
-      {/* ── Commission by Level ── */}
-      <div className="bg-dark-800 rounded-2xl border border-dark-700 p-5">
-        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-          <Users className="w-4 h-4 text-violet-400" /> Commission by Level
-        </h3>
-        <div className="space-y-3">
-          {([
-            { label: 'Level 1', sub: 'Direct referrals', key: 'l1' as const, color: 'from-violet-500 to-purple-600', text: 'text-violet-400', bg: 'bg-violet-900/20' },
-            { label: 'Level 2', sub: '2nd tier network',  key: 'l2' as const, color: 'from-blue-500 to-cyan-600',    text: 'text-blue-400',   bg: 'bg-blue-900/20' },
-            { label: 'Level 3', sub: '3rd tier network',  key: 'l3' as const, color: 'from-emerald-500 to-teal-600', text: 'text-emerald-400', bg: 'bg-emerald-900/20' },
-          ] as const).map(({ label, sub, key, color, text, bg }) => {
-            const val = byLevel[key] || 0
-            const pct = levelMax > 0 ? Math.round((val / levelMax) * 100) : 0
-            const share = totalEarnings > 0 ? Math.round((val / totalEarnings) * 100) : 0
-            return (
-              <div key={key} className={`${bg} rounded-xl p-3 border border-white/5`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <p className="text-white text-sm font-semibold">{label}</p>
-                    <p className="text-dark-500 text-xs">{sub}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`${text} text-base font-bold`}>₹{val.toLocaleString()}</p>
-                    <p className="text-dark-500 text-xs">{share}% of total</p>
-                  </div>
-                </div>
-                <div className="w-full bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                  <div className={`h-full rounded-full bg-gradient-to-r ${color} transition-all`} style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            )
-          })}
         </div>
       </div>
 
@@ -313,7 +272,7 @@ export default function EarningsPage() {
               </div>
               <div className="text-center">
                 <p className="text-white text-sm font-bold">{monthly.reduce((s: number, m: any) => s + (m.count || 0), 0)}</p>
-                <p className="text-dark-500 text-[10px] mt-0.5">Commissions</p>
+                <p className="text-dark-500 text-[10px] mt-0.5">Partnership earnings</p>
               </div>
               <div className="text-center">
                 <p className="text-white text-sm font-bold">₹{monthly.length > 0 ? Math.round(monthly.reduce((s: number, m: any) => s + (m.total || 0), 0) / monthly.length).toLocaleString() : 0}</p>
@@ -334,14 +293,14 @@ export default function EarningsPage() {
       <div className="bg-dark-800 rounded-2xl border border-dark-700 p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-white font-semibold flex items-center gap-2">
-            <Clock className="w-4 h-4 text-blue-400" /> Recent Commissions
+            <Clock className="w-4 h-4 text-blue-400" /> Recent Partnership earnings
           </h3>
           {recent.length > 0 && <span className="text-dark-500 text-xs">{recent.length} entries</span>}
         </div>
         {recent.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Award className="w-8 h-8 text-dark-600 mb-2" />
-            <p className="text-dark-400 text-sm">No commissions yet</p>
+            <p className="text-dark-400 text-sm">No Partnership earnings yet</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -388,7 +347,7 @@ export default function EarningsPage() {
       {/* ── EMI Commissions ── */}
       <div className="bg-dark-800 rounded-2xl border border-dark-700 p-5">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-          <CreditCard className="w-4 h-4 text-violet-400" /> EMI Commissions
+          <CreditCard className="w-4 h-4 text-violet-400" /> EMI Partnership earnings
         </h3>
 
         <div className="grid grid-cols-2 gap-3 mb-4">

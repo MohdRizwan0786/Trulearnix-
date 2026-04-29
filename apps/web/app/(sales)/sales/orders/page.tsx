@@ -139,7 +139,7 @@ export default function SalesOrdersPage() {
                     <p className="text-base font-black text-white">₹{(order.totalAmount || 0).toLocaleString()}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       Paid ₹{(order.paidAmount || 0).toLocaleString()}
-                      {order.commissionAmount > 0 && <span className="text-green-400 ml-1">· Comm ₹{(order.commissionAmount||0).toLocaleString()}</span>}
+                      {order.commissionAmount > 0 && <span className="text-green-400 ml-1">· Earning ₹{(order.commissionAmount||0).toLocaleString()}</span>}
                     </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-indigo-400 transition-colors flex-shrink-0" />

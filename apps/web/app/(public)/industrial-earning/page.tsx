@@ -63,12 +63,12 @@ export default function IndustrialEarningPage() {
               <h2 className="text-white font-black text-lg">How does it grow?</h2>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Once a partner joins TruLearnix, every new sale they make earns them real commissions. Their <strong className="text-white">total lifetime earning</strong> shown on the leaderboard and their dashboard is the combined sum of:
+              Once a partner joins TruLearnix, every new sale they make earns them real Partnership earnings. Their <strong className="text-white">total lifetime earning</strong> shown on the leaderboard and their dashboard is the combined sum of:
             </p>
             <ul className="mt-3 space-y-2">
               {[
                 ['🏭', 'Industrial Earning', 'Recognition credit from previous platform (set by admin)'],
-                ['⚡', 'TruLearnix Commissions', 'Real commissions earned from sales on TruLearnix — grows with every referral'],
+                ['⚡', 'TruLearnix Partnership earnings', 'Real Partnership earnings earned from sales on TruLearnix — grows with every referral'],
               ].map(([icon, title, desc]) => (
                 <li key={title} className="flex items-start gap-3 p-3 rounded-xl"
                   style={{ background: 'rgba(255,255,255,0.03)' }}>
@@ -90,7 +90,7 @@ export default function IndustrialEarningPage() {
               <h2 className="text-white font-black text-lg">Can Industrial Earning be withdrawn?</h2>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              <strong className="text-white">No.</strong> Industrial Earning is a display-only recognition credit. It is not added to the wallet and cannot be withdrawn. Only real TruLearnix commissions are deposited into the wallet and are eligible for withdrawal.
+              <strong className="text-white">No.</strong> Industrial Earning is a display-only recognition credit. It is not added to the wallet and cannot be withdrawn. Only real TruLearnix Partnership earnings are deposited into the wallet and are eligible for withdrawal.
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-xl p-3 text-center"
@@ -114,7 +114,7 @@ export default function IndustrialEarningPage() {
               <h2 className="text-white font-black text-lg">Leaderboard Position</h2>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              On the public leaderboard, Industrial Partners are ranked by their <strong className="text-white">combined total</strong> — Industrial Earning + TruLearnix Commissions. They are identified with the <span className="text-amber-400 font-bold">🏭 Industrial + TruLearnix</span> badge.
+              On the public leaderboard, Industrial Partners are ranked by their <strong className="text-white">combined total</strong> — Industrial Earning + TruLearnix Partnership earnings. They are identified with the <span className="text-amber-400 font-bold">🏭 Industrial + TruLearnix</span> badge.
             </p>
           </div>
 
@@ -122,7 +122,7 @@ export default function IndustrialEarningPage() {
           <div className="rounded-2xl p-8 text-center"
             style={{ background: 'linear-gradient(135deg,rgba(245,158,11,0.07),rgba(139,92,246,0.06))', border: '1px solid rgba(245,158,11,0.2)' }}>
             <p className="text-white font-black text-lg mb-2">Want to become a partner?</p>
-            <p className="text-gray-500 text-sm mb-5">Join TruLearnix and start earning real commissions today.</p>
+            <p className="text-gray-500 text-sm mb-5">Join TruLearnix and start earning real Partnership earnings today.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/leaderboard"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm text-amber-400 transition-all hover:scale-[1.03]"

@@ -5,8 +5,9 @@ import { generateAccessToken, generateRefreshToken, generateOTP } from '../utils
 import redisClient from '../config/redis';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { sendWhatsAppText } from '../services/whatsappMetaService';
+import { sendOTPTemplate, sendPasswordResetOTPTemplate, sendReferralWelcomeTemplate, sendSponsorJoinTemplate } from '../services/whatsappMetaService';
 import { sendReferralWelcomeEmail, sendSponsorJoinAlert, sendPasswordResetEmail, sendOTPEmail } from '../services/emailService';
+import { ensureCompulsoryEnrollments } from '../services/enrollmentService';
 
 function generateAutoPassword(): string {
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -41,9 +42,8 @@ export const register = async (req: Request, res: Response) => {
     await redisClient.setEx(`pending-reg:${tempId}`, 1800, regData);
     await redisClient.setEx(`otp:${tempId}`, 600, otp);
 
-    // Send OTP via WhatsApp and Email
-    const waMsg = `🔐 Your TruLearnix OTP is: *${otp}*\n\nValid for 10 minutes. Do not share this with anyone.`;
-    try { await sendWhatsAppText(phone, waMsg); } catch {}
+    // Send OTP via WhatsApp (AUTH template) and Email
+    try { await sendOTPTemplate(phone, otp); } catch {}
     try { await sendOTPEmail(email.toLowerCase().trim(), otp, name); } catch {}
 
     const response: any = {
@@ -113,14 +113,14 @@ export const verifyOTP = async (req: Request, res: Response) => {
             const sponsor = await User.findById(referredBy).select('name email phone');
             if (!sponsor) return;
 
-            const waToUser = `🎓 *Welcome to TruLearnix!*\n\nHi *${reg.name}*! You've been registered by your mentor *${sponsor.name}*.\n\n📧 *Email:* ${reg.email}\n🔑 *Password:* ${reg.autoPassword}\n\n⚠️ Please change your password after first login.\n👉 ${process.env.WEB_URL}/login`;
-            const waToSponsor = `🔔 *New Member Joined!*\n\nHi *${sponsor.name}*! A new member has joined TruLearnix through your referral link.\n\n👤 *Name:* ${reg.name}\n📧 *Email:* ${reg.email}\n\nEncourage them to purchase a package to earn your commission! 💰\n👉 ${process.env.WEB_URL}/partner/dashboard`;
+            const loginUrl = `${process.env.WEB_URL}/login`;
+            const dashUrl = `${process.env.WEB_URL}/partner/dashboard`;
 
             await Promise.all([
               sendReferralWelcomeEmail(reg.email, reg.name, reg.email, reg.autoPassword, sponsor.name),
-              sendWhatsAppText(reg.phone, waToUser),
+              sendReferralWelcomeTemplate(reg.phone, reg.name, sponsor.name || '', reg.email, reg.autoPassword, loginUrl),
               sendSponsorJoinAlert(sponsor.email, sponsor.name, reg.name, reg.email),
-              sponsor.phone ? sendWhatsAppText(sponsor.phone, waToSponsor) : Promise.resolve(),
+              sponsor.phone ? sendSponsorJoinTemplate(sponsor.phone, sponsor.name || '', reg.name, reg.email, dashUrl) : Promise.resolve(),
             ]);
           } catch (e: any) {
             console.error('[referral-notify]', e.message);
@@ -173,8 +173,7 @@ export const resendOTP = async (req: Request, res: Response) => {
     const pendingRaw = await redisClient.get(`pending-reg:${userId}`);
     if (pendingRaw) {
       const reg = JSON.parse(pendingRaw);
-      const waMsg = `🔐 Your TruLearnix OTP is: *${otp}*\n\nValid for 10 minutes.`;
-      try { await sendWhatsAppText(reg.phone, waMsg); } catch {}
+      try { await sendOTPTemplate(reg.phone, otp); } catch {}
       try { await sendOTPEmail(reg.email, otp, reg.name); } catch {}
       const r: any = { success: true, message: 'OTP resent to WhatsApp and email' };
       if (process.env.NODE_ENV !== 'production') r._devOtp = otp;
@@ -184,8 +183,7 @@ export const resendOTP = async (req: Request, res: Response) => {
     // Existing user
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const waMsg = `🔐 Your TruLearnix OTP is: *${otp}*\n\nValid for 10 minutes.`;
-    try { await sendWhatsAppText(user.phone, waMsg); } catch {}
+    try { await sendOTPTemplate(user.phone, otp); } catch {}
     try { await sendOTPEmail(user.email, otp, user.name); } catch {}
 
     const r2: any = { success: true, message: 'OTP resent' };
@@ -209,9 +207,8 @@ export const login = async (req: Request, res: Response) => {
     if (!user.password) {
       const otp = generateOTP();
       try { await redisClient.setEx(`reset:${user._id}`, 600, otp); } catch {}
-      const waMsg = `🔐 TruLearnix Password Setup OTP: *${otp}*\n\nValid for 10 minutes.`;
       const [waOk, emailOk] = await Promise.all([
-        sendWhatsAppText(user.phone, waMsg).catch(() => false),
+        sendPasswordResetOTPTemplate(user.phone, otp).catch(() => false),
         sendPasswordResetEmail(user.email, otp, user.name).then(() => true).catch((e) => { console.error('[login-reset-email]', e.message); return false; }),
       ]);
       if (!waOk && !emailOk) {
@@ -240,6 +237,14 @@ export const login = async (req: Request, res: Response) => {
       refreshToken,
       $inc: { loginCount: 1 },
     });
+
+    // Catch-up auto-enroll into any compulsory courses (for learners only).
+    // Fire-and-forget — login response should not block on enrollment writes.
+    if (user.role === 'student' && packageTier !== 'free') {
+      ensureCompulsoryEnrollments(user._id.toString()).catch(err =>
+        console.error('[login-compulsory-enroll]', err?.message)
+      );
+    }
 
     res.json({
       success: true,
@@ -286,9 +291,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
       return res.status(503).json({ success: false, message: 'Service temporarily unavailable. Kripya thodi der baad try karein.' });
     }
 
-    const waMsg = `🔐 TruLearnix Password Reset OTP: *${otp}*\n\nValid for 10 minutes. If you didn't request this, ignore this message.`;
     const [waOk, emailOk] = await Promise.all([
-      sendWhatsAppText(user.phone, waMsg).catch((e: any) => { console.error('[forgot-password-wa]', e?.message); return false; }),
+      sendPasswordResetOTPTemplate(user.phone, otp).catch((e: any) => { console.error('[forgot-password-wa]', e?.message); return false; }),
       sendPasswordResetEmail(user.email, otp, user.name).then(() => true).catch((e: any) => { console.error('[forgot-password-email]', e?.message); return false; }),
     ]);
 

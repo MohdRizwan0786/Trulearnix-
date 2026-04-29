@@ -157,7 +157,7 @@ async function generateEarningSlip(opts: {
   ctx.fillText('EARNINGS', 28, tableY + 50)
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, tableY + 60, W, 28)
   ctx.font = '11px Arial'; ctx.fillStyle = '#111827'; ctx.textAlign = 'left'
-  ctx.fillText('Gross Sales Commission', 28, tableY + 78)
+  ctx.fillText('Gross Sales Partnership earning', 28, tableY + 78)
   ctx.textAlign = 'right'; ctx.font = 'bold 11px Arial'
   ctx.fillText(`₹ ${opts.amount.toLocaleString('en-IN')}`, W - 28, tableY + 78)
 
@@ -171,7 +171,7 @@ async function generateEarningSlip(opts: {
   ctx.fillText('DEDUCTIONS', 28, tableY + 134)
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, tableY + 144, W, 28)
   ctx.font = '11px Arial'; ctx.fillStyle = '#374151'; ctx.textAlign = 'left'
-  ctx.fillText(`TDS @ ${opts.tdsRate}% (u/s 194H — Commission)`, 28, tableY + 162)
+  ctx.fillText(`TDS @ ${opts.tdsRate}% (u/s 194H — Partnership earning)`, 28, tableY + 162)
   ctx.textAlign = 'right'; ctx.fillStyle = '#dc2626'; ctx.font = 'bold 11px Arial'
   ctx.fillText(`- ₹ ${opts.tdsAmount.toLocaleString('en-IN')}`, W - 28, tableY + 162)
   ctx.fillStyle = '#fff8f8'; ctx.fillRect(0, tableY + 172, W, 28)
@@ -219,7 +219,7 @@ async function generateEarningSlip(opts: {
 
   const tdsNoteY = payY + (opts.razorpayPayoutId ? 108 : 88)
   ctx.font = '9.5px Arial'; ctx.fillStyle = '#6b7280'; ctx.textAlign = 'left'
-  ctx.fillText('* TDS deducted under Section 194H (Commission) of the Income Tax Act, 1961. Form 16A will be provided at year-end.', 24, tdsNoteY)
+  ctx.fillText('* TDS deducted under Section 194H (Partnership earning) of the Income Tax Act, 1961. Form 16A will be provided at year-end.', 24, tdsNoteY)
 
   const sigY = tdsNoteY + 38
   ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1

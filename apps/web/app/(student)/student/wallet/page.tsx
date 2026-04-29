@@ -6,7 +6,7 @@ import { Wallet, ArrowUpRight, ArrowDownLeft, TrendingUp, Clock, Coins, RefreshC
 import { format } from 'date-fns'
 
 const CAT_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  affiliate_commission: { color: 'text-green-400', bg: 'bg-green-500/15', label: 'Commission' },
+  affiliate_commission: { color: 'text-green-400', bg: 'bg-green-500/15', label: 'Partnership earning' },
   course_sale:         { color: 'text-blue-400',  bg: 'bg-blue-500/15',  label: 'Course Sale' },
   withdrawal:          { color: 'text-red-400',   bg: 'bg-red-500/15',   label: 'Withdrawal' },
   refund:              { color: 'text-yellow-400',bg: 'bg-yellow-500/15',label: 'Refund' },
@@ -32,7 +32,7 @@ export default function WalletPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-black text-white">My Wallet</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Earnings, commissions & transaction history</p>
+        <p className="text-gray-500 text-sm mt-0.5">Earnings, Partnership earnings & transaction history</p>
       </div>
 
       {/* Balance Hero */}

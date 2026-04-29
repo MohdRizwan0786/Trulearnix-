@@ -690,24 +690,79 @@ router.get('/link', protect, affiliateGuard, async (req: any, res) => {
 router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
   try {
     const Qualification = (await import('../models/Qualification')).default as any;
+    const Commission = (await import('../models/Commission')).default as any;
+    const PackagePurchase = (await import('../models/PackagePurchase')).default as any;
     const user = await User.findById(req.user._id).select('name avatar totalEarnings packageTier affiliateCode');
     const l1Count = await User.countDocuments({ upline1: req.user._id });
     const l1Paid = await User.countDocuments({ upline1: req.user._id, packageTier: { $ne: 'free' } });
 
-    const metricMap: Record<string, number> = {
+    const lifetimeMetricMap: Record<string, number> = {
       l1Paid,
       totalEarnings: user?.totalEarnings || 0,
       l1Count,
       tierUpgrade: ['pro','proedge','elite','supreme'].includes(user?.packageTier || '') ? 999999 : 0,
     };
 
-    // Load from DB; fall back to hardcoded defaults if none exist
+    // Compute a milestone's metric scoped to its [startDate, endDate] window.
+    // When a milestone has no window at all → use lifetime totals (legacy behavior).
+    const scopedMetric = async (m: any): Promise<number> => {
+      if (!m.startDate && !m.endDate) return lifetimeMetricMap[m.metricType] ?? 0;
+
+      const dateRange: any = {};
+      if (m.startDate) dateRange.$gte = new Date(m.startDate);
+      if (m.endDate)   dateRange.$lte = new Date(m.endDate);
+
+      switch (m.metricType) {
+        case 'totalEarnings': {
+          const agg = await Commission.aggregate([
+            { $match: { earner: req.user._id, status: { $ne: 'rejected' }, createdAt: dateRange } },
+            { $group: { _id: null, total: { $sum: '$commissionAmount' } } },
+          ]);
+          return agg[0]?.total || 0;
+        }
+        case 'l1Paid': {
+          // Distinct L1 partners who completed a paid package purchase within window
+          const directIds = await User.find({ upline1: req.user._id }).distinct('_id');
+          if (directIds.length === 0) return 0;
+          const buyers = await PackagePurchase.distinct('user', {
+            user: { $in: directIds },
+            status: 'paid',
+            createdAt: dateRange,
+          });
+          return buyers.length;
+        }
+        case 'l1Count': {
+          // L1 partners who joined (signed up) within the window
+          return await User.countDocuments({ upline1: req.user._id, createdAt: dateRange });
+        }
+        case 'tierUpgrade': {
+          // User upgraded to a paid tier within the window
+          const upgraded = await PackagePurchase.exists({
+            user: req.user._id,
+            status: 'paid',
+            packageTier: { $in: ['pro','proedge','elite','supreme'] },
+            createdAt: dateRange,
+          });
+          return upgraded ? 999999 : 0;
+        }
+        default: return 0;
+      }
+    };
+
+    // Load from DB, then filter by active campaign window (startDate/endDate optional);
+    // fall back to hardcoded defaults if none exist.
+    const now = new Date();
     let dbMilestones = await Qualification.find({ isActive: true }).sort({ order: 1 });
+    dbMilestones = dbMilestones.filter((m: any) => {
+      if (m.startDate && new Date(m.startDate) > now) return false;
+      if (m.endDate && new Date(m.endDate) < now) return false;
+      return true;
+    });
 
     let milestones: any[];
     if (dbMilestones.length > 0) {
-      milestones = dbMilestones.map((m: any) => {
-        const current = metricMap[m.metricType] ?? 0;
+      milestones = await Promise.all(dbMilestones.map(async (m: any) => {
+        const current = await scopedMetric(m);
         return {
           id: m._id, title: m.title, description: m.description,
           icon: m.icon, reward: m.reward, rewardType: m.rewardType,
@@ -715,8 +770,9 @@ router.get('/qualification', protect, affiliateGuard, async (req: any, res) => {
           achieved: current >= m.target,
           badgeGradient: m.badgeGradient, certificateEnabled: m.certificateEnabled,
           order: m.order,
+          startDate: m.startDate || null, endDate: m.endDate || null,
         };
-      });
+      }));
     } else {
       milestones = [
         { id: 'first_sale', title: 'First Sale', description: 'Make your first referral sale', icon: '🎯', reward: '₹500 Bonus', rewardType: 'bonus', target: 1, current: l1Paid, unit: 'paid referrals', achieved: l1Paid >= 1, badgeGradient: 'from-sky-500 to-blue-600', certificateEnabled: true },
@@ -782,7 +838,7 @@ router.get('/achievements', protect, affiliateGuard, async (req: any, res) => {
 
     let allAchievements = await Achievement.find({ enabled: true }).sort({ order: 1 });
 
-    // Seed defaults if none exist
+    // Seed defaults if DB is genuinely empty (before window filter)
     if (allAchievements.length === 0) {
       await Achievement.insertMany([
         { title: 'TruLearnix Partner', description: 'Welcome to the TruLearnix Partner Network!', badge: '🎉', triggerType: 'join', triggerValue: 0, requirement: 'Join TruLearnix', posterTheme: 0, order: 0 },
@@ -796,6 +852,14 @@ router.get('/achievements', protect, affiliateGuard, async (req: any, res) => {
       ]);
       allAchievements = await Achievement.find({ enabled: true }).sort({ order: 1 });
     }
+
+    // Apply campaign window filter (post-seed so defaults aren't re-inserted)
+    const nowTs = new Date();
+    allAchievements = allAchievements.filter((a: any) => {
+      if (a.startDate && new Date(a.startDate) > nowTs) return false;
+      if (a.endDate && new Date(a.endDate) < nowTs) return false;
+      return true;
+    });
 
     // Get existing user achievements
     const userAchievements = await UserAchievement.find({ userId: req.user._id });
@@ -838,6 +902,8 @@ router.get('/achievements', protect, affiliateGuard, async (req: any, res) => {
       requirement: ach.requirement,
       posterTheme: ach.posterTheme,
       order: ach.order,
+      startDate: ach.startDate || null,
+      endDate: ach.endDate || null,
       earned: !!earnedMap[ach._id.toString()],
       earnedAt: earnedMap[ach._id.toString()] || null,
     }));

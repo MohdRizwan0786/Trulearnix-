@@ -8,14 +8,15 @@ import toast from 'react-hot-toast'
 import {
   Edit2, X, Plus, Check, Package, DollarSign, Settings, BookOpen,
   ChevronDown, ChevronUp, Percent, Hash, Users, Shield, Zap, Star,
-  TrendingUp, IndianRupee, Info, Video, Link, Calendar, Trash2, CheckCircle2
+  TrendingUp, IndianRupee, Info, Video, Link, Calendar, Trash2, CheckCircle2,
+  MessageCircle, Send
 } from 'lucide-react'
 
 const TIER_ICONS = [Zap, Star, TrendingUp, Shield, Package, BookOpen]
 
 const TABS = [
   { id: 'packages', label: 'Packages', icon: Package },
-  { id: 'commissions', label: 'Commission Rules', icon: Percent },
+  { id: 'commissions', label: 'Partnership earning Rules', icon: Percent },
   { id: 'tax', label: 'Tax Settings', icon: IndianRupee },
   { id: 'referral', label: 'Course Referral', icon: BookOpen },
   { id: 'resources', label: 'Partner Resources', icon: Link },
@@ -60,6 +61,13 @@ const DEFAULT_FORM = {
   ] as { title: string; desc: string }[],
   testimonials: [] as { name: string; role: string; avatar: string; text: string; rating: number; earning: string }[],
   faqs: [] as { q: string; a: string }[],
+  communityLinks: {
+    telegramUrl: '',
+    telegramLabel: '',
+    whatsappUrl: '',
+    whatsappLabel: '',
+    note: '',
+  } as { telegramUrl: string; telegramLabel: string; whatsappUrl: string; whatsappLabel: string; note: string },
 }
 
 function MatrixEditor({ packages, onSave }: { packages: any[], onSave: (soldPkgId: string, earnings: any[]) => void }) {
@@ -288,6 +296,13 @@ export default function PackagesPage() {
       ],
       testimonials: pkg.testimonials || [],
       faqs: pkg.faqs || [],
+      communityLinks: {
+        telegramUrl: pkg.communityLinks?.telegramUrl || '',
+        telegramLabel: pkg.communityLinks?.telegramLabel || '',
+        whatsappUrl: pkg.communityLinks?.whatsappUrl || '',
+        whatsappLabel: pkg.communityLinks?.whatsappLabel || '',
+        note: pkg.communityLinks?.note || '',
+      },
     })
     setFeaturesInput((pkg.features || []).join('\n'))
     // Load "my earnings" — what this package's tier partner earns when selling each other package
@@ -395,9 +410,9 @@ export default function PackagesPage() {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
                   <Package className="w-5 h-5 text-white" />
                 </div>
-                Packages & Commission
+                Packages & Partnership earning
               </h1>
-              <p className="text-gray-400 text-sm mt-1">Manage plans, commissions, and tax settings</p>
+              <p className="text-gray-400 text-sm mt-1">Manage plans, Partnership earnings, and tax settings</p>
             </div>
             {activeTab === 'packages' && (
               <button onClick={openCreate} className="btn-primary flex items-center gap-2">
@@ -581,15 +596,15 @@ export default function PackagesPage() {
             </div>
 
             <div className="card overflow-x-auto">
-              <h2 className="text-base font-bold text-white mb-1">Sales Team & Manager Commission Per Package</h2>
-              <p className="text-gray-400 text-sm mb-4">Set L1 partner commissions in the matrix above. Configure Sales Team and Manager commissions here.</p>
+              <h2 className="text-base font-bold text-white mb-1">Sales Team & Manager Partnership earning Per Package</h2>
+              <p className="text-gray-400 text-sm mb-4">Set L1 partner Partnership earnings in the matrix above. Configure Sales Team and Manager Partnership earnings here.</p>
               <table className="w-full text-sm min-w-[600px]">
                 <thead>
                   <tr className="border-b border-white/10">
                     <th className="text-left pb-3 pr-4 text-gray-400 font-medium w-40">Package</th>
                     <th className="text-left pb-3 px-3 text-gray-400 font-medium">Price</th>
                     <th className="text-left pb-3 px-3 text-amber-400 font-medium">Sales Team</th>
-                    <th className="text-left pb-3 px-3 text-pink-400 font-medium">Mgr Commission</th>
+                    <th className="text-left pb-3 px-3 text-pink-400 font-medium">Mgr Partnership earning</th>
                     <th className="text-left pb-3 px-3 text-blue-400 font-medium">L2</th>
                     <th className="text-left pb-3 px-3 text-violet-400 font-medium">L3</th>
                     <th className="pb-3 px-3 text-gray-400 font-medium">Action</th>
@@ -1156,6 +1171,64 @@ export default function PackagesPage() {
                       <span className="text-sm text-gray-300">{label}</span>
                     </label>
                   ))}
+                </div>
+              </Section>
+
+              {/* Community Join Links */}
+              <Section title="Community Join Links" icon={Users}>
+                <p className="text-xs text-gray-400 mb-3">
+                  Telegram aur WhatsApp group join links — yeh links is package ke students ko Community page par dikhenge.
+                  Khaali chhodne par button hide ho jayega.
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="label flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5 text-sky-400" /> Telegram URL
+                    </label>
+                    <input
+                      type="url"
+                      value={form.communityLinks?.telegramUrl || ''}
+                      onChange={e => setForm({ ...form, communityLinks: { ...form.communityLinks, telegramUrl: e.target.value } })}
+                      placeholder="https://t.me/your-group-invite"
+                      className="input"
+                    />
+                    <input
+                      type="text"
+                      value={form.communityLinks?.telegramLabel || ''}
+                      onChange={e => setForm({ ...form, communityLinks: { ...form.communityLinks, telegramLabel: e.target.value } })}
+                      placeholder="Button label (optional, e.g. Join Pro Telegram)"
+                      className="input mt-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="label flex items-center gap-1.5">
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp URL
+                    </label>
+                    <input
+                      type="url"
+                      value={form.communityLinks?.whatsappUrl || ''}
+                      onChange={e => setForm({ ...form, communityLinks: { ...form.communityLinks, whatsappUrl: e.target.value } })}
+                      placeholder="https://chat.whatsapp.com/your-invite"
+                      className="input"
+                    />
+                    <input
+                      type="text"
+                      value={form.communityLinks?.whatsappLabel || ''}
+                      onChange={e => setForm({ ...form, communityLinks: { ...form.communityLinks, whatsappLabel: e.target.value } })}
+                      placeholder="Button label (optional, e.g. Join Pro WhatsApp)"
+                      className="input mt-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Note (optional)</label>
+                    <textarea
+                      value={form.communityLinks?.note || ''}
+                      onChange={e => setForm({ ...form, communityLinks: { ...form.communityLinks, note: e.target.value } })}
+                      placeholder="Short note shown above the join buttons (rules, welcome message, etc.)"
+                      rows={2}
+                      className="input"
+                    />
+                  </div>
                 </div>
               </Section>
 

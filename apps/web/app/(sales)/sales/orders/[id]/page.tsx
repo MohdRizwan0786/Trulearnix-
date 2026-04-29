@@ -235,13 +235,13 @@ export default function OrderDetailPage() {
           {[
             { label: 'Total', value: `₹${(order.totalAmount||0).toLocaleString()}`, cls: 'text-white text-xl font-black' },
             { label: 'Paid', value: `₹${(order.paidAmount||0).toLocaleString()}`, cls: 'text-white text-xl font-black' },
-            { label: 'Commission', value: `₹${(order.commissionAmount||0).toLocaleString()}`, cls: `text-lg font-black ${order.commissionPaid ? 'text-green-300' : 'text-gray-300'}` },
+            { label: 'Partnership earning', value: `₹${(order.commissionAmount||0).toLocaleString()}`, cls: `text-lg font-black ${order.commissionPaid ? 'text-green-300' : 'text-gray-300'}` },
             { label: 'Date', value: new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }), cls: 'text-white text-sm font-medium' },
           ].map(item => (
             <div key={item.label}>
               <p className="text-xs text-gray-500 mb-1">{item.label}</p>
               <p className={item.cls}>{item.value}</p>
-              {item.label === 'Commission' && (
+              {item.label === 'Partnership earning' && (
                 <p className="text-[10px] mt-0.5 text-gray-600">{order.commissionPaid ? '(credited)' : order.paymentType === 'emi' ? '(per installment)' : '(pending)'}</p>
               )}
             </div>
@@ -307,7 +307,7 @@ export default function OrderDetailPage() {
               Confirm
             </button>
           </div>
-          <p className="text-xs text-gray-600 mt-2">This will activate the customer's package and credit your commission.</p>
+          <p className="text-xs text-gray-600 mt-2">This will activate the customer's package and credit your Partnership earning.</p>
         </div>
       )}
 

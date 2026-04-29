@@ -1,13 +1,13 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { adminAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import {
   GraduationCap, Plus, Pencil, Trash2, Video, FileText,
-  BookOpen, Zap, Eye, EyeOff, X, Loader2, ChevronUp,
+  BookOpen, Zap, X, Loader2, ChevronUp,
   ChevronDown, Tag, Clock, Save, Globe, Lock, Upload,
-  CheckCircle2, Film, AlertCircle, UploadCloud
+  CheckCircle2, Film, Youtube, Link as LinkIcon
 } from 'lucide-react'
 
 const TYPE_CFG: Record<string, { label: string; icon: any; color: string; bg: string }> = {
@@ -21,148 +21,74 @@ const TYPE_CFG: Record<string, { label: string; icon: any; color: string; bg: st
 const EMPTY = {
   title: '', description: '', videoUrl: '', thumbnailUrl: '',
   type: 'video', duration: '', order: 0, day: undefined as number | undefined,
+  seriesTitle: '',
   isPublished: false, tags: '', resources: ''
 }
 
-function VideoUploader({ value, onChange }: { value: string; onChange: (url: string) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [fileName, setFileName] = useState('')
-  const [dragOver, setDragOver] = useState(false)
+function getYoutubeId(url: string) {
+  if (!url) return null
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&\s?]+)/)
+  return m ? m[1] : null
+}
 
-  const doUpload = async (file: File) => {
-    if (!file) return
-    const allowed = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo']
-    if (!allowed.includes(file.type)) {
-      toast.error('Only MP4, WebM, MOV, AVI allowed')
-      return
-    }
-    if (file.size > 500 * 1024 * 1024) {
-      toast.error('File too large (max 500 MB)')
-      return
-    }
-    setFileName(file.name)
-    setUploading(true)
-    setProgress(0)
-    try {
-      const fd = new FormData()
-      fd.append('video', file)
-      // Use XMLHttpRequest for progress tracking
-      const token = localStorage.getItem('adminToken')
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.trulearnix.com/api'
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest()
-        xhr.open('POST', `${apiBase}/upload/video`)
-        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100))
-        }
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const res = JSON.parse(xhr.responseText)
-            if (res.success && res.url) {
-              onChange(res.url)
-              toast.success('Video uploaded!')
-              resolve()
-            } else {
-              reject(new Error(res.message || 'Upload failed'))
-            }
-          } else {
-            reject(new Error('Upload failed'))
-          }
-        }
-        xhr.onerror = () => reject(new Error('Network error'))
-        xhr.send(fd)
-      })
-    } catch (e: any) {
-      toast.error(e.message || 'Upload failed')
-      setFileName('')
-    } finally {
-      setUploading(false)
-      setProgress(0)
-    }
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    const file = e.dataTransfer.files[0]
-    if (file) doUpload(file)
-  }
-
-  const displayName = fileName || (value ? value.split('/').pop() : '')
+function VideoLinkInput({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const ytId = useMemo(() => getYoutubeId(value), [value])
+  const isDrive = !!value && value.includes('drive.google.com')
+  const isLoom  = !!value && value.includes('loom.com')
+  const recognized = !!(ytId || isDrive || isLoom)
 
   return (
     <div className="space-y-2">
-      {/* Drop zone */}
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        onClick={() => !uploading && inputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all
-          ${dragOver ? 'border-violet-500 bg-violet-500/10' : 'border-gray-700 hover:border-violet-500/60 hover:bg-gray-800/50'}
-          ${uploading ? 'pointer-events-none' : ''}`}
-      >
+      <div className="relative">
+        <Youtube className="w-4 h-4 text-red-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
-          ref={inputRef}
-          type="file"
-          accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
-          className="hidden"
-          onChange={e => { const f = e.target.files?.[0]; if (f) doUpload(f); e.target.value = '' }}
+          type="url"
+          value={value}
+          onChange={e => onChange(e.target.value.trim())}
+          placeholder="https://youtu.be/...  or  https://www.youtube.com/watch?v=..."
+          className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-9 pr-9 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm"
         />
-
-        {uploading ? (
-          <div className="space-y-3">
-            <div className="w-10 h-10 mx-auto rounded-full bg-violet-500/20 flex items-center justify-center">
-              <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
-            </div>
-            <p className="text-white text-sm font-medium">Uploading {fileName}...</p>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-violet-600 to-purple-500 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-gray-400 text-xs">{progress}%</p>
-          </div>
-        ) : value ? (
-          <div className="space-y-2">
-            <div className="w-10 h-10 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
-            </div>
-            <p className="text-green-400 text-sm font-medium">Video uploaded</p>
-            <p className="text-gray-500 text-xs truncate max-w-xs mx-auto">{displayName}</p>
-            <p className="text-gray-600 text-xs">Click to replace</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="w-10 h-10 mx-auto rounded-full bg-gray-800 flex items-center justify-center">
-              <UploadCloud className="w-5 h-5 text-gray-500" />
-            </div>
-            <p className="text-white text-sm font-medium">Click or drag video here</p>
-            <p className="text-gray-500 text-xs">MP4, WebM, MOV, AVI · Max 500 MB</p>
-          </div>
-        )}
-      </div>
-
-      {/* Show current URL if already uploaded (small, read-only) */}
-      {value && !uploading && (
-        <div className="flex items-center gap-2">
-          <div className="flex-1 bg-gray-800/60 border border-gray-700 rounded-lg px-3 py-2 flex items-center gap-2 min-w-0">
-            <Film className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-            <span className="text-gray-400 text-xs truncate">{value}</span>
-          </div>
+        {value && (
           <button
             type="button"
-            onClick={() => { onChange(''); setFileName('') }}
-            className="w-7 h-7 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 hover:bg-red-500/25 transition-colors flex-shrink-0"
-            title="Remove video"
+            onClick={() => onChange('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md bg-gray-700 hover:bg-red-500/30 hover:text-red-400 text-gray-400 flex items-center justify-center transition-colors"
+            title="Clear"
           >
             <X className="w-3.5 h-3.5" />
           </button>
+        )}
+      </div>
+
+      {value && !recognized && (
+        <p className="text-amber-400 text-[11px] flex items-center gap-1.5">
+          <LinkIcon className="w-3 h-3" />
+          Unrecognized URL — partner will see an "Open Content" button instead of an embedded player.
+        </p>
+      )}
+
+      {ytId && (
+        <div className="rounded-xl overflow-hidden border border-green-500/25 bg-green-500/5">
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${ytId}?rel=0`}
+              className="absolute inset-0 w-full h-full"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <p className="text-green-400 text-[11px] px-3 py-1.5 flex items-center gap-1.5 border-t border-green-500/20">
+            <CheckCircle2 className="w-3 h-3" />
+            YouTube video — partner will see this embedded player
+          </p>
         </div>
+      )}
+
+      {(isDrive || isLoom) && (
+        <p className="text-blue-400 text-[11px] flex items-center gap-1.5">
+          <CheckCircle2 className="w-3 h-3" />
+          {isDrive ? 'Google Drive' : 'Loom'} link detected — partner will see embedded player.
+        </p>
       )}
     </div>
   )
@@ -241,7 +167,9 @@ export default function PartnerTrainingAdminPage() {
     setForm({
       title: m.title, description: m.description || '', videoUrl: m.videoUrl || '',
       thumbnailUrl: m.thumbnailUrl || '', type: m.type || 'video', duration: m.duration || '',
-      order: m.order || 0, day: m.day, isPublished: m.isPublished || false,
+      order: m.order || 0, day: m.day,
+      seriesTitle: m.seriesTitle || '',
+      isPublished: m.isPublished || false,
       tags: (m.tags || []).join(', '),
       resources: (m.resources || []).map((r: any) => `${r.label}::${r.url}`).join('\n'),
     })
@@ -291,9 +219,30 @@ export default function PartnerTrainingAdminPage() {
     finally { setToggling(null) }
   }
 
+  // Sort modules by series, then order, then day (for grouped display)
+  const displayModules = useMemo(() => {
+    return [...modules].sort((a, b) => {
+      const sa = (a.seriesTitle || '').toLowerCase()
+      const sb = (b.seriesTitle || '').toLowerCase()
+      // Ungrouped (empty seriesTitle) goes last
+      if (!sa && sb) return 1
+      if (sa && !sb) return -1
+      if (sa !== sb) return sa.localeCompare(sb)
+      if ((a.order || 0) !== (b.order || 0)) return (a.order || 0) - (b.order || 0)
+      return (a.day || 0) - (b.day || 0)
+    })
+  }, [modules])
+
+  // Move within the same series only (swap order with the prev/next module that shares seriesTitle)
   const moveOrder = async (m: any, dir: -1 | 1) => {
-    const idx = modules.findIndex(x => x._id === m._id)
-    const swap = modules[idx + dir]
+    const idx = displayModules.findIndex(x => x._id === m._id)
+    const same = (x: any) => (x?.seriesTitle || '') === (m?.seriesTitle || '')
+    let swap: any = null
+    for (let i = idx + dir; i >= 0 && i < displayModules.length; i += dir) {
+      if (same(displayModules[i])) { swap = displayModules[i]; break }
+      // stop scanning once we've left the current series block
+      if ((displayModules[i]?.seriesTitle || '') !== (m?.seriesTitle || '')) break
+    }
     if (!swap) return
     await Promise.all([
       adminAPI.updateTrainingModule(m._id, { order: swap.order }),
@@ -364,18 +313,39 @@ export default function PartnerTrainingAdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
-                  {modules.map((m, i) => {
+                  {displayModules.map((m, i) => {
                     const tc = TYPE_CFG[m.type] || TYPE_CFG.video
                     const Icon = tc.icon
+                    const prevSeries = i === 0 ? null : (displayModules[i - 1].seriesTitle || '')
+                    const currSeries = m.seriesTitle || ''
+                    const isNewSeriesGroup = i === 0 || prevSeries !== currSeries
+                    const seriesLabel = currSeries || 'Ungrouped'
+                    const seriesCount = displayModules.filter(x => (x.seriesTitle || '') === currSeries).length
+                    const sameSeriesIdx = displayModules.filter((x, j) => j <= i && (x.seriesTitle || '') === currSeries).length - 1
+                    const sameSeriesTotal = seriesCount
                     return (
-                      <tr key={m._id} className="hover:bg-gray-800/50 transition-colors">
+                      <Fragment key={m._id}>
+                        {isNewSeriesGroup && (
+                          <tr>
+                            <td colSpan={6} className="bg-gradient-to-r from-violet-500/15 via-violet-500/5 to-transparent border-y border-violet-500/25 px-4 py-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-violet-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                                  <BookOpen className="w-3.5 h-3.5 text-violet-300" />
+                                </div>
+                                <span className="text-violet-200 font-bold text-sm">{seriesLabel}</span>
+                                <span className="text-violet-400/60 text-xs">· {seriesCount} module{seriesCount !== 1 ? 's' : ''}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      <tr className="hover:bg-gray-800/50 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-0.5">
-                            <button onClick={() => moveOrder(m, -1)} disabled={i === 0} className="w-6 h-5 flex items-center justify-center text-gray-500 hover:text-white disabled:opacity-20 transition-colors">
+                            <button onClick={() => moveOrder(m, -1)} disabled={sameSeriesIdx === 0} className="w-6 h-5 flex items-center justify-center text-gray-500 hover:text-white disabled:opacity-20 transition-colors">
                               <ChevronUp className="w-3.5 h-3.5" />
                             </button>
-                            <span className="text-white font-bold text-sm text-center">{m.order || i + 1}</span>
-                            <button onClick={() => moveOrder(m, 1)} disabled={i === modules.length - 1} className="w-6 h-5 flex items-center justify-center text-gray-500 hover:text-white disabled:opacity-20 transition-colors">
+                            <span className="text-white font-bold text-sm text-center">{m.order || sameSeriesIdx + 1}</span>
+                            <button onClick={() => moveOrder(m, 1)} disabled={sameSeriesIdx === sameSeriesTotal - 1} className="w-6 h-5 flex items-center justify-center text-gray-500 hover:text-white disabled:opacity-20 transition-colors">
                               <ChevronDown className="w-3.5 h-3.5" />
                             </button>
                           </div>
@@ -421,6 +391,7 @@ export default function PartnerTrainingAdminPage() {
                           </div>
                         </td>
                       </tr>
+                      </Fragment>
                     )
                   })}
                 </tbody>
@@ -491,10 +462,34 @@ export default function PartnerTrainingAdminPage() {
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm resize-none" />
               </div>
 
-              {/* Video Upload */}
+              {/* Series */}
               <div>
-                <label className="text-gray-400 text-xs font-medium mb-1.5 block">Video File</label>
-                <VideoUploader
+                <label className="text-gray-400 text-xs font-medium mb-1.5 block flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-violet-400" />
+                  Series Name
+                </label>
+                <input
+                  value={form.seriesTitle}
+                  onChange={e => setForm(f => ({ ...f, seriesTitle: e.target.value }))}
+                  list="series-suggestions"
+                  placeholder="e.g. Sales Mastery, Onboarding, Lead Generation"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm"
+                />
+                <datalist id="series-suggestions">
+                  {Array.from(new Set(modules.map(m => m.seriesTitle).filter(Boolean))).map(s => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
+                <p className="text-gray-600 text-[11px] mt-1">Group related videos under one series. Partners see modules organized by series.</p>
+              </div>
+
+              {/* YouTube Link */}
+              <div>
+                <label className="text-gray-400 text-xs font-medium mb-1.5 block flex items-center gap-1.5">
+                  <Youtube className="w-3.5 h-3.5 text-red-400" />
+                  YouTube / Drive / Loom Link
+                </label>
+                <VideoLinkInput
                   value={form.videoUrl}
                   onChange={url => setForm(f => ({ ...f, videoUrl: url }))}
                 />
@@ -513,7 +508,7 @@ export default function PartnerTrainingAdminPage() {
               <div>
                 <label className="text-gray-400 text-xs font-medium mb-1.5 block">Tags (comma separated)</label>
                 <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-                  placeholder="e.g. sales, commission, MLM"
+                  placeholder="e.g. sales, Partnership earning, MLM"
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 text-sm" />
               </div>
 

@@ -9,7 +9,8 @@ import Link from 'next/link'
 import {
   ShieldCheck, Tag, Ticket, Loader2, CheckCircle2, AlertCircle,
   ArrowLeft, Lock, Clock, Award, Check, RefreshCw, CreditCard,
-  Percent, BadgePercent, Sparkles, ChevronRight, User, Mail, Phone
+  Percent, BadgePercent, Sparkles, ChevronRight, User, Mail, Phone,
+  ArrowUpCircle
 } from 'lucide-react'
 
 const TIER_CONFIG: Record<string, {
@@ -208,8 +209,14 @@ function CheckoutInner() {
   const gstAmount = itemType === 'package' ? Math.round(afterDiscount * GST_RATE) : 0
   const totalPayable = afterDiscount + gstAmount
   const emiAmount = Math.ceil(totalPayable / EMI_INSTALLMENTS)
-  const payNow = payMode === 'emi' ? emiAmount : totalPayable
-  const showEmi = itemType === 'package' && basePrice > 0 && emiEnabled
+  // Upgrade credit (only applies to full payment of a package upgrade)
+  const upgradeInfo = item?.upgrade
+  const upgradeCredit = (payMode === 'full' && itemType === 'package' && upgradeInfo?.eligible)
+    ? Math.min(upgradeInfo.upgradeCredit || 0, totalPayable)
+    : 0
+  const upgradePayable = Math.max(0, totalPayable - upgradeCredit)
+  const payNow = payMode === 'emi' ? emiAmount : upgradePayable
+  const showEmi = itemType === 'package' && basePrice > 0 && emiEnabled && !upgradeCredit
 
   const handlePromo = useCallback(async () => {
     if (!promoCode) return
@@ -537,6 +544,22 @@ function CheckoutInner() {
                   </div>
                 )}
 
+                {/* Upgrade credit (10-day window) */}
+                {upgradeCredit > 0 && (
+                  <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                    className="flex justify-between items-center">
+                    <span className="flex items-center gap-1.5 text-amber-400">
+                      <ArrowUpCircle className="w-3.5 h-3.5" /> Upgrade Credit
+                      {upgradeInfo?.daysRemaining != null && (
+                        <span className="text-[10px] text-amber-300/70 ml-1">
+                          ({upgradeInfo.daysRemaining}d left)
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-amber-400 font-semibold">− {fmt(upgradeCredit)}</span>
+                  </motion.div>
+                )}
+
                 {/* Total */}
                 <div className="border-t border-white/10 pt-3 mt-1">
                   <div className="flex justify-between items-center">
@@ -610,11 +633,17 @@ function CheckoutInner() {
                   {/* Price display */}
                   <div className="mt-5 space-y-1">
                     <div className="flex items-end gap-2">
-                      <span className="text-3xl font-black text-white">{fmt(totalPayable)}</span>
-                      {totalSaving > 0 && <span className="text-white/35 line-through text-sm mb-1">{fmt(basePrice)}</span>}
+                      <span className="text-3xl font-black text-white">{fmt(upgradeCredit > 0 ? upgradePayable : totalPayable)}</span>
+                      {(totalSaving > 0 || upgradeCredit > 0) && <span className="text-white/35 line-through text-sm mb-1">{fmt(basePrice)}</span>}
                     </div>
                     {gstAmount > 0 && <p className="text-white/45 text-xs">incl. GST ({fmt(gstAmount)})</p>}
                     {payMode === 'emi' && <p className="text-white/55 text-xs">or {fmt(emiAmount)} × {EMI_INSTALLMENTS} installments</p>}
+                    {upgradeCredit > 0 && (
+                      <div className="inline-flex items-center gap-1 mt-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/30">
+                        <ArrowUpCircle className="w-3 h-3 text-amber-400" />
+                        <span className="text-amber-400 text-xs font-bold">Upgrade — pay only difference</span>
+                      </div>
+                    )}
                     {totalSaving > 0 && (
                       <div className="inline-flex items-center gap-1 mt-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30">
                         <Sparkles className="w-3 h-3 text-emerald-400" />

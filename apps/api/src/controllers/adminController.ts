@@ -8,20 +8,42 @@ import SupportTicket from '../models/SupportTicket';
 import Certificate from '../models/Certificate';
 import { AuthRequest } from '../middleware/auth';
 
-export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
+export const getDashboardStats = async (req: AuthRequest, res: Response) => {
   try {
+    const { period, from: fromQ, to: toQ } = req.query as any;
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
 
-    const [totalUsers, totalStudents, totalMentors, totalCourses, totalEnrollments, recentPayments,
+    // Resolve period date range (null = all-time)
+    let dateRange: { $gte: Date; $lte: Date } | null = null;
+    if (period && period !== 'all') {
+      let from: Date, to: Date = new Date();
+      if (period === 'custom' && fromQ) {
+        from = new Date(fromQ); from.setHours(0, 0, 0, 0);
+        if (toQ) { to = new Date(toQ); to.setHours(23, 59, 59, 999); }
+      } else if (period === 'today') {
+        from = new Date(); from.setHours(0, 0, 0, 0);
+      } else {
+        const days = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
+        from = new Date(); from.setDate(from.getDate() - days); from.setHours(0, 0, 0, 0);
+      }
+      dateRange = { $gte: from, $lte: to };
+    }
+
+    const dateMatch = dateRange ? { createdAt: dateRange } : {};
+
+    const [totalUsers, totalStudents, totalMentors, totalCourses, totalEnrollments,
+      recentCoursePayments, recentPackagePurchases,
       paymentRev, packageRev, paymentMonthly, packageMonthly] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ role: 'student' }),
-      User.countDocuments({ role: 'mentor' }),
-      Course.countDocuments({ status: 'published' }),
-      Enrollment.countDocuments(),
+      User.countDocuments({ ...dateMatch }),
+      User.countDocuments({ role: 'student', ...dateMatch }),
+      User.countDocuments({ role: 'mentor', ...dateMatch }),
+      Course.countDocuments({ status: 'published', ...dateMatch }),
+      Enrollment.countDocuments({ ...dateMatch }),
+      // Recent payments are always last 10 across all time (feed, not period metric)
       Payment.find({ status: 'paid' }).sort('-createdAt').limit(10).populate('user', 'name email').populate('course', 'title'),
-      Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      PackagePurchase.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      PackagePurchase.find({ status: 'paid' }).sort('-createdAt').limit(10).populate('user', 'name email').populate('package', 'name tier'),
+      Payment.aggregate([{ $match: { status: 'paid', ...dateMatch } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      PackagePurchase.aggregate([{ $match: { status: 'paid', ...dateMatch } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Payment.aggregate([
         { $match: { status: 'paid', createdAt: { $gte: oneYearAgo } } },
         { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, revenue: { $sum: '$amount' }, count: { $sum: 1 } } },
@@ -43,6 +65,27 @@ export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
       monthlyMap[key].count += m.count;
     });
     const monthlyRevenue = Object.values(monthlyMap).sort((a, b) => (a._id.year - b._id.year) || (a._id.month - b._id.month));
+
+    // Merge course payments + package purchases into a single recent-payments feed
+    const recentPayments = [
+      ...recentCoursePayments.map((p: any) => ({
+        _id: p._id,
+        user: p.user,
+        amount: p.amount,
+        createdAt: p.createdAt,
+        description: p.course?.title || 'Course Purchase',
+        course: p.course,
+      })),
+      ...recentPackagePurchases.map((p: any) => ({
+        _id: p._id,
+        user: p.user,
+        amount: p.totalAmount || p.amount,
+        createdAt: p.createdAt,
+        description: p.package?.name ? `${p.package.name} Package` : 'Package Purchase',
+      })),
+    ]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 10);
 
     res.json({
       success: true,

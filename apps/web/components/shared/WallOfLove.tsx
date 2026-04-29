@@ -46,9 +46,24 @@ function VideoModal({ v, onClose }: { v: Video; onClose: () => void }) {
             <X className="w-4 h-4 text-white" />
           </button>
 
-          <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+          <div className="relative w-full bg-black" style={{ paddingTop: '56.25%' }}>
             {v.videoUrl
-              ? <video className="absolute inset-0 w-full h-full object-cover" src={v.videoUrl} controls autoPlay />
+              ? (
+                <video
+                  className="absolute inset-0 w-full h-full object-contain bg-black"
+                  controls
+                  autoPlay
+                  muted
+                  playsInline
+                  preload="auto"
+                  poster={v.avatarUrl}
+                >
+                  {/* most .mov files from R2 are H.264/AAC — hint mp4 first so Chrome/Firefox play them */}
+                  <source src={v.videoUrl} type="video/mp4" />
+                  <source src={v.videoUrl} />
+                  Your browser does not support this video.
+                </video>
+              )
               : <iframe className="absolute inset-0 w-full h-full"
                   src={`https://www.youtube.com/embed/${v.videoId}?autoplay=1&rel=0`}
                   allow="autoplay; encrypted-media" allowFullScreen />
@@ -161,7 +176,7 @@ function VideoCard({ v, onClick, delay = 0 }: { v: Video; onClick: () => void; d
 /* ── Marquee Card ───────────────────────────────────────────────── */
 function MarqueeCard({ v, onClick }: { v: Video; onClick: () => void }) {
   return (
-    <div className="flex-shrink-0 w-[200px] mx-2 rounded-xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1"
+    <div className="flex-shrink-0 w-[300px] md:w-[280px] mx-2.5 rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1"
       style={{ background: '#0d1020', border: '1px solid rgba(255,255,255,0.07)' }}
       onClick={onClick}>
       <div className="relative aspect-video" style={{ background: v.gradient }}>
@@ -169,21 +184,25 @@ function MarqueeCard({ v, onClick }: { v: Video; onClick: () => void }) {
           <img src={v.avatarUrl} className="absolute inset-0 w-full h-full object-cover opacity-70" alt={v.name} />
         )}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
-            style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 0 0 6px rgba(255,255,255,0.12)' }}>
-            <Play className="w-4 h-4 text-gray-900 ml-0.5" fill="currentColor" />
+          <div className="w-12 h-12 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+            style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 0 0 8px rgba(255,255,255,0.12)' }}>
+            <Play className="w-5 h-5 text-gray-900 ml-0.5" fill="currentColor" />
           </div>
         </div>
-        <span className="absolute bottom-2 right-2 text-[10px] font-black text-white px-1.5 py-0.5 rounded"
-          style={{ background: 'rgba(0,0,0,0.65)' }}>{v.duration}</span>
+        {v.duration && (
+          <span className="absolute bottom-2 right-2 text-[10px] font-black text-white px-1.5 py-0.5 rounded"
+            style={{ background: 'rgba(0,0,0,0.65)' }}>{v.duration}</span>
+        )}
       </div>
-      <div className="p-3">
-        <p className="text-white font-black text-xs truncate">{v.name}</p>
-        <p className="text-gray-600 text-[10px] mb-2 truncate">{v.role}</p>
-        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-          style={{ background: `${v.resultColor}15`, color: v.resultColor }}>
-          {v.result}
-        </span>
+      <div className="p-3.5">
+        <p className="text-white font-black text-sm truncate">{v.name}</p>
+        <p className="text-gray-600 text-[11px] mb-2 truncate">{v.role}</p>
+        {v.result && (
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
+            style={{ background: `${v.resultColor}15`, color: v.resultColor }}>
+            {v.result}
+          </span>
+        )}
       </div>
     </div>
   )

@@ -901,14 +901,14 @@ export default function SalesTeamPage() {
                     <p className="text-2xl font-black text-amber-300">
                       ₹{((perfData.totalCommissions || 0) / 1000).toFixed(1)}k
                     </p>
-                    <p className="text-xs text-amber-400/60 mt-0.5">commissions</p>
+                    <p className="text-xs text-amber-400/60 mt-0.5">Partnership earnings</p>
                   </div>
                   <div className="bg-violet-500/10 border border-violet-500/15 rounded-xl p-3.5">
                     <p className="text-xs text-violet-300/70 mb-1">This Month</p>
                     <p className="text-2xl font-black text-violet-300">
                       ₹{((perfData.monthCommissions || 0) / 1000).toFixed(1)}k
                     </p>
-                    <p className="text-xs text-violet-400/60 mt-0.5">commission</p>
+                    <p className="text-xs text-violet-400/60 mt-0.5">Partnership earning</p>
                   </div>
                 </div>
 

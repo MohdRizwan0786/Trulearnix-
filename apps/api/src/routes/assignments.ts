@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Assignment from '../models/Assignment';
 import { protect, authorize } from '../middleware/auth';
-import { uploadToS3 } from '../services/s3Service';
+import { uploadToS3, processAndSaveUpload } from '../services/s3Service';
 import Enrollment from '../models/Enrollment';
 
 const router = Router();
@@ -29,10 +29,9 @@ router.post('/:id/submit', protect, authorize('student'), uploadToS3.single('fil
     const enrollment = await Enrollment.findOne({ student: req.user._id, course: assignment.course });
     if (!enrollment) return res.status(403).json({ success: false, message: 'Not enrolled' });
 
-    // Support both S3 (location) and local disk storage (filename)
-    const fileUrl = (req.file as any)?.location
-      || (req.file?.filename ? `${process.env.API_URL || 'https://api.trulearnix.com'}/uploads/${req.file.filename}` : undefined);
-    if (!fileUrl) return res.status(400).json({ success: false, message: 'File upload failed' });
+    if (!req.file) return res.status(400).json({ success: false, message: 'File upload failed' });
+    const { filename, cdnUrl } = await processAndSaveUpload(req.file);
+    const fileUrl = cdnUrl || `${process.env.API_URL || 'https://api.trulearnix.com'}/uploads/${filename}`;
     const existing = assignment.submissions.findIndex(s => s.student.toString() === req.user._id.toString());
     const submission = { student: req.user._id, fileUrl, fileName: req.file?.originalname || '', submittedAt: new Date(), status: 'pending' as const };
 

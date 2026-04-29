@@ -6,8 +6,9 @@ import { useAuthStore } from '@/lib/store'
 import {
   BookOpen, Play, CheckCircle, Clock, ChevronRight,
   Sparkles, Lock, ArrowRight, Search, Users, BarChart2,
-  GraduationCap, Flame, Star, Filter, Layers
+  GraduationCap, Flame, Star, Filter, Layers, Pin, Info
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import Link from 'next/link'
 
 type Tab = 'enrolled' | 'available'
@@ -34,9 +35,14 @@ export default function LearnerCoursesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['enrolled-courses'] })
       qc.invalidateQueries({ queryKey: ['available-courses'] })
-    }
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || 'Enroll nahi ho paya'
+      toast.error(msg)
+    },
   })
 
+  const enrollStatus = availableData?.enrollStatus || { cap: 2, activeCount: 0, remainingSlots: 2, canEnroll: true }
   const tier = availableData?.packageTier || 'free'
   const { data: pkgs } = useQuery({ queryKey: ['packages'], queryFn: () => packageAPI.getAll().then(r => r.data.packages), staleTime: 10 * 60 * 1000 })
   const tierDisplayName = pkgs?.find((p: any) => p.tier === tier)?.name || tier
@@ -187,14 +193,49 @@ export default function LearnerCoursesPage() {
         {/* Available Tab */}
         {tab === 'available' && (
           <>
-            <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl w-fit" style={{
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))',
-              border: '1px solid rgba(99,102,241,0.2)'
-            }}>
-              <Sparkles className="w-4 h-4 text-indigo-400" />
-              <span className="text-sm text-indigo-300 font-bold">{tierDisplayName} Plan</span>
-              <span className="text-xs text-gray-400">— Enroll for free</span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl" style={{
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))',
+                border: '1px solid rgba(99,102,241,0.2)'
+              }}>
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+                <span className="text-sm text-indigo-300 font-bold">{tierDisplayName} Plan</span>
+                <span className="text-xs text-gray-400">— Enroll for free</span>
+              </div>
+              <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm ${
+                enrollStatus.canEnroll
+                  ? 'text-emerald-300'
+                  : 'text-amber-300'
+              }`} style={{
+                background: enrollStatus.canEnroll ? 'rgba(16,185,129,0.10)' : 'rgba(245,158,11,0.10)',
+                border: `1px solid ${enrollStatus.canEnroll ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.30)'}`
+              }}>
+                {enrollStatus.canEnroll ? <Sparkles className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                <span className="font-bold">
+                  {enrollStatus.activeCount}/{enrollStatus.cap} active courses
+                </span>
+                <span className="text-xs opacity-80">
+                  {enrollStatus.canEnroll
+                    ? `${enrollStatus.remainingSlots} slot${enrollStatus.remainingSlots === 1 ? '' : 's'} left`
+                    : 'Slots full'}
+                </span>
+              </div>
             </div>
+
+            {!enrollStatus.canEnroll && (
+              <div className="rounded-xl px-4 py-3 text-xs flex gap-3" style={{
+                background: 'rgba(245,158,11,0.08)',
+                border: '1px solid rgba(245,158,11,0.20)',
+                color: '#fcd34d'
+              }}>
+                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>
+                  Aap ek saath sirf {enrollStatus.cap} non-compulsory courses mein enroll ho sakte hain.
+                  Pehle koi ek course poora karein, fir agla course unlock hoga.
+                  Compulsory courses hamesha free aur automatically enroll hote hain — woh is limit mein nahi aate.
+                </span>
+              </div>
+            )}
 
             {loadingAvail ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -209,7 +250,12 @@ export default function LearnerCoursesPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredAvail.map((course: any) => (
-                  <AvailableCard key={course._id} course={course} onEnroll={() => enrollMutation.mutateAsync(course._id)} />
+                  <AvailableCard
+                    key={course._id}
+                    course={course}
+                    locked={!enrollStatus.canEnroll && !course.isCompulsory}
+                    onEnroll={() => enrollMutation.mutateAsync(course._id)}
+                  />
                 ))}
               </div>
             )}
@@ -307,6 +353,13 @@ function EnrolledCard({ enrollment: e }: { enrollment: any }) {
             {e.course.category}
           </div>
         )}
+        {(e.course?.isCompulsory || e.source === 'compulsory') && !done && (
+          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-lg text-[10px] font-black text-white flex items-center gap-1"
+            style={{ background: 'rgba(245,158,11,0.9)' }}
+            title="Compulsory course — included with your plan">
+            <Pin className="w-2.5 h-2.5" /> Required
+          </div>
+        )}
         <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-xs font-black ${
           done ? 'text-white' : e.progressPercent > 0 ? 'text-white' : 'text-gray-300'
         }`} style={{
@@ -350,7 +403,7 @@ function EnrolledCard({ enrollment: e }: { enrollment: any }) {
   )
 }
 
-function AvailableCard({ course, onEnroll }: { course: any; onEnroll: () => Promise<any> }) {
+function AvailableCard({ course, onEnroll, locked }: { course: any; onEnroll: () => Promise<any>; locked?: boolean }) {
   const [done, setDone] = useState(false)
   const [enrolling, setEnrolling] = useState(false)
 
@@ -362,7 +415,7 @@ function AvailableCard({ course, onEnroll }: { course: any; onEnroll: () => Prom
 
   return (
     <div className="rounded-2xl overflow-hidden flex flex-col transition-all hover:-translate-y-1"
-      style={{ background: 'rgba(13,13,20,0.95)', border: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ background: 'rgba(13,13,20,0.95)', border: '1px solid rgba(255,255,255,0.06)', opacity: locked ? 0.7 : 1 }}
       onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.35)'}
       onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'}>
       <div className="relative aspect-video overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -378,10 +431,17 @@ function AvailableCard({ course, onEnroll }: { course: any; onEnroll: () => Prom
             {course.category}
           </div>
         )}
-        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-xs font-black text-white"
-          style={{ background: 'rgba(139,92,246,0.9)' }}>
-          Free Enroll
-        </div>
+        {course.isCompulsory ? (
+          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-xs font-black text-white flex items-center gap-1"
+            style={{ background: 'rgba(245,158,11,0.95)' }}>
+            <Pin className="w-3 h-3" /> Required
+          </div>
+        ) : (
+          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-xs font-black text-white"
+            style={{ background: 'rgba(139,92,246,0.9)' }}>
+            Free Enroll
+          </div>
+        )}
       </div>
 
       <div className="p-4 flex flex-col flex-1">
@@ -395,6 +455,12 @@ function AvailableCard({ course, onEnroll }: { course: any; onEnroll: () => Prom
           <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border"
             style={{ background: 'rgba(34,197,94,0.1)', color: '#4ade80', borderColor: 'rgba(34,197,94,0.25)' }}>
             <CheckCircle className="w-4 h-4" /> Enrolled! Open Course
+          </div>
+        ) : locked ? (
+          <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border"
+            style={{ background: 'rgba(245,158,11,0.08)', color: '#fcd34d', borderColor: 'rgba(245,158,11,0.25)' }}
+            title="Complete one of your active courses to unlock a new slot.">
+            <Lock className="w-4 h-4" /> Slots full
           </div>
         ) : (
           <button onClick={handle} disabled={enrolling}

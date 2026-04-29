@@ -27,12 +27,12 @@ function PartnerPaywallScreen() {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-white">Unlock Partner Panel</h1>
           <p className="text-gray-400 leading-relaxed">
-            The partner panel is available to enrolled members only. Purchase a package or course to unlock referral earnings, commissions, and more.
+            The partner panel is available to enrolled members only. Purchase a package or course to unlock referral earnings, Partnership earnings, and more.
           </p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-left space-y-3">
           {[
-            'Earn commissions on every referral',
+            'Earn Partnership earnings on every referral',
             'Track your team & downline',
             'Access partner training & resources',
             'Withdraw earnings to your bank',

@@ -107,7 +107,7 @@ export default function SalesLinkGeneratorPage() {
         </div>
         <div className="relative mt-4 pt-4 border-t border-white/10 flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <p className="text-white/50 text-xs">Share this code — buyers get discount, you earn commission</p>
+          <p className="text-white/50 text-xs">Share this code — buyers get discount, you earn Partnership earning</p>
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export default function SalesLinkGeneratorPage() {
       <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-amber-500/8 border border-amber-500/20">
         <Info className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
         <p className="text-amber-200/70 text-xs leading-relaxed">
-          Company-assigned leads will <strong className="text-amber-300">not</strong> earn extra commission through your referral link. Use the <strong className="text-amber-300">New Order</strong> form to register those customers directly.
+          Company-assigned leads will <strong className="text-amber-300">not</strong> earn extra Partnership earning through your referral link. Use the <strong className="text-amber-300">New Order</strong> form to register those customers directly.
         </p>
       </div>
 
@@ -172,7 +172,7 @@ export default function SalesLinkGeneratorPage() {
             <BookOpen className="w-4 h-4 text-indigo-400" />
             <div>
               <p className="font-bold text-white text-sm">Course Referral Links</p>
-              <p className="text-xs text-gray-500">Buyer gets discount — you earn commission on every enrollment</p>
+              <p className="text-xs text-gray-500">Buyer gets discount — you earn Partnership earning on every enrollment</p>
             </div>
           </div>
           <div className="divide-y divide-white/5">
@@ -212,7 +212,7 @@ export default function SalesLinkGeneratorPage() {
             { icon: '📱', tip: 'Share the checkout link on WhatsApp — code is auto-applied, no extra steps for buyer' },
             { icon: '💬', tip: 'Follow up within 24 hours of sharing the link for best conversion rate' },
             { icon: '📋', tip: 'Create a sales order first, then generate a payment link for the customer' },
-            { icon: '💰', tip: 'Higher tier packages earn you more commission — push for Elite or Supreme' },
+            { icon: '💰', tip: 'Higher tier packages earn you more Partnership earning — push for Elite or Supreme' },
             { icon: '📊', tip: 'Track all your leads in the My Leads section and update stages regularly' },
           ].map(({ icon, tip }) => (
             <div key={tip} className="flex items-start gap-3 p-3.5 bg-white/[0.03] rounded-xl border border-white/5 hover:border-white/10 transition-colors">

@@ -62,6 +62,14 @@ export interface IPackage extends Document {
   journeySteps?: { title: string; desc: string }[];
   testimonials?: { name: string; role: string; avatar: string; text: string; rating: number; earning: string }[];
   faqs?: { q: string; a: string }[];
+  // Community join links (admin-editable, package-wise)
+  communityLinks?: {
+    telegramUrl?: string;
+    telegramLabel?: string;
+    whatsappUrl?: string;
+    whatsappLabel?: string;
+    note?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -123,6 +131,13 @@ const PackageSchema = new Schema<IPackage>({
   journeySteps: [{ title: String, desc: String }],
   testimonials: [{ name: String, role: String, avatar: String, text: String, rating: Number, earning: String }],
   faqs: [{ q: String, a: String }],
+  communityLinks: {
+    telegramUrl: { type: String, default: '' },
+    telegramLabel: { type: String, default: '' },
+    whatsappUrl: { type: String, default: '' },
+    whatsappLabel: { type: String, default: '' },
+    note: { type: String, default: '' },
+  },
 }, { timestamps: true });
 
 export default mongoose.model<IPackage>('Package', PackageSchema);
