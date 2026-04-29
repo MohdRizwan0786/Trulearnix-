@@ -4,6 +4,7 @@ import { Providers } from './providers'
 import { Toaster } from 'react-hot-toast'
 import PopupManager from '@/components/popups/PopupManager'
 import PushSetup from '@/components/ui/PushSetup'
+import ChatWidget from '@/components/ChatWidget'
 
 export const metadata: Metadata = {
   title: { default: 'TruLearnix - Learn, Earn & Grow', template: '%s | TruLearnix' },
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#1a1740', color: '#fff', border: '1px solid #6366f1' } }} />
           <PopupManager />
+          <ChatWidget />
         </Providers>
       </body>
     </html>
