@@ -141,9 +141,11 @@ router.get('/available-courses', protect, async (req: any, res) => {
     const enrolledIds = enrolledCourses.map(e => e.course.toString());
 
     const pkgCourseIds = (pkg.courses || []).map((id: any) => id.toString());
+    // Always restrict to courses listed in the package, plus compulsory courses.
+    // `coursesAccess === 'full'` is only honoured when the package has no courses
+    // explicitly listed (legacy "all-access" setup).
     const baseQuery: any = { status: 'published' };
-    if (pkg.coursesAccess !== 'full') {
-      // Limited access: only courses in the package, plus any compulsory courses
+    if (!(pkg.coursesAccess === 'full' && pkgCourseIds.length === 0)) {
       baseQuery.$or = [
         { _id: { $in: pkgCourseIds } },
         { isCompulsory: true },
@@ -175,8 +177,10 @@ router.post('/enroll-free/:courseId', protect, async (req: any, res) => {
     if (!(course as any).isCompulsory) {
       const pkg = await Package.findOne({ tier: user.packageTier, isActive: true }).select('courses coursesAccess');
       if (!pkg) return res.status(403).json({ success: false, message: 'Your package does not include this course' });
-      if (pkg.coursesAccess !== 'full') {
-        const allowed = (pkg.courses || []).some((id: any) => id.toString() === req.params.courseId);
+      const pkgCourseIds = (pkg.courses || []).map((id: any) => id.toString());
+      const fullAndUnscoped = pkg.coursesAccess === 'full' && pkgCourseIds.length === 0;
+      if (!fullAndUnscoped) {
+        const allowed = pkgCourseIds.includes(req.params.courseId);
         if (!allowed) {
           return res.status(403).json({ success: false, message: 'Yeh course aapke package mein include nahi hai' });
         }
