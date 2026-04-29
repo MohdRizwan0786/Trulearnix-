@@ -31,7 +31,7 @@ export default function EarningsToast({ popup, milestone, onClose }: Props) {
   const earnings = user.totalEarnings?.toLocaleString('en-IN')
 
   return (
-    <div className={`fixed bottom-6 right-6 z-[9999] transition-all duration-400 ${visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+    <div className={`fixed bottom-6 left-6 z-[9999] transition-all duration-400 ${visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
       <div className="bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/40 backdrop-blur-xl rounded-2xl p-4 w-80 shadow-2xl shadow-yellow-500/10">
         {/* Close */}
         <button onClick={close} className="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors">
