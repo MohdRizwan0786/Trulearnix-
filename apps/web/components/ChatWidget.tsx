@@ -17,6 +17,10 @@ const HIDE_ON_PREFIXES = [
   '/manager/meeting-room/', '/mentor/meeting-room/', '/sales/meeting-room/',
 ]
 
+// Routes that render a mobile sticky CTA bar at the very bottom — push the
+// chat launcher up on small screens so it does not cover the Buy/Enroll button.
+const STICKY_BOTTOM_CTA_PREFIXES = ['/courses/', '/packages/']
+
 const QUICK_QUESTIONS = [
   'TruLearnix kaise kaam karta hai?',
   'Mujhe kaunsa package lena chahiye?',
@@ -51,6 +55,7 @@ export default function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const shouldHide = HIDE_ON_PREFIXES.some(p => pathname.startsWith(p))
+  const hasStickyCta = STICKY_BOTTOM_CTA_PREFIXES.some(p => pathname.startsWith(p))
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -102,7 +107,7 @@ export default function ChatWidget() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Open chat"
-          className="fixed z-[60] bottom-5 right-5 sm:bottom-6 sm:right-6 group"
+          className={`fixed z-[60] right-5 sm:right-6 group ${hasStickyCta ? 'bottom-24 lg:bottom-6' : 'bottom-5 sm:bottom-6'}`}
         >
           <span className="absolute inset-0 rounded-full animate-ping opacity-50"
             style={{ background: 'rgba(34,197,94,0.5)' }} />

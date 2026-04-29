@@ -182,8 +182,11 @@ const stopClassEgress = async (cls: any) => {
   try {
     const client = getEgressClient();
     await client.stopEgress((cls as any).egressId);
-  } catch (e) {
-    console.warn('stopEgress failed (may already be stopped):', e);
+  } catch (e: any) {
+    // 412 / failed_precondition = egress already EGRESS_COMPLETE; safe to ignore
+    if (e?.status !== 412 && e?.code !== 'failed_precondition') {
+      console.warn('stopEgress failed:', e?.message || e);
+    }
   }
   const fileName = (cls as any).recordingFileName;
   const recordingUrl = `/uploads/recordings/${fileName}`;
