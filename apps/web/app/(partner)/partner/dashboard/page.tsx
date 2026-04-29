@@ -581,7 +581,7 @@ function QuickAction({ href, icon: Icon, label, color, bg }: {
 }
 
 // ─── Date Filter Bar ──────────────────────────────────────────────────────────
-type FilterPeriod = 'today' | '7' | '30' | 'custom'
+type FilterPeriod = 'today' | '7' | '30' | 'all' | 'custom'
 
 function DashDateFilter({ period, setPeriod, from, setFrom, to, setTo }: {
   period: FilterPeriod; setPeriod: (p: FilterPeriod) => void
@@ -592,6 +592,7 @@ function DashDateFilter({ period, setPeriod, from, setFrom, to, setTo }: {
     { key: 'today', label: 'Today' },
     { key: '7', label: '7 Days' },
     { key: '30', label: '30 Days' },
+    { key: 'all', label: 'All Time' },
     { key: 'custom', label: 'Custom' },
   ]
   return (
