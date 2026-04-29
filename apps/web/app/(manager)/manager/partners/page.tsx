@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { managerAPI } from '@/lib/api'
-import { useAllTiers } from '@/lib/tiers'
+import { useAllTiers, usePackages } from '@/lib/tiers'
 import { Search, Users, TrendingUp, IndianRupee, Target, ChevronRight, Loader2, UserCheck, Filter, Phone, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -18,6 +18,7 @@ export default function ManagerPartnersPage() {
   const [tier, setTier]     = useState('')
   const [page, setPage]     = useState(1)
   const { tiers: allTiers } = useAllTiers()
+  const { getName: getPkgName, byTier } = usePackages()
 
   const { data, isLoading } = useQuery({
     queryKey: ['manager-partners', search, tier, page],
@@ -50,7 +51,7 @@ export default function ManagerPartnersPage() {
         <select value={tier} onChange={e => { setTier(e.target.value); setPage(1) }}
           className="bg-dark-800 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/40">
           <option value="">All Tiers</option>
-          {allTiers.map(t => <option key={t} value={t} className="capitalize">{t}</option>)}
+          {allTiers.map(t => <option key={t} value={t}>{getPkgName(t)}</option>)}
         </select>
       </div>
 
@@ -80,8 +81,8 @@ export default function ManagerPartnersPage() {
                     <p className="text-gray-500 text-xs">{p.affiliateCode}</p>
                   </div>
                 </div>
-                <span className={`text-xs px-2.5 py-1 rounded-xl capitalize font-semibold flex items-center gap-1 ${TIER_COLOR[p.packageTier] || TIER_COLOR.free}`}>
-                  {TIER_ICON[p.packageTier]} {p.packageTier}
+                <span className={`text-xs px-2.5 py-1 rounded-xl font-semibold flex items-center gap-1 ${TIER_COLOR[p.packageTier] || TIER_COLOR.free}`}>
+                  {TIER_ICON[p.packageTier]} {getPkgName(p.packageTier)}
                 </span>
               </div>
 
