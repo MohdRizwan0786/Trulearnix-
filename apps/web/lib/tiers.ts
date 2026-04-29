@@ -7,6 +7,8 @@ export interface TierInfo {
   name: string
   displayOrder: number
   price?: number
+  badge?: string
+  features?: string[]
 }
 
 // Module-level cache so all callers share one fetch per session
@@ -26,12 +28,41 @@ export async function fetchTiers(): Promise<TierInfo[]> {
           name: String(p.name || p.tier),
           displayOrder: Number(p.displayOrder || 0),
           price: p.price,
+          badge: p.badge,
+          features: p.features,
         }))
       cached = pkgs
       return pkgs
     })
     .finally(() => { inflight = null })
   return inflight
+}
+
+// Hook: returns the admin-managed package map so any UI can resolve
+// the official name/price/badge for a tier without hardcoding.
+export function usePackages(): {
+  pkgs: TierInfo[]
+  byTier: Record<string, TierInfo>
+  getName: (tier: string | undefined | null) => string
+  getPrice: (tier: string | undefined | null) => number | undefined
+  loading: boolean
+} {
+  const [pkgs, setPkgs] = useState<TierInfo[]>(cached || [])
+  const [loading, setLoading] = useState(!cached)
+  useEffect(() => {
+    let alive = true
+    fetchTiers().then(p => {
+      if (!alive) return
+      setPkgs(p)
+      setLoading(false)
+    }).catch(() => alive && setLoading(false))
+    return () => { alive = false }
+  }, [])
+  const byTier: Record<string, TierInfo> = {}
+  pkgs.forEach(p => { byTier[p.tier] = p })
+  const getName = (t: string | undefined | null) => (t && byTier[t]?.name) || t || ''
+  const getPrice = (t: string | undefined | null) => (t ? byTier[t]?.price : undefined)
+  return { pkgs, byTier, getName, getPrice, loading }
 }
 
 // Returns paid tiers (excludes 'free') in displayOrder.

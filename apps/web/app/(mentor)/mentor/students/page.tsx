@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { Users, Search, GraduationCap, Phone, Mail, BookOpen, Star } from 'lucide-react'
 import { useState, Suspense } from 'react'
 import { format } from 'date-fns'
+import { usePackages } from '@/lib/tiers'
 
 const tierConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
   free:    { label: 'Free',    color: 'text-gray-400',   bg: 'bg-gray-500/10',   border: 'border-gray-500/20'   },
@@ -31,6 +32,7 @@ function StudentsContent() {
     queryFn: () => mentorAPI.courseStudents(selectedCourse).then(r => r.data),
     enabled: !!selectedCourse,
   })
+  const { getName: getPkgName } = usePackages()
 
   const students = (data?.students || []).filter((e: any) =>
     !search ||
@@ -147,7 +149,7 @@ function StudentsContent() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold text-white text-sm">{e.user?.name}</p>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${tierCfg.bg} ${tierCfg.color} ${tierCfg.border}`}>
-                          {tierCfg.label}
+                          {getPkgName(tier)}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-3 mt-1">
