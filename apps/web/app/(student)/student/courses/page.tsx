@@ -46,8 +46,9 @@ export default function LearnerCoursesPage() {
   const tier = availableData?.packageTier || 'free'
   const { data: pkgs } = useQuery({ queryKey: ['packages'], queryFn: () => packageAPI.getAll().then(r => r.data.packages), staleTime: 10 * 60 * 1000 })
   const tierDisplayName = pkgs?.find((p: any) => p.tier === tier)?.name || tier
-  const isPaid = tier !== 'free' || !!(user as any)?.isAffiliate || !!user?.enrollmentCount
-    || enrolledData === undefined || (enrolledData && enrolledData.length > 0)
+  // Available tab is only for users on a paid package — affiliate status alone
+  // does NOT grant package access.
+  const isPaid = tier !== 'free'
   const available: any[] = availableData?.courses || []
 
   const filtered = (enrolledData || []).filter((e: any) => {

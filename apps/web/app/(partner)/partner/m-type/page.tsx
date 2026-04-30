@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { partnerAPI } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
+import { usePackages } from '@/lib/tiers'
 import {
   Users, TrendingUp, Crown, Star, Copy, Check,
   ChevronDown, ChevronUp, Zap, Share2, Network,
@@ -105,6 +106,7 @@ function MTypeSkeleton() {
 
 /* ── Member Card ── */
 function MemberCard({ m }: { m: any }) {
+  const { getName: getPkgName } = usePackages()
   const grad = TIER_GRAD[m.packageTier] || TIER_GRAD.free
   const badge = TIER_BADGE[m.packageTier] || TIER_BADGE.free
   const emoji = TIER_EMOJI[m.packageTier] || TIER_EMOJI.free
@@ -125,8 +127,8 @@ function MemberCard({ m }: { m: any }) {
         <p className="text-white/90 text-xs font-semibold truncate leading-tight group-hover:text-white transition-colors">
           {m.name}
         </p>
-        <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full border capitalize mt-0.5 ${badge}`}>
-          {emoji} {m.packageTier || 'free'}
+        <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full border mt-0.5 ${badge}`}>
+          {emoji} {getPkgName(m.packageTier || 'free')}
         </span>
       </div>
 
@@ -250,6 +252,7 @@ function LevelNode({
 export default function MTypePage() {
   const { user } = useAuthStore()
   const [copied, setCopied] = useState(false)
+  const { getName: getPkgName } = usePackages()
 
   const { data, isLoading } = useQuery({
     queryKey: ['partner-m-type'],
@@ -466,8 +469,8 @@ export default function MTypePage() {
                   <p className="text-white font-black text-lg leading-none">{user?.name}</p>
                   <span className="text-[10px] bg-violet-500/20 border border-violet-500/30 text-violet-400 px-2 py-0.5 rounded-full font-bold">ROOT</span>
                 </div>
-                <p className="text-violet-300/60 text-xs capitalize mb-2">
-                  {user?.packageTier || 'Free'} Plan · Network Root
+                <p className="text-violet-300/60 text-xs mb-2">
+                  {getPkgName(user?.packageTier || 'free')} Plan · Network Root
                 </p>
                 {/* Quick stats */}
                 <div className="flex items-center gap-3">

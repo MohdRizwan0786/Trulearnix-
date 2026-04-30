@@ -8,6 +8,7 @@ import Course from '../models/Course';
 import PlatformSettings from '../models/PlatformSettings';
 import Withdrawal from '../models/Withdrawal';
 import { protect } from '../middleware/auth';
+import { resolvePeriod, periodMatch as buildPeriodMatch } from '../utils/dateRange';
 
 const router = Router();
 
@@ -25,20 +26,11 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
   try {
     const { period, from, to } = req.query as any;
 
-    // Build period date filter for stats
+    // Build period date filter for stats — IST-anchored
     const now = new Date();
-    let periodStart: Date | null = null;
-    let periodEnd: Date | null = null;
-    if (period === 'today') {
-      periodStart = new Date(now); periodStart.setHours(0, 0, 0, 0);
-    } else if (period === '7') {
-      periodStart = new Date(now); periodStart.setDate(periodStart.getDate() - 7);
-    } else if (period === '30') {
-      periodStart = new Date(now); periodStart.setDate(periodStart.getDate() - 30);
-    } else if (period === 'custom' && from && to) {
-      periodStart = new Date(from); periodStart.setHours(0, 0, 0, 0);
-      periodEnd = new Date(to); periodEnd.setHours(23, 59, 59, 999);
-    }
+    const range = resolvePeriod(period, from, to);
+    const periodStart = range.start;
+    const periodEnd = range.end;
 
     const user = await User.findById(req.user._id)
       .select('name avatar affiliateCode wallet totalEarnings totalWithdrawn packageTier commissionRate isAffiliate createdAt upline1 kyc managerName managerPhone managerId industrialEarning industrialEarningSource isIndustrialPartner')
@@ -62,8 +54,13 @@ router.get('/dashboard', protect, affiliateGuard, async (req: any, res) => {
       User.countDocuments({ upline3: req.user._id }),
     ]);
 
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const weekStart = new Date(now); weekStart.setDate(now.getDate() - 7);
+    // IST-anchored "this month" and "last 7 days" boundaries
+    const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+    const istNow = new Date(now.getTime() + IST_OFFSET_MS);
+    const monthStartUTC = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), 1));
+    const monthStart = new Date(monthStartUTC.getTime() - IST_OFFSET_MS);
+    const istToday = new Date(istNow); istToday.setUTCHours(0, 0, 0, 0);
+    const weekStart = new Date(istToday.getTime() - IST_OFFSET_MS - 7 * 24 * 60 * 60 * 1000);
 
     // Period-specific date range for filtered stats
     const periodMatch: any = { earner: req.user._id };
@@ -177,23 +174,9 @@ router.get('/earnings', protect, affiliateGuard, async (req: any, res) => {
   try {
     const { period, from, to } = req.query as any;
 
-    // Build date filter
-    let dateFilter: any = {};
-    const now = new Date();
-    if (period === 'today') {
-      const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
-      dateFilter = { createdAt: { $gte: todayStart } };
-    } else if (period === '7') {
-      const d = new Date(now); d.setDate(d.getDate() - 7);
-      dateFilter = { createdAt: { $gte: d } };
-    } else if (period === '30') {
-      const d = new Date(now); d.setDate(d.getDate() - 30);
-      dateFilter = { createdAt: { $gte: d } };
-    } else if (period === 'custom' && from && to) {
-      const fromDate = new Date(from); fromDate.setHours(0, 0, 0, 0);
-      const toDate = new Date(to); toDate.setHours(23, 59, 59, 999);
-      dateFilter = { createdAt: { $gte: fromDate, $lte: toDate } };
-    }
+    // Build date filter — IST-anchored. 'all' / unknown returns no constraint.
+    const range = resolvePeriod(period, from, to);
+    const dateFilter = buildPeriodMatch(range);
 
     const baseMatch = { earner: req.user._id, ...dateFilter };
 

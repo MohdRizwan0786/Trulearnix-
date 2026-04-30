@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { managerAPI } from '@/lib/api'
+import { usePackages } from '@/lib/tiers'
 import { Trophy, TrendingUp, IndianRupee, Users, Medal, Crown, Loader2, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
@@ -20,6 +21,7 @@ const RANK_STYLE = [
 
 export default function ManagerLeaderboardPage() {
   const [sortBy, setSortBy] = useState<'earnings' | 'referrals'>('earnings')
+  const { getName: getPkgName } = usePackages()
 
   const { data: leaderboard = [], isLoading } = useQuery({
     queryKey: ['manager-leaderboard'],
@@ -118,8 +120,8 @@ export default function ManagerLeaderboardPage() {
                       <p className="text-gray-500 text-xs mt-0.5">{p.affiliateCode}</p>
                     </div>
 
-                    <span className={`text-xs px-2.5 py-1 rounded-xl capitalize font-semibold ${TIER_COLOR[p.packageTier] || TIER_COLOR.free}`}>
-                      {TIER_ICON[p.packageTier]} {p.packageTier}
+                    <span className={`text-xs px-2.5 py-1 rounded-xl font-semibold ${TIER_COLOR[p.packageTier] || TIER_COLOR.free}`}>
+                      {TIER_ICON[p.packageTier]} {getPkgName(p.packageTier)}
                     </span>
 
                     <div className="w-full grid grid-cols-2 gap-2 text-center">
@@ -166,8 +168,8 @@ export default function ManagerLeaderboardPage() {
                     </div>
 
                     {/* Tier */}
-                    <span className={`hidden sm:flex text-xs px-2 py-0.5 rounded-lg capitalize font-semibold items-center gap-1 ${TIER_COLOR[p.packageTier] || TIER_COLOR.free}`}>
-                      {TIER_ICON[p.packageTier]} {p.packageTier}
+                    <span className={`hidden sm:flex text-xs px-2 py-0.5 rounded-lg font-semibold items-center gap-1 ${TIER_COLOR[p.packageTier] || TIER_COLOR.free}`}>
+                      {TIER_ICON[p.packageTier]} {getPkgName(p.packageTier)}
                     </span>
 
                     {/* Stats */}
